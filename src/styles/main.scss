@@ -1,0 +1,10 @@
+@use '@angular/cdk' as cdk;
+@use 'bootstrap/scss/bootstrap';
+@use './theme';
+@use './components';
+
+@include cdk.overlay();
+
+body {
+  min-height: 100vh;
+}

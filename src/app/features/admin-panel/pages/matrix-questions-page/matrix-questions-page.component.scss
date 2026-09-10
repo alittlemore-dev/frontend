@@ -1,0 +1,13 @@
+.btn-group {
+  flex-wrap: wrap;
+}
+
+.table-sm td,
+.table-sm th {
+  vertical-align: middle;
+}
+
+.required-marker {
+  color: var(--bs-danger);
+  font-weight: 700;
+}
