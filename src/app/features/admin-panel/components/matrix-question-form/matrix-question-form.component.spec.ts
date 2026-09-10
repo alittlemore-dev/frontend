@@ -1022,7 +1022,7 @@ describe('MatrixQuestionFormComponent', () => {
       '[data-testid="matrix-question-public-preview"]',
     );
     const ruWikiLink = ruPreview?.querySelector<HTMLAnchorElement>(
-      'a[href="/ru/articles/python-typing"]',
+      'a[href="/ru/competency/articles/python-typing"]',
     );
 
     expect(ruPreview?.textContent).toContain('Как работает typing?');
@@ -1042,7 +1042,7 @@ describe('MatrixQuestionFormComponent', () => {
     expect(enPreview?.textContent).toContain('How does typing work?');
     expect(enPreview?.querySelector('strong')?.textContent).toBe('types');
     expect(
-      enPreview?.querySelector<HTMLAnchorElement>('a[href="/en/articles/python-typing"]')
+      enPreview?.querySelector<HTMLAnchorElement>('a[href="/en/competency/articles/python-typing"]')
         ?.textContent,
     ).toBe('article');
     expect(enPreview?.textContent).toContain('Python docs');

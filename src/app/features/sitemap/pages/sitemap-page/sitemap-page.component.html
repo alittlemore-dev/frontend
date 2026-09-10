@@ -2,10 +2,12 @@
   <h1 class="fw-bold">{{ 'sitemap.title' | t }}</h1>
   <ul class="list-unstyled mt-4">
     <li>
-      <a [routerLink]="['/', language(), 'competency-matrix']">{{ 'shell.nav.matrix' | t }}</a>
+      <a [routerLink]="['/', language(), 'competency', 'matrix']">{{ 'shell.nav.matrix' | t }}</a>
     </li>
     <li>
-      <a [routerLink]="['/', language(), 'articles']">{{ 'shell.nav.articles' | t }}</a>
+      <a [routerLink]="['/', language(), 'competency', 'articles']">{{
+        'shell.nav.articles' | t
+      }}</a>
     </li>
     <li>
       <a [routerLink]="['/', language(), 'updates']">{{ 'shell.footer.updates' | t }}</a>

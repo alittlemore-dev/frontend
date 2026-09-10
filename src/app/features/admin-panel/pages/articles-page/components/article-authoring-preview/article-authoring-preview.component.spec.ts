@@ -44,7 +44,7 @@ describe('ArticleAuthoringPreviewComponent', () => {
 
     expect(text).toContain('Typed articles');
     expect(text).toContain('Angular');
-    expect(link.getAttribute('href')).toBe('/ru/articles/typed-article');
+    expect(link.getAttribute('href')).toBe('/ru/competency/articles/typed-article');
     expect(cover.getAttribute('src')).toBe('https://example.com/cover.jpg');
     expect(cover.getAttribute('alt')).toBe('Cover alt');
   });

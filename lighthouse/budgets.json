@@ -31,7 +31,7 @@
     ]
   },
   {
-    "path": "/ru/articles",
+    "path": "/ru/competency/articles",
     "resourceSizes": [
       {
         "resourceType": "total",
@@ -62,7 +62,7 @@
     ]
   },
   {
-    "path": "/ru/articles/typed-articles",
+    "path": "/ru/competency/articles/typed-articles",
     "resourceSizes": [
       {
         "resourceType": "total",
@@ -93,7 +93,7 @@
     ]
   },
   {
-    "path": "/ru/competency-matrix",
+    "path": "/ru/competency/matrix",
     "resourceSizes": [
       {
         "resourceType": "total",
@@ -124,7 +124,7 @@
     ]
   },
   {
-    "path": "/ru/competency-matrix/questions/how-to-write-function",
+    "path": "/ru/competency/matrix/questions/how-to-write-function",
     "resourceSizes": [
       {
         "resourceType": "total",

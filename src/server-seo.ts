@@ -18,9 +18,10 @@ export interface PublicMatrixQuestionRoute {
 
 export type PublicSeoRoute = PublicSeoArticleRoute | PublicMatrixQuestionRoute;
 
-const PUBLIC_ARTICLE_PATH_PATTERN = /^\/(ru|en)\/articles\/([a-z0-9]+(?:-[a-z0-9]+)*)\/?$/;
+const PUBLIC_ARTICLE_PATH_PATTERN =
+  /^\/(ru|en)\/competency\/articles\/([a-z0-9]+(?:-[a-z0-9]+)*)\/?$/;
 const PUBLIC_MATRIX_QUESTION_PATH_PATTERN =
-  /^\/(ru|en)\/competency-matrix\/questions\/([a-z0-9]+(?:-[a-z0-9]+)*)\/?$/;
+  /^\/(ru|en)\/competency\/matrix\/questions\/([a-z0-9]+(?:-[a-z0-9]+)*)\/?$/;
 
 export function parsePublicSeoPath(pathname: string): PublicSeoRoute | null {
   const articleRoute = parsePublicArticlePath(pathname);
@@ -95,9 +96,9 @@ export function normalizeOrigin(value: string, name: string): string {
 
 function canonicalPath(route: PublicSeoRoute): string {
   if (route.kind === 'article') {
-    return `/${route.language}/articles/${route.slug}`;
+    return `/${route.language}/competency/articles/${route.slug}`;
   }
-  return `/${route.language}/competency-matrix/questions/${route.slug}`;
+  return `/${route.language}/competency/matrix/questions/${route.slug}`;
 }
 
 function escapeHtml(value: string): string {

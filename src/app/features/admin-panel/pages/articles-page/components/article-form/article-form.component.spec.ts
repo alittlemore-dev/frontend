@@ -487,7 +487,7 @@ describe('ArticleFormComponent', () => {
     expect(previewSection().textContent).toContain('Русский предпросмотр');
     expect(previewSection().textContent).toContain('Питон');
     expect(previewSection().querySelector('a')?.getAttribute('href')).toBe(
-      '/ru/articles/typed-article',
+      '/ru/competency/articles/typed-article',
     );
 
     previewLanguageButton('en').click();
@@ -496,7 +496,7 @@ describe('ArticleFormComponent', () => {
     expect(previewSection().textContent).toContain('English preview');
     expect(previewSection().textContent).toContain('Python');
     expect(previewSection().querySelector('a')?.getAttribute('href')).toBe(
-      '/en/articles/typed-article',
+      '/en/competency/articles/typed-article',
     );
 
     clickViewMode('edit');
@@ -1073,7 +1073,7 @@ describe('ArticleFormComponent', () => {
     const text = fixture.nativeElement.textContent as string;
 
     expect(text).toContain('SEO-анализ');
-    expect(text).toContain('/articles/typed-article');
+    expect(text).toContain('/competency/articles/typed-article');
   });
 
   it('warns when typed wiki links point to missing targets', () => {
@@ -1109,7 +1109,7 @@ describe('ArticleFormComponent', () => {
 
     expect(preview.textContent).toContain('Предпросмотр статьи');
     expect(preview.textContent).toContain('типизированную статью');
-    expect(link.getAttribute('href')).toBe('/ru/articles/typed-article');
+    expect(link.getAttribute('href')).toBe('/ru/competency/articles/typed-article');
   });
 
   function elementValue(selector: string): string {

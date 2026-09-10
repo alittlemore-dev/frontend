@@ -262,7 +262,7 @@ describe('AdminArticlesPageComponent', () => {
 
     expect(links).toContain('/admin-panel/articles/typed-articles');
     expect(links).toContain('/admin-panel/articles/draft-article');
-    expect(links).not.toContain('/ru/articles/typed-articles');
+    expect(links).not.toContain('/ru/competency/articles/typed-articles');
   });
 
   it('unpublishes and deletes articles from the admin workspace', () => {

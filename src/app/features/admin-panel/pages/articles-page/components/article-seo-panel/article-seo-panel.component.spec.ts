@@ -22,7 +22,7 @@ describe('ArticleSeoPanelComponent', () => {
 
     expect(text).toContain('SEO-анализ');
     expect(text).toContain('2 предупреждения');
-    expect(text).toContain('/articles/typed-articles');
+    expect(text).toContain('/competency/articles/typed-articles');
     expect(text).toContain('Длина заголовка');
     expect(text).toContain('Теги');
   });
@@ -31,7 +31,7 @@ describe('ArticleSeoPanelComponent', () => {
 function analysis(): ArticleSeoAnalysis {
   return {
     overallStatus: 'warning',
-    canonicalPath: '/articles/typed-articles',
+    canonicalPath: '/competency/articles/typed-articles',
     descriptionPreview:
       'This article explains how typed Angular forms and localized fields work together.',
     goodCount: 1,

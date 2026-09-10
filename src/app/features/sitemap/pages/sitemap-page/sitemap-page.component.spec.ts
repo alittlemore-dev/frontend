@@ -49,7 +49,7 @@ describe('SitemapPageComponent', () => {
     expect(sitemapArticlesService.getPublishedArticles).toHaveBeenCalledWith('ru');
     expect(fixture.nativeElement.textContent).toContain('Опубликованные статьи');
     expect(link.textContent?.trim()).toBe('Typed articles');
-    expect(link.getAttribute('href')).toBe('/ru/articles/typed-articles');
+    expect(link.getAttribute('href')).toBe('/ru/competency/articles/typed-articles');
   });
 
   it('renders a localized link to the site-build case study', () => {

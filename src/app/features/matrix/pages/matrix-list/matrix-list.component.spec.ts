@@ -245,6 +245,24 @@ describe('MatrixListComponent', () => {
     expect(component.selectedSheet()).toEqual(mockSheets[0]);
   });
 
+  it('sets localized canonical and alternate links for the matrix overview', () => {
+    fixture.detectChanges();
+    const document = TestBed.inject(DOCUMENT);
+    const canonical = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+    const alternates = Array.from(
+      document.head.querySelectorAll<HTMLLinkElement>(
+        'link[rel="alternate"][data-managed-by="seo-service"]',
+      ),
+      (link) => [link.hreflang, link.href],
+    );
+
+    expect(canonical?.href).toBe('http://localhost:4200/ru/competency/matrix');
+    expect(alternates).toEqual([
+      ['ru', 'http://localhost:4200/ru/competency/matrix'],
+      ['en', 'http://localhost:4200/en/competency/matrix'],
+    ]);
+  });
+
   it('does not call admin sheet endpoints on public routes', () => {
     fixture.detectChanges();
 
@@ -459,14 +477,14 @@ describe('MatrixListComponent', () => {
     const modal = fixture.nativeElement.querySelector('[role="dialog"]') as HTMLElement;
     const header = modal.querySelector('.modal-header') as HTMLElement | null;
     const link = header?.querySelector(
-      'a[href="/ru/competency-matrix/questions/what-is-a-closure"]',
+      'a[href="/ru/competency/matrix/questions/what-is-a-closure"]',
     ) as HTMLAnchorElement | null;
 
     expect(modal.querySelector('.modal-title')).toBeNull();
     expect(link?.textContent).toContain('К вопросу');
     expect(
       modal.querySelector(
-        '.question-detail a[href="/ru/competency-matrix/questions/what-is-a-closure"]',
+        '.question-detail a[href="/ru/competency/matrix/questions/what-is-a-closure"]',
       ),
     ).toBeNull();
   });

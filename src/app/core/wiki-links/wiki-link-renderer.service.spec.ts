@@ -23,7 +23,7 @@ describe('WikiLinkRendererService', () => {
       'en',
     );
 
-    expect(html).toContain('<a href="/en/articles/typed-articles">typed article</a>');
+    expect(html).toContain('<a href="/en/competency/articles/typed-articles">typed article</a>');
     expect(html).not.toContain('onerror');
     expect(warnSpy).toHaveBeenCalled();
   });

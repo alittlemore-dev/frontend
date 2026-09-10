@@ -41,8 +41,8 @@ export class SiteHeaderComponent {
   readonly isNavOpen = signal(false);
   readonly restoringSession = this.authService.isRestoringSession;
   readonly homeLink = computed(() => localizedPublicHomePath(this.currentLanguage()));
-  readonly matrixLink = computed(() => `/${this.currentLanguage()}/competency-matrix`);
-  readonly articlesLink = computed(() => `/${this.currentLanguage()}/articles`);
+  readonly matrixLink = computed(() => `/${this.currentLanguage()}/competency/matrix`);
+  readonly articlesLink = computed(() => `/${this.currentLanguage()}/competency/articles`);
   readonly adminPanelLink = computed(() => '/admin-panel');
   readonly toggleLabel = computed(() =>
     this.i18n.translate(
@@ -132,6 +132,7 @@ export function rewriteLanguagePrefixedUrl(currentUrl: string, language: Languag
 function isPublicRouteSegment(segment: string | undefined): boolean {
   return (
     segment === undefined ||
+    segment === 'competency' ||
     segment === 'competency-matrix' ||
     segment === 'how-this-site-is-built' ||
     segment === 'articles' ||

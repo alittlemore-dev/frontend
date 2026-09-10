@@ -123,7 +123,7 @@ describe('MatrixQuestionDetailComponent', () => {
     fixture.detectChanges();
 
     expect(
-      el.querySelector('a[href="/ru/competency-matrix/questions/what-is-a-closure"]'),
+      el.querySelector('a[href="/ru/competency/matrix/questions/what-is-a-closure"]'),
     ).toBeNull();
   });
 
@@ -199,7 +199,9 @@ describe('MatrixQuestionDetailComponent', () => {
     fixture.componentRef.setInput('language', 'en');
     fixture.detectChanges();
 
-    const link = el.querySelector<HTMLAnchorElement>('a[href="/en/articles/typed-articles"]');
+    const link = el.querySelector<HTMLAnchorElement>(
+      'a[href="/en/competency/articles/typed-articles"]',
+    );
     expect(link?.textContent).toBe('typed article');
   });
 

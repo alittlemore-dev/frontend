@@ -13,19 +13,34 @@ describe('serverRoutes', () => {
   it('server-renders localized public SEO pages', () => {
     expect(serverRoutes).toEqual(
       expect.arrayContaining([
-        { path: 'ru/articles/:slug', renderMode: RenderMode.Server },
-        { path: 'en/articles/:slug', renderMode: RenderMode.Server },
-        { path: 'ru/competency-matrix/questions/:slug', renderMode: RenderMode.Server },
-        { path: 'en/competency-matrix/questions/:slug', renderMode: RenderMode.Server },
+        { path: 'ru/competency/articles/:slug', renderMode: RenderMode.Server },
+        { path: 'en/competency/articles/:slug', renderMode: RenderMode.Server },
+        { path: 'ru/competency/matrix/questions/:slug', renderMode: RenderMode.Server },
+        { path: 'en/competency/matrix/questions/:slug', renderMode: RenderMode.Server },
         { path: 'ru/how-this-site-is-built', renderMode: RenderMode.Server },
         { path: 'en/how-this-site-is-built', renderMode: RenderMode.Server },
         { path: 'ru/updates', renderMode: RenderMode.Server },
         { path: 'en/updates', renderMode: RenderMode.Server },
       ]),
     );
-    expect(serverRoutes.find((route) => route.path === 'ru/competency-matrix')).toBeUndefined();
-    expect(serverRoutes.find((route) => route.path === 'en/competency-matrix')).toBeUndefined();
+    expect(serverRoutes.find((route) => route.path === 'ru/competency/matrix')).toBeUndefined();
+    expect(serverRoutes.find((route) => route.path === 'en/competency/matrix')).toBeUndefined();
     expect(serverRoutes.find((route) => route.path === 'admin-panel')).toBeUndefined();
+  });
+
+  it('server-renders legacy SEO routes so Angular can redirect them', () => {
+    expect(serverRoutes).toEqual(
+      expect.arrayContaining([
+        { path: 'ru/articles', renderMode: RenderMode.Server },
+        { path: 'en/articles', renderMode: RenderMode.Server },
+        { path: 'ru/articles/:slug', renderMode: RenderMode.Server },
+        { path: 'en/articles/:slug', renderMode: RenderMode.Server },
+        { path: 'ru/competency-matrix', renderMode: RenderMode.Server },
+        { path: 'en/competency-matrix', renderMode: RenderMode.Server },
+        { path: 'ru/competency-matrix/questions/:slug', renderMode: RenderMode.Server },
+        { path: 'en/competency-matrix/questions/:slug', renderMode: RenderMode.Server },
+      ]),
+    );
   });
 
   it('keeps the rest of the Angular app in CSR mode', () => {

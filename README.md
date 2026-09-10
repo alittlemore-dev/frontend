@@ -66,7 +66,7 @@ The image uses:
 - Production dependencies are installed in the runtime stage, then npm/npx and the npm cache are removed from the final image because the server runtime only needs `node`.
 - Explicit runtime environment: `PORT`, `SSR_API_ORIGIN`, `APP_URL_SCHEMA`, `APP_DOMAIN`, and optionally `SSR_PUBLIC_ORIGIN` / `NG_ALLOWED_HOSTS`.
 
-Canonical SEO routes served by the frontend SSR runtime include `/ru/articles/:slug`, `/en/articles/:slug`, `/ru/how-this-site-is-built`, `/en/how-this-site-is-built`, `/ru/updates`, `/en/updates`, `/ru/competency-matrix/questions/:slug`, and `/en/competency-matrix/questions/:slug`. The matrix overview routes remain hydrated Angular pages.
+Canonical SEO routes served by the frontend SSR runtime include `/ru/competency/articles/:slug`, `/en/competency/articles/:slug`, `/ru/how-this-site-is-built`, `/en/how-this-site-is-built`, `/ru/updates`, `/en/updates`, `/ru/competency/matrix/questions/:slug`, and `/en/competency/matrix/questions/:slug`. The matrix overview routes remain hydrated Angular pages. Legacy localized article and matrix routes temporarily redirect to the corresponding `/competency/...` paths.
 
 ## Repository boundary
 

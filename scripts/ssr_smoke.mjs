@@ -9,6 +9,7 @@ try {
   await assertBrowserApiProxy(frontendPort);
   await assertFixtureCover(frontendPort);
   await assertBrowserAnalyticsProxy(frontendPort);
+  await assertLegacyCompetencyRedirects(frontendPort);
   await assertSiteBuildCaseStudyHtml(frontendPort, requests);
   await assertUpdatesHtml(frontendPort, requests);
   await assertPublishedArticleHtml(frontendPort, requests);
@@ -55,9 +56,53 @@ async function assertDiscoveryEndpoints(frontendPort) {
     ],
     ['sitemap canonical route', sitemapText.includes(`${origin}/ru/how-this-site-is-built`)],
     ['sitemap updates route', sitemapText.includes(`${origin}/ru/updates`)],
+    [
+      'sitemap competency article route',
+      sitemapText.includes(`${origin}/ru/competency/articles/typed-articles`),
+    ],
+    [
+      'sitemap competency matrix route',
+      sitemapText.includes(
+        `${origin}/ru/competency/matrix/questions/how-to-write-function`,
+      ),
+    ],
+    ['sitemap excludes legacy article route', !sitemapText.includes(`${origin}/ru/articles/`)],
+    [
+      'sitemap excludes legacy matrix route',
+      !sitemapText.includes(`${origin}/ru/competency-matrix/`),
+    ],
     ['sitemap excludes removed about page', !sitemapText.includes('/about-me')],
   ];
   assertExpected(expected, `${robotsText}\n${sitemapText}`, 'LHCI discovery endpoints');
+}
+
+async function assertLegacyCompetencyRedirects(frontendPort) {
+  const origin = `http://127.0.0.1:${frontendPort}`;
+  const cases = [
+    ['/ru/articles', '/ru/competency/articles'],
+    [
+      '/ru/articles/typed-articles?tag=angular',
+      '/ru/competency/articles/typed-articles?tag=angular',
+    ],
+    ['/en/competency-matrix', '/en/competency/matrix'],
+    [
+      '/en/competency-matrix/questions/how-to-write-function',
+      '/en/competency/matrix/questions/how-to-write-function',
+    ],
+  ];
+
+  for (const [legacyPath, canonicalPath] of cases) {
+    const response = await fetch(`${origin}${legacyPath}`, { redirect: 'manual' });
+    const location = response.headers.get('location');
+    assertExpected(
+      [
+        ['temporary redirect', response.status === 302],
+        ['canonical location', location === canonicalPath],
+      ],
+      `status=${response.status}\nlocation=${location ?? ''}`,
+      `legacy redirect ${legacyPath}`,
+    );
+  }
 }
 
 async function assertBrowserApiProxy(frontendPort) {
@@ -158,14 +203,19 @@ async function assertUpdatesHtml(frontendPort, requests) {
 async function assertPublishedArticleHtml(frontendPort, requests) {
   const requestStart = requests.length;
   const origin = `http://127.0.0.1:${frontendPort}`;
-  const response = await fetch(`${origin}/ru/articles/typed-articles`);
+  const response = await fetch(`${origin}/ru/competency/articles/typed-articles`);
   const html = await response.text();
   const pageRequests = requests.slice(requestStart);
   const expected = [
     ['status 200', response.status === 200],
     ['article title', html.includes('<title>SEO Typed articles RU</title>')],
     ['article body', html.includes('Rendered SSR article body')],
-    ['canonical', html.includes(`href="http://127.0.0.1:${frontendPort}/ru/articles/typed-articles"`)],
+    [
+      'canonical',
+      html.includes(
+        `href="http://127.0.0.1:${frontendPort}/ru/competency/articles/typed-articles"`,
+      ),
+    ],
     ['hreflang ru', html.includes('hreflang="ru"')],
     ['hreflang en', html.includes('hreflang="en"')],
     ['og type article', html.includes('property="og:type" content="article"')],
@@ -179,7 +229,7 @@ async function assertPublishedArticleHtml(frontendPort, requests) {
     ['json-ld headline', html.includes('"headline":"SEO Typed articles RU"')],
     [
       'wiki link to matrix localized',
-      html.includes('href="/ru/competency-matrix/questions/how-to-write-function"'),
+      html.includes('href="/ru/competency/matrix/questions/how-to-write-function"'),
     ],
     ['article code language', html.includes('class="language-ts"')],
     ['article code syntax token', html.includes('class="token keyword">const</span>')],
@@ -193,7 +243,7 @@ async function assertPublishedArticleHtml(frontendPort, requests) {
 async function assertPublishedMatrixQuestionHtml(frontendPort, requests) {
   const requestStart = requests.length;
   const response = await fetch(
-    `http://127.0.0.1:${frontendPort}/ru/competency-matrix/questions/how-to-write-function`,
+    `http://127.0.0.1:${frontendPort}/ru/competency/matrix/questions/how-to-write-function`,
   );
   const html = await response.text();
   const pageRequests = requests.slice(requestStart);
@@ -204,14 +254,17 @@ async function assertPublishedMatrixQuestionHtml(frontendPort, requests) {
     [
       'canonical',
       html.includes(
-        `href="http://127.0.0.1:${frontendPort}/ru/competency-matrix/questions/how-to-write-function"`,
+        `href="http://127.0.0.1:${frontendPort}/ru/competency/matrix/questions/how-to-write-function"`,
       ),
     ],
     ['hreflang ru', html.includes('hreflang="ru"')],
     ['hreflang en', html.includes('hreflang="en"')],
     ['json-ld faq', html.includes('"@type":"FAQPage"')],
     ['json-ld question', html.includes('"name":"Как написать функцию?"')],
-    ['wiki link to article localized', html.includes('href="/ru/articles/typed-articles"')],
+    [
+      'wiki link to article localized',
+      html.includes('href="/ru/competency/articles/typed-articles"'),
+    ],
     ['matrix code language', html.includes('class="language-python"')],
     ['matrix code syntax token', html.includes('class="token keyword">def</span>')],
     ['no noindex on published matrix question', !html.includes('name="robots" content="noindex')],
@@ -231,7 +284,9 @@ async function assertPublishedMatrixQuestionHtml(frontendPort, requests) {
 
 async function assertMissingArticleNoindex(frontendPort, requests) {
   const requestStart = requests.length;
-  const response = await fetch(`http://127.0.0.1:${frontendPort}/ru/articles/missing-article`);
+  const response = await fetch(
+    `http://127.0.0.1:${frontendPort}/ru/competency/articles/missing-article`,
+  );
   const html = await response.text();
   const pageRequests = requests.slice(requestStart);
   const expected = [
@@ -239,7 +294,9 @@ async function assertMissingArticleNoindex(frontendPort, requests) {
     ['noindex', html.includes('<meta name="robots" content="noindex, follow">')],
     [
       'canonical',
-      html.includes(`href="http://127.0.0.1:${frontendPort}/ru/articles/missing-article"`),
+      html.includes(
+        `href="http://127.0.0.1:${frontendPort}/ru/competency/articles/missing-article"`,
+      ),
     ],
     [
       'missing detail preflight',
@@ -254,7 +311,7 @@ async function assertMissingArticleNoindex(frontendPort, requests) {
 async function assertMissingMatrixQuestionNoindex(frontendPort, requests) {
   const requestStart = requests.length;
   const response = await fetch(
-    `http://127.0.0.1:${frontendPort}/ru/competency-matrix/questions/missing-question`,
+    `http://127.0.0.1:${frontendPort}/ru/competency/matrix/questions/missing-question`,
   );
   const html = await response.text();
   const pageRequests = requests.slice(requestStart);
@@ -264,7 +321,7 @@ async function assertMissingMatrixQuestionNoindex(frontendPort, requests) {
     [
       'canonical',
       html.includes(
-        `href="http://127.0.0.1:${frontendPort}/ru/competency-matrix/questions/missing-question"`,
+        `href="http://127.0.0.1:${frontendPort}/ru/competency/matrix/questions/missing-question"`,
       ),
     ],
     [

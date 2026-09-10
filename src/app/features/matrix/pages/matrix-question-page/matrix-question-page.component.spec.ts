@@ -53,7 +53,7 @@ describe('MatrixQuestionPageComponent', () => {
   it('renders a localized back link to the matrix overview', () => {
     fixture.detectChanges();
 
-    const link = el.querySelector<HTMLAnchorElement>('a[href="/ru/competency-matrix"]');
+    const link = el.querySelector<HTMLAnchorElement>('a[href="/ru/competency/matrix"]');
     expect(link?.textContent).toContain('Назад');
   });
 
@@ -63,10 +63,10 @@ describe('MatrixQuestionPageComponent', () => {
     expect(seoService.setMeta).toHaveBeenCalledWith({
       title: 'Что такое замыкание?',
       description: 'Замыкание хранит внешнюю область видимости.',
-      canonicalPath: '/ru/competency-matrix/questions/what-is-a-closure',
+      canonicalPath: '/ru/competency/matrix/questions/what-is-a-closure',
       alternates: [
-        { language: 'ru', path: '/ru/competency-matrix/questions/what-is-a-closure' },
-        { language: 'en', path: '/en/competency-matrix/questions/what-is-a-closure' },
+        { language: 'ru', path: '/ru/competency/matrix/questions/what-is-a-closure' },
+        { language: 'en', path: '/en/competency/matrix/questions/what-is-a-closure' },
       ],
       structuredData: {
         '@context': 'https://schema.org',
@@ -133,7 +133,7 @@ describe('MatrixQuestionPageComponent', () => {
       expect.objectContaining({
         title: 'Вопрос не найден',
         description: 'Вопрос матрицы недоступен или ещё не опубликован.',
-        canonicalPath: '/ru/competency-matrix/questions/what-is-a-closure',
+        canonicalPath: '/ru/competency/matrix/questions/what-is-a-closure',
         robots: 'noindex, follow',
       }),
     );

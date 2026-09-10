@@ -79,10 +79,10 @@ describe('SeoService', () => {
     service.setMeta({
       title: 'Typed articles',
       description: 'Description.',
-      canonicalPath: '/ru/articles/typed-articles',
+      canonicalPath: '/ru/competency/articles/typed-articles',
       alternates: [
-        { language: 'ru', path: '/ru/articles/typed-articles' },
-        { language: 'en', path: '/en/articles/typed-articles' },
+        { language: 'ru', path: '/ru/competency/articles/typed-articles' },
+        { language: 'en', path: '/en/competency/articles/typed-articles' },
       ],
     });
 
@@ -91,8 +91,8 @@ describe('SeoService', () => {
     );
 
     expect(links.map((link) => [link.hreflang, link.href])).toEqual([
-      ['ru', 'http://localhost:4200/ru/articles/typed-articles'],
-      ['en', 'http://localhost:4200/en/articles/typed-articles'],
+      ['ru', 'http://localhost:4200/ru/competency/articles/typed-articles'],
+      ['en', 'http://localhost:4200/en/competency/articles/typed-articles'],
     ]);
   });
 

@@ -110,7 +110,12 @@ describe('SiteHeaderComponent', () => {
         provideRouter([
           {
             path: 'ru',
-            children: [{ path: 'competency-matrix', component: EmptyRouteComponent }],
+            children: [
+              {
+                path: 'competency',
+                children: [{ path: 'matrix', component: EmptyRouteComponent }],
+              },
+            ],
           },
         ]),
         { provide: ThemeService, useValue: mockThemeService },
@@ -144,11 +149,11 @@ describe('SiteHeaderComponent', () => {
   });
 
   it('renders nav link to the localized competency matrix page', () => {
-    expect(fixture.componentInstance.matrixLink()).toBe('/ru/competency-matrix');
+    expect(fixture.componentInstance.matrixLink()).toBe('/ru/competency/matrix');
   });
 
   it('renders nav link to the localized articles page', () => {
-    expect(fixture.componentInstance.articlesLink()).toBe('/ru/articles');
+    expect(fixture.componentInstance.articlesLink()).toBe('/ru/competency/articles');
   });
 
   it('uses responsive containers for collapsed public navigation and actions', () => {
@@ -320,7 +325,9 @@ describe('SiteHeaderComponent', () => {
   });
 
   it('switches language and rewrites the current localized URL', () => {
-    jest.spyOn(router, 'url', 'get').mockReturnValue('/ru/articles/typed-articles?tag=angular');
+    jest
+      .spyOn(router, 'url', 'get')
+      .mockReturnValue('/ru/competency/articles/typed-articles?tag=angular');
     const navigateByUrlSpy = jest.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
     const englishButton = Array.from(el.querySelectorAll('button')).find(
       (button) => button.textContent?.trim() === 'EN',
@@ -329,7 +336,9 @@ describe('SiteHeaderComponent', () => {
     englishButton.click();
 
     expect(mockI18nService.switchLanguage).toHaveBeenCalledWith('en');
-    expect(navigateByUrlSpy).toHaveBeenCalledWith('/en/articles/typed-articles?tag=angular');
+    expect(navigateByUrlSpy).toHaveBeenCalledWith(
+      '/en/competency/articles/typed-articles?tag=angular',
+    );
   });
 
   it('rewrites the site-build case-study URL between localized public routes', () => {
@@ -343,6 +352,9 @@ describe('SiteHeaderComponent', () => {
       '/en/updates?from=footer',
     );
     expect(rewriteLanguagePrefixedUrl('/updates', 'ru')).toBe('/ru/updates');
+    expect(rewriteLanguagePrefixedUrl('/competency/articles/typed-articles', 'ru')).toBe(
+      '/ru/competency/articles/typed-articles',
+    );
     expect(rewriteLanguagePrefixedUrl('/about-me', 'ru')).toBe('/about-me');
   });
 });

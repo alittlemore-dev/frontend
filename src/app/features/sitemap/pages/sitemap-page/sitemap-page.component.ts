@@ -48,7 +48,7 @@ export class SitemapPageComponent implements OnInit {
   readonly publishedArticleLinks = computed<SitemapArticleLink[]>(() =>
     this.publishedArticles().map((article) => ({
       title: article.title,
-      commands: ['/', this.language(), 'articles', article.slug],
+      commands: ['/', this.language(), 'competency', 'articles', article.slug],
     })),
   );
 

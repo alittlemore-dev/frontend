@@ -9,10 +9,10 @@ module.exports = {
       numberOfRuns: 3,
       url: [
         `${LHCI_ORIGIN}/ru/how-this-site-is-built`,
-        `${LHCI_ORIGIN}/ru/articles`,
-        `${LHCI_ORIGIN}/ru/articles/typed-articles`,
-        `${LHCI_ORIGIN}/ru/competency-matrix`,
-        `${LHCI_ORIGIN}/ru/competency-matrix/questions/how-to-write-function`,
+        `${LHCI_ORIGIN}/ru/competency/articles`,
+        `${LHCI_ORIGIN}/ru/competency/articles/typed-articles`,
+        `${LHCI_ORIGIN}/ru/competency/matrix`,
+        `${LHCI_ORIGIN}/ru/competency/matrix/questions/how-to-write-function`,
       ],
       settings: {
         preset: 'desktop',

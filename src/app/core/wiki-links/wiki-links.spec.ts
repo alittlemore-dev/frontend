@@ -34,13 +34,13 @@ describe('wiki links', () => {
       type: 'articles' as const,
       slug: 'typed-articles',
       label: 'Typed article',
-      path: '/en/articles/typed-articles',
+      path: '/en/competency/articles/typed-articles',
     },
     {
       type: 'matrix' as const,
       slug: 'angular-forms',
       label: 'Angular forms',
-      path: '/en/competency-matrix/questions/angular-forms',
+      path: '/en/competency/matrix/questions/angular-forms',
     },
   ])('parses and renders an escaped label separator for $type links', (link) => {
     const markdown = `[[${link.type}:${link.slug}\\|${link.label}]]`;
@@ -103,9 +103,9 @@ describe('wiki links', () => {
       sanitizeHtml,
     );
 
-    expect(html).toContain('<a href="/ru/articles/typed-articles">typed-articles</a>');
+    expect(html).toContain('<a href="/ru/competency/articles/typed-articles">typed-articles</a>');
     expect(html).toContain(
-      '<a href="/ru/competency-matrix/questions/angular-forms">Angular forms</a>',
+      '<a href="/ru/competency/matrix/questions/angular-forms">Angular forms</a>',
     );
   });
 
@@ -116,7 +116,7 @@ describe('wiki links', () => {
       sanitizeHtml,
     );
 
-    expect(html).not.toContain('href="/en/articles/typed-articles"');
+    expect(html).not.toContain('href="/en/competency/articles/typed-articles"');
     expect(html).toContain('[[typed-articles]]');
     expect(html).toContain('[[unknown:slug]]');
   });

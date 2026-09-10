@@ -1,6 +1,6 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { RedirectFunction } from '@angular/router';
+import { RedirectFunction, Router, UrlTree, provideRouter } from '@angular/router';
 import { authGuard } from './core/auth/auth.guard';
 import { I18nService } from './core/i18n/i18n.service';
 import { routes } from './app.routes';
@@ -42,6 +42,54 @@ describe('routes', () => {
     expect(englishRoutes.find((route) => route.path === 'updates')).toBeDefined();
     expect(legacyRoutes).toHaveLength(1);
     expect(legacyRoutes[0]?.loadChildren).toBeDefined();
+  });
+
+  it('registers competency public routes under the shared namespace', () => {
+    const russianRoutes = routes.find((route) => route.path === 'ru')?.children ?? [];
+    const competencyRoutes = russianRoutes.find((route) => route.path === 'competency')?.children;
+
+    expect(competencyRoutes?.find((route) => route.path === 'matrix')?.loadChildren).toBeDefined();
+    expect(
+      competencyRoutes?.find((route) => route.path === 'articles')?.loadChildren,
+    ).toBeDefined();
+  });
+
+  it('redirects legacy competency SEO routes into the shared namespace', () => {
+    const russianRoutes = routes.find((route) => route.path === 'ru')?.children ?? [];
+    TestBed.configureTestingModule({ providers: [provideRouter(routes)] });
+    const router = TestBed.inject(Router);
+
+    const articleRedirect = russianRoutes.find((route) => route.path === 'articles/:slug')
+      ?.redirectTo as RedirectFunction;
+    const articleResult = TestBed.runInInjectionContext(() =>
+      articleRedirect({
+        params: { slug: 'typed-articles' },
+        queryParams: { tag: 'angular' },
+        fragment: 'content',
+      } as Parameters<RedirectFunction>[0]),
+    );
+    expect(router.serializeUrl(articleResult as UrlTree)).toBe(
+      '/ru/competency/articles/typed-articles?tag=angular#content',
+    );
+
+    const matrixRedirect = russianRoutes.find(
+      (route) => route.path === 'competency-matrix/questions/:slug',
+    )?.redirectTo as RedirectFunction;
+    const matrixResult = TestBed.runInInjectionContext(() =>
+      matrixRedirect({
+        params: { slug: 'angular-forms' },
+        queryParams: {},
+        fragment: null,
+      } as Parameters<RedirectFunction>[0]),
+    );
+    expect(router.serializeUrl(matrixResult as UrlTree)).toBe(
+      '/ru/competency/matrix/questions/angular-forms',
+    );
+
+    expect(russianRoutes.find((route) => route.path === 'articles')).toBeDefined();
+    expect(russianRoutes.find((route) => route.path === 'competency-matrix')).toBeDefined();
+    expect(routes.find((route) => route.path === 'articles')).toBeDefined();
+    expect(routes.find((route) => route.path === 'competency-matrix')).toBeDefined();
   });
 
   it('does not register localized or legacy about routes', () => {

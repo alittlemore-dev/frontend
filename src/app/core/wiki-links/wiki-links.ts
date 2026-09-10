@@ -125,9 +125,9 @@ export function wikiLinkPath(
   language: LanguageCode,
 ): string {
   if (type === 'articles') {
-    return `/${language}/articles/${slug}`;
+    return `/${language}/competency/articles/${slug}`;
   }
-  return `/${language}/competency-matrix/questions/${slug}`;
+  return `/${language}/competency/matrix/questions/${slug}`;
 }
 
 function escapeMarkdownLinkLabel(value: string): string {

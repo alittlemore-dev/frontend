@@ -488,7 +488,7 @@ export class ArticlesPageComponent implements OnInit {
   }
 
   private setArticlesListSeo(): void {
-    const path = '/articles';
+    const path = '/competency/articles';
     this.seoService.setTranslatedMeta({
       titleKey: 'articles.seo.title',
       descriptionKey: 'articles.seo.description',
@@ -499,7 +499,7 @@ export class ArticlesPageComponent implements OnInit {
 
   private setArticleDetailSeo(article: ArticleDetail): void {
     const language = this.currentLanguage();
-    const path = `/articles/${article.slug}`;
+    const path = `/competency/articles/${article.slug}`;
     const metadata = article.metadata;
     const seoTitle = localizedMetadataValue(
       language,
@@ -548,11 +548,11 @@ export class ArticlesPageComponent implements OnInit {
   }
 
   private localizedListCommands(): string[] {
-    return ['/', this.currentLanguage(), 'articles'];
+    return ['/', this.currentLanguage(), 'competency', 'articles'];
   }
 
   private localizedArticleCommands(slug: string): string[] {
-    return ['/', this.currentLanguage(), 'articles', slug];
+    return ['/', this.currentLanguage(), 'competency', 'articles', slug];
   }
 
   private readSidePanelPreference(): boolean {

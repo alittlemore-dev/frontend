@@ -2,11 +2,43 @@ import { RenderMode, ServerRoute } from '@angular/ssr';
 
 export const serverRoutes: ServerRoute[] = [
   {
+    path: 'ru/competency/articles/:slug',
+    renderMode: RenderMode.Server,
+  },
+  {
+    path: 'en/competency/articles/:slug',
+    renderMode: RenderMode.Server,
+  },
+  {
+    path: 'ru/competency/matrix/questions/:slug',
+    renderMode: RenderMode.Server,
+  },
+  {
+    path: 'en/competency/matrix/questions/:slug',
+    renderMode: RenderMode.Server,
+  },
+  {
+    path: 'ru/articles',
+    renderMode: RenderMode.Server,
+  },
+  {
+    path: 'en/articles',
+    renderMode: RenderMode.Server,
+  },
+  {
     path: 'ru/articles/:slug',
     renderMode: RenderMode.Server,
   },
   {
     path: 'en/articles/:slug',
+    renderMode: RenderMode.Server,
+  },
+  {
+    path: 'ru/competency-matrix',
+    renderMode: RenderMode.Server,
+  },
+  {
+    path: 'en/competency-matrix',
     renderMode: RenderMode.Server,
   },
   {

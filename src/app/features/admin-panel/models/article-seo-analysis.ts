@@ -73,7 +73,7 @@ export const ARTICLE_SEO_ANALYSIS_RULES: ArticleSeoRules = {
   coverAltMaxLength: 125,
   contentMinWords: 20,
   slugPattern: /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
-  canonicalPathPrefix: '/articles',
+  canonicalPathPrefix: '/competency/articles',
 };
 
 export function analyzeArticleSeo(params: {

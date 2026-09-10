@@ -168,7 +168,7 @@ describe('ArticleDetailComponent', () => {
     const link = fixture.debugElement.query(By.css('.articles-markdown a'))
       .nativeElement as HTMLAnchorElement;
 
-    expect(link.getAttribute('href')).toBe('/en/competency-matrix/questions/how-to-write-function');
+    expect(link.getAttribute('href')).toBe('/en/competency/matrix/questions/how-to-write-function');
     expect(link.textContent).toBe('matrix question');
   });
 

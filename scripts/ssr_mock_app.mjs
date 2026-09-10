@@ -299,6 +299,7 @@ function buildRobotsTxt(origin) {
     + 'Disallow: /updates\n'
     + 'Disallow: /articles\n'
     + 'Disallow: /competency-matrix\n'
+    + 'Disallow: /competency\n'
     + 'Disallow: /sitemap\n'
     + `Sitemap: ${origin}/sitemap.xml\n`
   );
@@ -310,10 +311,10 @@ function buildSitemapXml(origin) {
     '/en/how-this-site-is-built',
     '/ru/updates',
     '/en/updates',
-    '/ru/articles/typed-articles',
-    '/en/articles/typed-articles',
-    '/ru/competency-matrix/questions/how-to-write-function',
-    '/en/competency-matrix/questions/how-to-write-function',
+    '/ru/competency/articles/typed-articles',
+    '/en/competency/articles/typed-articles',
+    '/ru/competency/matrix/questions/how-to-write-function',
+    '/en/competency/matrix/questions/how-to-write-function',
   ];
   const entries = urls
     .map((path) => `  <url>\n    <loc>${origin}${path}</loc>\n  </url>`)

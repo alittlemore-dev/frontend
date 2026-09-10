@@ -135,12 +135,12 @@ describe('ArticlesPageComponent', () => {
       title: 'SEO Typed articles RU',
       description:
         'SEO description RU with enough text to be useful for search snippets and social cards.',
-      canonicalPath: '/ru/articles/typed-articles',
+      canonicalPath: '/ru/competency/articles/typed-articles',
       ogImage: 'https://example.com/cover.jpg',
       ogType: 'article',
       alternates: [
-        { language: 'ru', path: '/ru/articles/typed-articles' },
-        { language: 'en', path: '/en/articles/typed-articles' },
+        { language: 'ru', path: '/ru/competency/articles/typed-articles' },
+        { language: 'en', path: '/en/competency/articles/typed-articles' },
       ],
       structuredData: expect.objectContaining({
         '@context': 'https://schema.org',
@@ -159,7 +159,7 @@ describe('ArticlesPageComponent', () => {
     expect(seoService.setMeta).toHaveBeenCalledWith(
       expect.objectContaining({
         title: 'SEO Typed articles RU',
-        canonicalPath: '/ru/articles/typed-articles',
+        canonicalPath: '/ru/competency/articles/typed-articles',
       }),
     );
   });
@@ -188,7 +188,7 @@ describe('ArticlesPageComponent', () => {
       expect.objectContaining({
         title: 'Typed articles',
         description: 'Excerpt',
-        canonicalPath: '/ru/articles/typed-articles',
+        canonicalPath: '/ru/competency/articles/typed-articles',
       }),
     );
   });
@@ -218,10 +218,10 @@ describe('ArticlesPageComponent', () => {
     expect(seoService.setTranslatedMeta).toHaveBeenCalledWith({
       titleKey: 'articles.seo.title',
       descriptionKey: 'articles.seo.description',
-      canonicalPath: '/ru/articles',
+      canonicalPath: '/ru/competency/articles',
       alternates: [
-        { language: 'ru', path: '/ru/articles' },
-        { language: 'en', path: '/en/articles' },
+        { language: 'ru', path: '/ru/competency/articles' },
+        { language: 'en', path: '/en/competency/articles' },
       ],
     });
   });
@@ -388,7 +388,7 @@ describe('ArticlesPageComponent', () => {
     fixture.componentInstance.setPublishedTo('2026-01-31');
     fixture.componentInstance.applyFilters();
 
-    expect(router.navigate).toHaveBeenCalledWith(['/', 'ru', 'articles'], {
+    expect(router.navigate).toHaveBeenCalledWith(['/', 'ru', 'competency', 'articles'], {
       queryParams: {
         page: 1,
         publishedFrom: '2026-01-01',
@@ -482,7 +482,7 @@ describe('ArticlesPageComponent', () => {
     fixture.componentInstance.applyFilters();
 
     expect(articlesService.getPublicArticles).not.toHaveBeenCalled();
-    expect(router.navigate).toHaveBeenCalledWith(['/', 'ru', 'articles'], {
+    expect(router.navigate).toHaveBeenCalledWith(['/', 'ru', 'competency', 'articles'], {
       queryParams: {
         page: 1,
         searchQuery: 'postgres',
@@ -506,7 +506,7 @@ describe('ArticlesPageComponent', () => {
 
     fixture.componentInstance.changePage(3);
 
-    expect(router.navigate).toHaveBeenCalledWith(['/', 'ru', 'articles'], {
+    expect(router.navigate).toHaveBeenCalledWith(['/', 'ru', 'competency', 'articles'], {
       queryParams: {
         page: 3,
         tag: 'python',
@@ -531,7 +531,7 @@ describe('ArticlesPageComponent', () => {
 
     fixture.componentInstance.clearListFilters();
 
-    expect(router.navigate).toHaveBeenCalledWith(['/', 'ru', 'articles'], {
+    expect(router.navigate).toHaveBeenCalledWith(['/', 'ru', 'competency', 'articles'], {
       queryParams: { page: 1 },
     });
   });

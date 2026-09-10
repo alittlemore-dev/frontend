@@ -155,7 +155,7 @@ export class MatrixListComponent implements OnInit {
     const question = this.selectedQuestion();
     const language = this.i18n.language();
     if (question === null || language === null) return null;
-    return `/${language}/competency-matrix/questions/${question.slug}`;
+    return `/${language}/competency/matrix/questions/${question.slug}`;
   });
 
   private readonly languageReloadEffect = effect(() => {
@@ -172,7 +172,11 @@ export class MatrixListComponent implements OnInit {
     this.seoService.setTranslatedMeta({
       titleKey: 'matrix.seo.title',
       descriptionKey: 'matrix.seo.description',
-      canonicalPath: '/competency-matrix',
+      canonicalPath: `/${this.currentLanguage()}/competency/matrix`,
+      alternates: [
+        { language: 'ru', path: '/ru/competency/matrix' },
+        { language: 'en', path: '/en/competency/matrix' },
+      ],
     });
     this.loadSheets();
   }

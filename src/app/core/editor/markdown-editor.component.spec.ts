@@ -1253,7 +1253,9 @@ describe('MarkdownEditorComponent', () => {
 
     const preview = query<HTMLElement>('[data-testid="markdown-editor-preview-content"]');
     expect(preview.querySelector('strong')?.textContent).toBe('Safe');
-    expect(preview.querySelector('a')?.getAttribute('href')).toBe('/ru/articles/example');
+    expect(preview.querySelector('a')?.getAttribute('href')).toBe(
+      '/ru/competency/articles/example',
+    );
     expect(preview.querySelector('code .token.keyword')?.textContent).toBe('const');
     expect(preview.innerHTML).not.toContain('<script');
     expect(preview.innerHTML).not.toContain('onerror');
@@ -1285,7 +1287,11 @@ describe('MarkdownEditorComponent', () => {
 
     expect(wikiClick.defaultPrevented).toBe(true);
     expect(ordinaryClick.defaultPrevented).toBe(false);
-    expect(open).toHaveBeenCalledWith('/ru/articles/example', '_blank', 'noopener,noreferrer');
+    expect(open).toHaveBeenCalledWith(
+      '/ru/competency/articles/example',
+      '_blank',
+      'noopener,noreferrer',
+    );
     open.mockRestore();
   });
 

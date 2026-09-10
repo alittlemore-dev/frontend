@@ -2,17 +2,17 @@ import { buildPublicNotFoundHtml, buildPublicSeoApiUrl, parsePublicSeoPath } fro
 
 describe('server SEO helpers', () => {
   it('parses language-prefixed public SEO URLs', () => {
-    expect(parsePublicSeoPath('/ru/articles/typed-articles')).toEqual({
+    expect(parsePublicSeoPath('/ru/competency/articles/typed-articles')).toEqual({
       kind: 'article',
       language: 'ru',
       slug: 'typed-articles',
     });
-    expect(parsePublicSeoPath('/en/articles/angular-ssr')).toEqual({
+    expect(parsePublicSeoPath('/en/competency/articles/angular-ssr')).toEqual({
       kind: 'article',
       language: 'en',
       slug: 'angular-ssr',
     });
-    expect(parsePublicSeoPath('/ru/competency-matrix/questions/how-to-write-function')).toEqual({
+    expect(parsePublicSeoPath('/ru/competency/matrix/questions/how-to-write-function')).toEqual({
       kind: 'matrixQuestion',
       language: 'ru',
       slug: 'how-to-write-function',
@@ -21,11 +21,13 @@ describe('server SEO helpers', () => {
 
   it('ignores non-public SEO URLs', () => {
     expect(parsePublicSeoPath('/articles/typed-articles')).toBeNull();
+    expect(parsePublicSeoPath('/ru/articles/typed-articles')).toBeNull();
     expect(parsePublicSeoPath('/ru/articles')).toBeNull();
+    expect(parsePublicSeoPath('/ru/competency-matrix/questions/typed-question')).toBeNull();
     expect(parsePublicSeoPath('/ru/competency-matrix')).toBeNull();
     expect(parsePublicSeoPath('/ru/admin/articles/typed-articles')).toBeNull();
     expect(parsePublicSeoPath('/de/articles/typed-articles')).toBeNull();
-    expect(parsePublicSeoPath('/en/competency-matrix/questions/InvalidSlug')).toBeNull();
+    expect(parsePublicSeoPath('/en/competency/matrix/questions/InvalidSlug')).toBeNull();
   });
 
   it('builds public article API URL with explicit language only', () => {
@@ -67,12 +69,12 @@ describe('server SEO helpers', () => {
     expect(articleHtml).toContain('<title>Article not found</title>');
     expect(articleHtml).toContain('<meta name="robots" content="noindex, follow">');
     expect(articleHtml).toContain(
-      '<link rel="canonical" href="https://example.com/en/articles/missing-article">',
+      '<link rel="canonical" href="https://example.com/en/competency/articles/missing-article">',
     );
     expect(matrixHtml).toContain('<title>Matrix question not found</title>');
     expect(matrixHtml).toContain('<meta name="robots" content="noindex, follow">');
     expect(matrixHtml).toContain(
-      '<link rel="canonical" href="https://example.com/ru/competency-matrix/questions/missing-question">',
+      '<link rel="canonical" href="https://example.com/ru/competency/matrix/questions/missing-question">',
     );
   });
 });

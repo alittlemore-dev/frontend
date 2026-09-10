@@ -79,6 +79,8 @@ describe('SiteCaseStudyPageComponent', () => {
     expect(pageText).toContain('Manifest-driven deploy env');
     expect(sourceLink).not.toBeNull();
     expect(sourceLink?.getAttribute('rel')).toBe('noopener noreferrer');
+    expect(fixture.componentInstance.matrixLink()).toBe('/ru/competency/matrix');
+    expect(fixture.componentInstance.articlesLink()).toBe('/ru/competency/articles');
   });
 
   it('serves the hero logo with responsive and LCP-friendly image hints', () => {

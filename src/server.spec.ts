@@ -113,7 +113,9 @@ describe('SSR Express server', () => {
         server.listen(0, '127.0.0.1', resolve);
       });
       const address = server.address() as AddressInfo;
-      const response = await request(`http://127.0.0.1:${address.port}/ru/articles/typed-articles`);
+      const response = await request(
+        `http://127.0.0.1:${address.port}/ru/competency/articles/typed-articles`,
+      );
       const stderrOutput = stderrWrite.mock.calls.map(([chunk]) => String(chunk)).join('\n');
 
       expect(response.status).toBe(200);

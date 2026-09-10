@@ -247,7 +247,7 @@ describe('MatrixQuestionsPageComponent', () => {
 
     expect(links).toContain(`/admin-panel/matrix-questions/${QUESTION_ID}`);
     expect(links).toContain(`/admin-panel/matrix-questions/${READY_QUESTION_ID}`);
-    expect(links).not.toContain('/ru/competency-matrix/questions/ready-question');
+    expect(links).not.toContain('/ru/competency/matrix/questions/ready-question');
   });
 
   it('applies and resets filters', () => {

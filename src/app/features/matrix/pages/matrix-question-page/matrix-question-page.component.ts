@@ -54,7 +54,7 @@ export class MatrixQuestionPageComponent implements OnInit {
   readonly matrixOverviewLink = computed<string | null>(() => {
     const language = this.i18n.language();
     if (language === null) return null;
-    return `/${language}/competency-matrix`;
+    return `/${language}/competency/matrix`;
   });
 
   ngOnInit(): void {
@@ -96,7 +96,7 @@ export class MatrixQuestionPageComponent implements OnInit {
   }
 
   private setQuestionSeo(question: MatrixQuestionDetail, language: LanguageCode): void {
-    const path = `/competency-matrix/questions/${question.slug}`;
+    const path = `/competency/matrix/questions/${question.slug}`;
     const answerText = plainTextFromMarkdown(question.answer);
     this.seoService.setMeta({
       title: question.question,
@@ -111,7 +111,7 @@ export class MatrixQuestionPageComponent implements OnInit {
   }
 
   private setNotFoundSeo(slug: string, language: LanguageCode): void {
-    const path = `/competency-matrix/questions/${slug}`;
+    const path = `/competency/matrix/questions/${slug}`;
     this.seoService.setMeta({
       title: this.i18n.translate('matrix.question.notFoundTitle'),
       description: this.i18n.translate('matrix.question.notFoundDescription'),

@@ -55,16 +55,16 @@ describe('appConfig HTTP transfer cache filter', () => {
 describe('appConfig auth startup', () => {
   it('skips auth restore probes for anonymous public visits', () => {
     expect(authStartupMode('/ru/how-this-site-is-built', false)).toBe('skip');
-    expect(authStartupMode('/en/articles/typed-articles', false)).toBe('skip');
-    expect(authStartupMode('/ru/competency-matrix', false)).toBe('skip');
-    expect(authStartupMode('/ru/competency-matrix/questions/how-to-write-function', false)).toBe(
+    expect(authStartupMode('/en/competency/articles/typed-articles', false)).toBe('skip');
+    expect(authStartupMode('/ru/competency/matrix', false)).toBe('skip');
+    expect(authStartupMode('/ru/competency/matrix/questions/how-to-write-function', false)).toBe(
       'skip',
     );
   });
 
   it('restores a known session after the first public render', () => {
     expect(authStartupMode('/ru/how-this-site-is-built', true)).toBe('after-render');
-    expect(authStartupMode('/en/articles/typed-articles', true)).toBe('after-render');
+    expect(authStartupMode('/en/competency/articles/typed-articles', true)).toBe('after-render');
   });
 
   it('blocks protected admin startup until auth restoration completes', () => {
