@@ -1,8 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
-import {
-  FoldableTreeComponent,
-  FoldableTreeSection,
-} from '../../../../../../shared/ui/foldable-tree/foldable-tree.component';
+import { FoldableTreeComponent, FoldableTreeSection } from '@alittlemore.dev/design-system';
 import { I18nService } from '../../../../../../core/i18n/i18n.service';
 import { TranslatePipe } from '../../../../../../core/i18n/translate.pipe';
 import { ArticleTree } from '../../../../models/articles.model';

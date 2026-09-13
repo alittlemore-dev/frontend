@@ -1,7 +1,7 @@
 @if (loading()) {
-  <app-loading-spinner [ariaLabel]="'shared.loading' | t" />
+  <ds-loading-spinner [ariaLabel]="'shared.loading' | t" />
 } @else if (error()) {
-  <app-error-message [error]="error()!" [retryLabel]="'shared.retry' | t" />
+  <ds-error-message [error]="error()!" [retryLabel]="'shared.retry' | t" />
 } @else if (question()) {
   <div class="question-detail">
     <h2 class="h5">{{ 'matrix.detail.question' | t }}</h2>

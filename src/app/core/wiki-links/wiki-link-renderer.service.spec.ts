@@ -16,8 +16,6 @@ describe('WikiLinkRendererService', () => {
   });
 
   it('renders typed wiki links as sanitized localized internal links', () => {
-    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
-
     const html = service.render(
       'Read <img src=x onerror="alert(1)"> and [[articles:typed-articles|typed article]].',
       'en',
@@ -25,12 +23,9 @@ describe('WikiLinkRendererService', () => {
 
     expect(html).toContain('<a href="/en/competency/articles/typed-articles">typed article</a>');
     expect(html).not.toContain('onerror');
-    expect(warnSpy).toHaveBeenCalled();
   });
 
   it('strips script tags, event handlers, and executable URL schemes from rendered markdown', () => {
-    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
-
     const html = service.render(
       [
         'Text before.',
@@ -46,7 +41,7 @@ describe('WikiLinkRendererService', () => {
     expect(html).not.toContain('alert("script")');
     expect(html).not.toContain('onerror');
     expect(html).not.toMatch(/href=["']javascript:/i);
-    expect(html).toContain('bad link');
-    expect(warnSpy).toHaveBeenCalled();
+    expect(html).toContain('Text before.');
+    expect(html).not.toContain('bad link');
   });
 });

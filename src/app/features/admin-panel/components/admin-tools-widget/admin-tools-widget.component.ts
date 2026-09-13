@@ -12,8 +12,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { I18nService } from '../../../../core/i18n/i18n.service';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
 import { ApiError } from '../../../../core/models/api-error.model';
-import { NotificationService } from '../../../../core/notifications/notification.service';
-import { formatLocalizedDate } from '../../../../shared/utils/localized-date';
+import { NotificationService, formatLocalizedDate } from '@alittlemore.dev/design-system';
+
 import {
   AdminCacheStatus,
   AuthSessionsStatus,

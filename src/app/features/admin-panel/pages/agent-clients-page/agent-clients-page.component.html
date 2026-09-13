@@ -53,15 +53,15 @@
 }
 
 @if (loading()) {
-  <app-loading-spinner [ariaLabel]="'shared.loading' | t" />
+  <ds-loading-spinner [ariaLabel]="'shared.loading' | t" />
 } @else if (loadError()) {
-  <app-error-message
+  <ds-error-message
     [error]="loadError()!"
     [retryLabel]="'shared.retry' | t"
     (retry)="loadClients()"
   />
 } @else if (!hasClients()) {
-  <app-empty-state [message]="'adminAgentClients.empty' | t" />
+  <ds-empty-state [message]="'adminAgentClients.empty' | t" />
 } @else {
   <div class="vstack gap-3">
     @for (client of clients(); track client.id) {
@@ -138,7 +138,7 @@
 @if (registrationOpen()) {
   <div
     class="modal d-block bg-dark bg-opacity-50"
-    [appModalScroll]="registrationScrollArea"
+    [dsModalScroll]="registrationScrollArea"
     role="dialog"
     aria-modal="true"
     [attr.aria-label]="'adminAgentClients.registerTitle' | t"
@@ -340,7 +340,7 @@
 @if (auditClient(); as client) {
   <div
     class="modal d-block bg-dark bg-opacity-50"
-    [appModalScroll]="auditScrollArea"
+    [dsModalScroll]="auditScrollArea"
     role="dialog"
     aria-modal="true"
     [attr.aria-label]="'adminAgentClients.auditTitle' | t"
@@ -362,7 +362,7 @@
           <p class="text-body-secondary">{{ 'adminAgentClients.auditPrivacy' | t }}</p>
           @if (auditLoading()) {
             <div data-testid="agent-audit-initial-loading">
-              <app-loading-spinner [ariaLabel]="'adminAgentClients.auditLoading' | t" />
+              <ds-loading-spinner [ariaLabel]="'adminAgentClients.auditLoading' | t" />
               <p class="text-center text-body-secondary">
                 {{ 'adminAgentClients.auditLoading' | t }}
               </p>
@@ -381,7 +381,7 @@
             </div>
           } @else if (auditEvents().length === 0) {
             <div data-testid="agent-audit-empty">
-              <app-empty-state [message]="'adminAgentClients.auditEmpty' | t" />
+              <ds-empty-state [message]="'adminAgentClients.auditEmpty' | t" />
             </div>
           } @else {
             <div class="table-responsive">

@@ -28,11 +28,11 @@
 </div>
 
 @if (loading()) {
-  <app-loading-spinner [ariaLabel]="'shared.loading' | t" />
+  <ds-loading-spinner [ariaLabel]="'shared.loading' | t" />
 } @else if (error()) {
-  <app-error-message [error]="error()!" [retryLabel]="'shared.retry' | t" (retry)="loadFolders()" />
+  <ds-error-message [error]="error()!" [retryLabel]="'shared.retry' | t" (retry)="loadFolders()" />
 } @else if (isEmpty()) {
-  <app-empty-state [message]="'articles.folders.empty' | t" />
+  <ds-empty-state [message]="'articles.folders.empty' | t" />
 } @else {
   <div
     class="article-folder-list list-group"
@@ -64,7 +64,7 @@
 @if (createDialogOpen()) {
   <div
     class="modal d-block bg-dark bg-opacity-50"
-    [appModalScroll]="folderScrollArea"
+    [dsModalScroll]="folderScrollArea"
     role="dialog"
     aria-modal="true"
     data-testid="article-folders-create-dialog"
@@ -98,7 +98,7 @@
         </div>
         <div #folderScrollArea class="modal-body">
           @if (createError()) {
-            <app-error-message
+            <ds-error-message
               [error]="createError()!"
               [retryLabel]="'shared.retry' | t"
               (retry)="retryCreateFolder()"

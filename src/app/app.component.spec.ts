@@ -4,8 +4,8 @@ import { Router, provideRouter } from '@angular/router';
 import { AppComponent } from './app.component';
 import { AuthService } from './core/auth/auth.service';
 import { AuthModalService } from './core/auth/auth-modal.service';
-import { ThemeService } from './core/layout/theme.service';
-import { NotificationService } from './core/notifications/notification.service';
+import { ThemeService, NotificationService } from '@alittlemore.dev/design-system';
+
 import { ConsentService } from './core/privacy/consent.service';
 import { I18nService } from './core/i18n/i18n.service';
 
@@ -115,7 +115,16 @@ describe('AppComponent', () => {
   });
 
   it('renders global notification area', () => {
-    expect(fixture.nativeElement.querySelector('app-notification-area')).not.toBeNull();
+    TestBed.inject(NotificationService).notifications.set([
+      { id: 1, type: 'success', message: 'Saved' },
+    ]);
+    fixture.detectChanges();
+    const close = fixture.nativeElement.querySelector(
+      'ds-notification-area button',
+    ) as HTMLButtonElement;
+    expect(close.getAttribute('aria-label')).toBe('shared.close');
+    close.click();
+    expect(TestBed.inject(NotificationService).dismiss).toHaveBeenCalledWith(1);
   });
 
   it('renders cookie consent banner host', () => {

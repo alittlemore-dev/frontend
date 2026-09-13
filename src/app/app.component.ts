@@ -6,7 +6,7 @@ import { AuthModalService } from './core/auth/auth-modal.service';
 import { I18nService } from './core/i18n/i18n.service';
 import { LoginPageComponent } from './features/auth/pages/login-page/login-page.component';
 import { CookieConsentBannerComponent } from './features/shell/components/cookie-consent-banner/cookie-consent-banner.component';
-import { NotificationAreaComponent } from './features/shell/components/notification-area/notification-area.component';
+import { NotificationAreaComponent } from '@alittlemore.dev/design-system';
 import { SiteFooterComponent } from './features/shell/components/site-footer/site-footer.component';
 import { SiteHeaderComponent } from './features/shell/components/site-header/site-header.component';
 
@@ -40,7 +40,7 @@ import { SiteHeaderComponent } from './features/shell/components/site-header/sit
         @if (!isAdminPanelRoute()) {
           <app-site-header />
         }
-        <app-notification-area />
+        <ds-notification-area [closeLabel]="i18n.translate('shared.close')" />
         <router-outlet />
         @if (!isAdminPanelRoute()) {
           <app-site-footer class="mt-auto" />

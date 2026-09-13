@@ -9,7 +9,7 @@ import {
 import { BehaviorSubject, of, throwError } from 'rxjs';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { I18nService } from '../../../../core/i18n/i18n.service';
-import { NotificationService } from '../../../../core/notifications/notification.service';
+import { NotificationService } from '@alittlemore.dev/design-system';
 import { AnonymousReactionService } from '../../../../core/privacy/anonymous-reaction.service';
 import { SeoService } from '../../../../core/seo/seo.service';
 import { provideI18nTesting } from '../../../../testing/i18n-testing';
@@ -370,13 +370,16 @@ describe('ArticlesPageComponent', () => {
     expect(to.type).toBe('text');
     expect(from.placeholder).toBe('дд.мм.гггг');
     expect(to.placeholder).toBe('дд.мм.гггг');
-    expect(fixture.nativeElement.querySelector('[data-testid="date-picker-toggle"]')).toBeTruthy();
-    expect(from.title).toBe('Формат даты: ДД.ММ.ГГГГ');
-    expect(to.title).toBe('Формат даты: ДД.ММ.ГГГГ');
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="temporal-picker-field-trigger"]'),
+    ).toBeTruthy();
+    expect(document.getElementById(from.getAttribute('aria-describedby')!)?.textContent).toContain(
+      'Формат даты: ДД.ММ.ГГГГ',
+    );
     expect(document.getElementById(from.getAttribute('aria-describedby')!)).not.toBeNull();
     expect(document.getElementById(to.getAttribute('aria-describedby')!)).not.toBeNull();
 
-    fixture.nativeElement.querySelector('[data-testid="date-picker-toggle"]').click();
+    fixture.nativeElement.querySelector('[data-testid="temporal-picker-field-trigger"]').click();
     fixture.detectChanges();
 
     const monthYearToggle = fixture.nativeElement.querySelector(
@@ -403,6 +406,39 @@ describe('ArticlesPageComponent', () => {
     expect(to.value).toBe('01/31/2026');
     expect(from.placeholder).toBe('mm/dd/yyyy');
     expect(to.placeholder).toBe('mm/dd/yyyy');
+  });
+
+  it('commits calendar drafts only on Done and clears optional dates from query params', () => {
+    paramMap.next(convertToParamMap({}));
+    fixture.detectChanges();
+    fixture.componentInstance.setPublishedFrom('2026-01-01');
+    fixture.detectChanges();
+    const picker = fixture.nativeElement.querySelector('ds-localized-date-picker') as HTMLElement;
+    const click = (selector: string): void => {
+      (picker.querySelector(selector) as HTMLButtonElement).click();
+      fixture.detectChanges();
+    };
+
+    click('button[aria-haspopup="dialog"]');
+    click('[data-date="2026-01-15"]');
+    expect(fixture.componentInstance.publishedFrom()).toBe('2026-01-01');
+    click('[data-testid="date-picker-cancel"]');
+    expect(fixture.componentInstance.publishedFrom()).toBe('2026-01-01');
+
+    click('button[aria-haspopup="dialog"]');
+    click('[data-date="2026-01-15"]');
+    click('[data-testid="date-picker-done"]');
+    expect(fixture.componentInstance.publishedFrom()).toBe('2026-01-15');
+
+    click('button[aria-haspopup="dialog"]');
+    click('[data-testid="date-picker-clear"]');
+    click('[data-testid="date-picker-done"]');
+    expect(fixture.componentInstance.publishedFrom()).toBe('');
+    router.navigate.mockClear();
+    fixture.componentInstance.applyFilters();
+    expect(router.navigate).toHaveBeenCalledWith(['/', 'ru', 'competency', 'articles'], {
+      queryParams: { page: 1 },
+    });
   });
 
   it('does not apply public article filters while a date picker contains invalid manual input', () => {

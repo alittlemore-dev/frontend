@@ -11,13 +11,13 @@ import {
   MatrixQuestionList,
   MatrixSheet,
 } from '../../models/matrix-question.model';
-import { NotificationService } from '../../../../core/notifications/notification.service';
+import { NotificationService } from '@alittlemore.dev/design-system';
 import {
   chooseSiteSelectOption,
   siteSelectOptionValues,
   siteSelectTrigger,
   siteSelectValue,
-} from '../../../../testing/site-select-testing';
+} from '@alittlemore.dev/design-system/testing';
 
 const mockSheets: MatrixSheet[] = [
   { key: 'javascript', name: 'JavaScript' },
@@ -212,14 +212,14 @@ describe('MatrixListComponent', () => {
     component.loading.set(true);
     component.error.set(null);
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('app-loading-spinner')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('ds-loading-spinner')).toBeTruthy();
   });
 
   it('should not show spinner when not loading', () => {
     fixture.detectChanges();
     component.loading.set(false);
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('app-loading-spinner')).toBeFalsy();
+    expect(fixture.nativeElement.querySelector('ds-loading-spinner')).toBeFalsy();
   });
 
   it('should show error message when error is set', () => {
@@ -227,7 +227,7 @@ describe('MatrixListComponent', () => {
     component.loading.set(false);
     component.error.set(mockError);
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('app-error-message')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('ds-error-message')).toBeTruthy();
   });
 
   it('should show empty state when no questions match filter', () => {
@@ -236,7 +236,7 @@ describe('MatrixListComponent', () => {
     component.error.set(null);
     component.questions.set({ sheetKey: 'javascript', sheet: 'JavaScript', sections: [] });
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('app-empty-state')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('ds-empty-state')).toBeTruthy();
   });
 
   it('should load sheets on init and auto-select first sheet', () => {
@@ -434,9 +434,9 @@ describe('MatrixListComponent', () => {
     fixture = TestBed.createComponent(MatrixListComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('app-loading-spinner')).toBeFalsy();
+    expect(fixture.nativeElement.querySelector('ds-loading-spinner')).toBeFalsy();
     expect(fixture.nativeElement.querySelector('app-matrix-readonly-sheet-tabs')).toBeFalsy();
-    expect(fixture.nativeElement.querySelector('app-empty-state')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('ds-empty-state')).toBeTruthy();
   });
 
   it('should show error when getSheets fails', () => {
@@ -445,8 +445,8 @@ describe('MatrixListComponent', () => {
     fixture = TestBed.createComponent(MatrixListComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('app-error-message')).toBeTruthy();
-    expect(fixture.nativeElement.querySelector('app-loading-spinner')).toBeFalsy();
+    expect(fixture.nativeElement.querySelector('ds-error-message')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('ds-loading-spinner')).toBeFalsy();
   });
 
   it('should open detail modal when openDetail is called', () => {
@@ -497,7 +497,7 @@ describe('MatrixListComponent', () => {
     fixture.detectChanges();
     const modal = fixture.nativeElement.querySelector('[role="dialog"]');
     expect(modal).toBeTruthy();
-    expect(modal.querySelector('app-loading-spinner')).toBeTruthy();
+    expect(modal.querySelector('ds-loading-spinner')).toBeTruthy();
   });
 
   it('should set selectedQuestion after detail loads', () => {
@@ -506,7 +506,7 @@ describe('MatrixListComponent', () => {
     fixture.detectChanges();
     const modal = fixture.nativeElement.querySelector('[role="dialog"]');
     expect(modal).toBeTruthy();
-    expect(modal.querySelector('app-loading-spinner')).toBeFalsy();
+    expect(modal.querySelector('ds-loading-spinner')).toBeFalsy();
     expect(modal.querySelector('app-matrix-question-detail .question-detail')).toBeTruthy();
   });
 
@@ -517,8 +517,8 @@ describe('MatrixListComponent', () => {
     fixture.detectChanges();
     const modal = fixture.nativeElement.querySelector('[role="dialog"]');
     expect(modal).toBeTruthy();
-    expect(modal.querySelector('app-error-message')).toBeTruthy();
-    expect(modal.querySelector('app-loading-spinner')).toBeFalsy();
+    expect(modal.querySelector('ds-error-message')).toBeTruthy();
+    expect(modal.querySelector('ds-loading-spinner')).toBeFalsy();
   });
 
   it('should hide modal and clear question when closeDetail is called', () => {

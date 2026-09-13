@@ -1,7 +1,7 @@
 @if (loading()) {
-  <app-loading-spinner [ariaLabel]="'shared.loading' | t" />
+  <ds-loading-spinner [ariaLabel]="'shared.loading' | t" />
 } @else if (error()) {
-  <app-error-message [error]="error()!" [retryLabel]="'shared.retry' | t" />
+  <ds-error-message [error]="error()!" [retryLabel]="'shared.retry' | t" />
 } @else if (article()) {
   <article>
     <div class="d-flex justify-content-between align-items-start gap-3 mb-4 pb-3 border-bottom">

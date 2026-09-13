@@ -4,12 +4,12 @@ import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angul
 import { BehaviorSubject, of, throwError } from 'rxjs';
 import { AccountInfo, AuthService } from '../../../../core/auth/auth.service';
 import { ApiError } from '../../../../core/models/api-error.model';
-import { NotificationService } from '../../../../core/notifications/notification.service';
+import { NotificationService } from '@alittlemore.dev/design-system';
 import { provideI18nTesting } from '../../../../testing/i18n-testing';
 import {
   chooseSiteSelectOption,
   siteSelectOptionValues,
-} from '../../../../testing/site-select-testing';
+} from '@alittlemore.dev/design-system/testing';
 import { ManagedAccount, ManagedAccounts } from '../../models/team-workspace.model';
 import { TeamWorkspaceService } from '../../services/team-workspace.service';
 import { AdminUnsavedChangesService } from '../../services/admin-unsaved-changes.service';

@@ -4,7 +4,7 @@ import { By } from '@angular/platform-browser';
 import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
 import { BehaviorSubject, of } from 'rxjs';
 import { provideI18nTesting } from '../../../../testing/i18n-testing';
-import { NotificationService } from '../../../../core/notifications/notification.service';
+import { NotificationService } from '@alittlemore.dev/design-system';
 import {
   AdminMatrixQuestionCreateInitialValue,
   AdminMatrixQuestionDetailDto,

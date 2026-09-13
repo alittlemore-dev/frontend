@@ -2,7 +2,7 @@ import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
 import { BehaviorSubject, Subject, of, throwError } from 'rxjs';
-import { NotificationService } from '../../../../core/notifications/notification.service';
+import { NotificationService } from '@alittlemore.dev/design-system';
 import { provideI18nTesting } from '../../../../testing/i18n-testing';
 import { AdminMatrixStructure } from '../../models/matrix-question-workspace.model';
 import { MatrixQuestionWorkspaceService } from '../../services/matrix-question-workspace.service';
@@ -64,7 +64,7 @@ describe('MatrixStructurePageComponent', () => {
 
     createComponent();
 
-    const loadingSpinner = fixture.nativeElement.querySelector('app-loading-spinner');
+    const loadingSpinner = fixture.nativeElement.querySelector('ds-loading-spinner');
     expect(loadingSpinner).toBeTruthy();
 
     structure.next(matrixStructure());
@@ -313,7 +313,7 @@ describe('MatrixStructurePageComponent', () => {
     expect(
       fixture.nativeElement.querySelector('[data-testid="matrix-structure-create-dialog"]'),
     ).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('app-error-message')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('ds-error-message')).toBeTruthy();
     expect(notifications.error).toHaveBeenCalledWith(
       'Не удалось создать элемент структуры матрицы.',
     );

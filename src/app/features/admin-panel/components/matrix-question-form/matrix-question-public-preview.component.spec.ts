@@ -46,10 +46,11 @@ describe('MatrixQuestionPublicPreviewComponent', () => {
   });
 
   it('sanitizes unsafe authored Markdown before binding HTML', () => {
-    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
     fixture.componentRef.setInput(
       'answer',
       [
+        'Readable **Markdown**.',
+        '',
         '<script>alert("script")</script>',
         '<img src="x" onerror="alert(2)">',
         '<a href="javascript:alert(3)">unsafe</a>',
@@ -61,8 +62,8 @@ describe('MatrixQuestionPublicPreviewComponent', () => {
     expect(answer?.innerHTML).not.toContain('<script');
     expect(answer?.innerHTML).not.toContain('onerror');
     expect(answer?.innerHTML).not.toMatch(/href=["']javascript:/i);
-    expect(answer?.textContent).toContain('unsafe');
-    expect(warnSpy).toHaveBeenCalled();
+    expect(answer?.textContent).toContain('Readable Markdown.');
+    expect(answer?.textContent).not.toContain('unsafe');
   });
 
   it('renders highlighted fenced code in the authoring preview', () => {

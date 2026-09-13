@@ -8,8 +8,8 @@ import {
   chooseSiteSelectOption,
   siteSelectOptionLabels,
   siteSelectTrigger,
-} from '../../../../testing/site-select-testing';
-import { NotificationService } from '../../../../core/notifications/notification.service';
+} from '@alittlemore.dev/design-system/testing';
+import { NotificationService } from '@alittlemore.dev/design-system';
 import { MatrixQuestionFormComponent } from '../../components/matrix-question-form/matrix-question-form.component';
 import {
   AdminMatrixQuestionDetailDto,
@@ -284,12 +284,17 @@ describe('MatrixQuestionsPageComponent', () => {
     expect(publishedFrom.type).toBe('text');
     expect(publishedFrom.classList).toContain('form-control-sm');
     expect(
-      fixture.nativeElement.querySelectorAll('[data-testid="date-picker-toggle"]').length,
+      fixture.nativeElement.querySelectorAll('[data-testid="temporal-picker-field-trigger"]')
+        .length,
     ).toBe(2);
     publishedFrom.value = '15/03/2026';
     publishedFrom.dispatchEvent(new Event('input'));
+    publishedFrom.dispatchEvent(new Event('blur'));
+    fixture.detectChanges();
     publishedTo.value = '20/03/2026';
     publishedTo.dispatchEvent(new Event('input'));
+    publishedTo.dispatchEvent(new Event('blur'));
+    fixture.detectChanges();
     fixture.nativeElement
       .querySelector<HTMLButtonElement>('[data-testid="matrix-workspace-apply"]')
       ?.click();
@@ -304,6 +309,8 @@ describe('MatrixQuestionsPageComponent', () => {
     ) as HTMLInputElement;
     publishedFrom.value = '31.02.2026';
     publishedFrom.dispatchEvent(new Event('input'));
+    publishedFrom.dispatchEvent(new Event('blur'));
+    fixture.detectChanges();
     fixture.detectChanges();
     service.listWorkspaceItems.mockClear();
 

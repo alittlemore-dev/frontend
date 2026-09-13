@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import { TranslatePipe } from '../../../../../../core/i18n/translate.pipe';
-import { formatLocalizedDate } from '../../../../../../shared/utils/localized-date';
+import { formatLocalizedDate } from '@alittlemore.dev/design-system';
 import { ArticleSummary } from '../../../../models/articles.model';
 
 @Component({

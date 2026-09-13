@@ -1,13 +1,14 @@
 import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
 import { TranslatePipe } from '../../../../../../core/i18n/translate.pipe';
 import { ApiError } from '../../../../../../core/models/api-error.model';
-import { EmptyStateComponent } from '../../../../../../shared/ui/empty-state/empty-state.component';
-import { ErrorMessageComponent } from '../../../../../../shared/ui/error-message/error-message.component';
 import {
+  EmptyStateComponent,
+  ErrorMessageComponent,
   LocalizedDatePickerComponent,
   LocalizedDatePickerLabels,
-} from '../../../../../../shared/ui/localized-date-picker/localized-date-picker.component';
-import { LoadingSpinnerComponent } from '../../../../../../shared/ui/loading-spinner/loading-spinner.component';
+  LoadingSpinnerComponent,
+} from '@alittlemore.dev/design-system';
+
 import { AdminArticleStats } from '../../../../models/article-workspace.model';
 
 @Component({
@@ -46,12 +47,12 @@ export class AdminArticleStatisticsPanelComponent {
     () => this.refreshAttempted() && (this.dateTo().trim() === '' || !this.dateToPickerValid()),
   );
 
-  setDateFrom(value: string): void {
-    this.dateFromChange.emit(value);
+  setDateFrom(value: string | null): void {
+    this.dateFromChange.emit(value ?? '');
   }
 
-  setDateTo(value: string): void {
-    this.dateToChange.emit(value);
+  setDateTo(value: string | null): void {
+    this.dateToChange.emit(value ?? '');
   }
 
   setDateFromValidity(valid: boolean): void {

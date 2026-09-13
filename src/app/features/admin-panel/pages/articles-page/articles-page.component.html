@@ -25,7 +25,7 @@
   </div>
   <div class="col-6 col-md-4 col-xl-2">
     <label class="form-label" for="admin-articles-tag">{{ 'articles.form.tags' | t }}</label>
-    <app-site-select
+    <ds-site-select
       inputId="admin-articles-tag"
       [options]="tagSelectOptions()"
       controlSize="small"
@@ -39,9 +39,9 @@
   </div>
   <div class="col-6 col-md-4 col-xl-2">
     <label class="form-label" for="admin-articles-from">{{ 'articles.filters.from' | t }}</label>
-    <app-localized-date-picker
+    <ds-localized-date-picker
       inputId="admin-articles-from"
-      [value]="publishedFrom()"
+      [value]="publishedFrom() || null"
       controlSize="small"
       [dateLocale]="dateLocale()"
       [labels]="datePickerLabels()"
@@ -55,9 +55,9 @@
   </div>
   <div class="col-6 col-md-4 col-xl-2">
     <label class="form-label" for="admin-articles-to">{{ 'articles.filters.to' | t }}</label>
-    <app-localized-date-picker
+    <ds-localized-date-picker
       inputId="admin-articles-to"
-      [value]="publishedTo()"
+      [value]="publishedTo() || null"
       controlSize="small"
       [dateLocale]="dateLocale()"
       [labels]="datePickerLabels()"
@@ -73,7 +73,7 @@
     <label class="form-label" for="admin-articles-publish-status">
       {{ 'adminMatrixWorkspace.status' | t }}
     </label>
-    <app-site-select
+    <ds-site-select
       inputId="admin-articles-publish-status"
       [options]="publishStatusSelectOptions()"
       controlSize="small"
@@ -97,15 +97,15 @@
 </form>
 
 @if (loading()) {
-  <app-loading-spinner [ariaLabel]="'shared.loading' | t" />
+  <ds-loading-spinner [ariaLabel]="'shared.loading' | t" />
 } @else if (error()) {
-  <app-error-message
+  <ds-error-message
     [error]="error()!"
     [retryLabel]="'shared.retry' | t"
     (retry)="loadWorkspace()"
   />
 } @else if ((articles()?.articles?.length ?? 0) === 0) {
-  <app-empty-state [message]="'articles.empty' | t" />
+  <ds-empty-state [message]="'articles.empty' | t" />
 } @else if (articles()) {
   <div class="table-responsive">
     <table class="table table-sm align-middle">
@@ -184,7 +184,7 @@
 @if (formVisible()) {
   <div
     class="modal d-block modal-backdrop-overlay"
-    [appModalScroll]="articleScrollArea"
+    [dsModalScroll]="articleScrollArea"
     role="dialog"
     aria-modal="true"
     [attr.aria-label]="'articles.formAria' | t"
@@ -213,7 +213,7 @@
         </div>
         <div #articleScrollArea class="modal-body">
           @if (formError()) {
-            <app-error-message [error]="formError()!" [retryLabel]="'shared.retry' | t" />
+            <ds-error-message [error]="formError()!" [retryLabel]="'shared.retry' | t" />
           }
           <app-admin-article-form
             [article]="null"

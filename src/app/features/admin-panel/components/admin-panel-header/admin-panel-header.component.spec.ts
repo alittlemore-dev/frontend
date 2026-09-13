@@ -6,7 +6,7 @@ import { AuthModalService } from '../../../../core/auth/auth-modal.service';
 import { AccountInfo, AuthService } from '../../../../core/auth/auth.service';
 import { I18nLanguage, LanguageCode } from '../../../../core/i18n/i18n.model';
 import { I18nService } from '../../../../core/i18n/i18n.service';
-import { ThemeName, ThemeService } from '../../../../core/layout/theme.service';
+import { ThemeName, ThemeService } from '@alittlemore.dev/design-system';
 import { AdminPanelHeaderComponent } from './admin-panel-header.component';
 import { AdminUnsavedChangesService } from '../../services/admin-unsaved-changes.service';
 

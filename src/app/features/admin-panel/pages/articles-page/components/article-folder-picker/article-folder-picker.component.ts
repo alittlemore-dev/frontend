@@ -23,7 +23,11 @@ import { finalize } from 'rxjs';
 import { LanguageCode } from '../../../../../../core/i18n/i18n.model';
 import { I18nService } from '../../../../../../core/i18n/i18n.service';
 import { TranslatePipe } from '../../../../../../core/i18n/translate.pipe';
-import { AdminControlValidationStateDirective } from '../../../../directives/admin-control-validation-state.directive';
+import {
+  ControlValidationStateDirective,
+  SiteSelectComponent,
+  SiteSelectOption,
+} from '@alittlemore.dev/design-system';
 import { ArticleFolder } from '../../../../models/article-workspace.model';
 import { ArticleWorkspaceService } from '../../../../services/article-workspace.service';
 import {
@@ -36,10 +40,6 @@ import {
   trimRequired,
   validationMessage,
 } from '../../../../utils/admin-validation';
-import {
-  SiteSelectComponent,
-  SiteSelectOption,
-} from '../../../../../../shared/ui/site-select/site-select.component';
 
 @Component({
   selector: 'app-article-folder-picker',
@@ -47,7 +47,7 @@ import {
   imports: [
     ReactiveFormsModule,
     TranslatePipe,
-    AdminControlValidationStateDirective,
+    ControlValidationStateDirective,
     SiteSelectComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,

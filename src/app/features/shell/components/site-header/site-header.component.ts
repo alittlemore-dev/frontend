@@ -8,7 +8,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
-import { ThemeService } from '../../../../core/layout/theme.service';
+import { ThemeService } from '@alittlemore.dev/design-system';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { AuthModalService } from '../../../../core/auth/auth-modal.service';
 import { I18nService } from '../../../../core/i18n/i18n.service';

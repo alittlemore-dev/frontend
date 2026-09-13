@@ -15,16 +15,7 @@
     <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
-    <script nonce="__CSP_NONCE__">
-      (() => {
-        try {
-          const theme = window.localStorage.getItem('chosenTheme');
-          if (theme === 'dark' || theme === 'light') {
-            document.documentElement.setAttribute('data-bs-theme', theme);
-          }
-        } catch {}
-      })();
-    </script>
+    <script nonce="__CSP_NONCE__" src="assets/design-system/theme-preload.js"></script>
   </head>
   <body>
     <app-root ngCspNonce="__CSP_NONCE__"></app-root>

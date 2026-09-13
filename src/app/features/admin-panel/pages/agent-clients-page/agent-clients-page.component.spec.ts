@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Subject, of, throwError } from 'rxjs';
 import { ApiError } from '../../../../core/models/api-error.model';
-import { NotificationService } from '../../../../core/notifications/notification.service';
+import { NotificationService } from '@alittlemore.dev/design-system';
 import { provideI18nTesting } from '../../../../testing/i18n-testing';
 import { AgentAuditEventPage, AgentClient } from '../../models/agent-client-workspace.model';
 import { AgentClientWorkspaceService } from '../../services/agent-client-workspace.service';

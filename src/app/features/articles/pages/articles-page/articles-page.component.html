@@ -119,9 +119,9 @@
             <label class="form-label small text-body-secondary mb-1" for="articlesPublishedFrom">
               {{ 'articles.filters.from' | t }}
             </label>
-            <app-localized-date-picker
+            <ds-localized-date-picker
               inputId="articlesPublishedFrom"
-              [value]="publishedFrom()"
+              [value]="publishedFrom() || null"
               controlSize="default"
               [dateLocale]="dateLocale()"
               [labels]="datePickerLabels()"
@@ -137,9 +137,9 @@
             <label class="form-label small text-body-secondary mb-1" for="articlesPublishedTo">
               {{ 'articles.filters.to' | t }}
             </label>
-            <app-localized-date-picker
+            <ds-localized-date-picker
               inputId="articlesPublishedTo"
-              [value]="publishedTo()"
+              [value]="publishedTo() || null"
               controlSize="default"
               [dateLocale]="dateLocale()"
               [labels]="datePickerLabels()"
@@ -200,15 +200,15 @@
           (reactionSelected)="selectReaction($event)"
         />
       } @else if (listLoading()) {
-        <app-loading-spinner [ariaLabel]="'shared.loading' | t" />
+        <ds-loading-spinner [ariaLabel]="'shared.loading' | t" />
       } @else if (listError()) {
-        <app-error-message
+        <ds-error-message
           [error]="listError()!"
           [retryLabel]="'shared.retry' | t"
           (retry)="loadArticles()"
         />
       } @else if (isEmpty()) {
-        <app-empty-state [message]="'articles.empty' | t" />
+        <ds-empty-state [message]="'articles.empty' | t" />
       } @else if (articles()) {
         <app-article-list
           [articles]="articles()!.articles"

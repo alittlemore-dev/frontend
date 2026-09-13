@@ -18,16 +18,17 @@ import { LanguageCode } from '../../../../core/i18n/i18n.model';
 import { I18nService } from '../../../../core/i18n/i18n.service';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
 import { ApiError } from '../../../../core/models/api-error.model';
-import { NotificationService } from '../../../../core/notifications/notification.service';
-import { AnonymousReactionService } from '../../../../core/privacy/anonymous-reaction.service';
-import { SeoAlternate, SeoService } from '../../../../core/seo/seo.service';
-import { EmptyStateComponent } from '../../../../shared/ui/empty-state/empty-state.component';
-import { ErrorMessageComponent } from '../../../../shared/ui/error-message/error-message.component';
 import {
+  NotificationService,
+  EmptyStateComponent,
+  ErrorMessageComponent,
   LocalizedDatePickerComponent,
   LocalizedDatePickerLabels,
-} from '../../../../shared/ui/localized-date-picker/localized-date-picker.component';
-import { LoadingSpinnerComponent } from '../../../../shared/ui/loading-spinner/loading-spinner.component';
+  LoadingSpinnerComponent,
+} from '@alittlemore.dev/design-system';
+import { AnonymousReactionService } from '../../../../core/privacy/anonymous-reaction.service';
+import { SeoAlternate, SeoService } from '../../../../core/seo/seo.service';
+
 import {
   ArticleDetail,
   ArticleList,
@@ -143,7 +144,11 @@ export class ArticlesPageComponent implements OnInit {
       previousYear: this.i18n.translate('shared.datePicker.previousYear'),
       nextYear: this.i18n.translate('shared.datePicker.nextYear'),
       clear: this.i18n.translate('shared.datePicker.clear'),
-      close: this.i18n.translate('shared.datePicker.close'),
+      cancel: this.i18n.translate('shared.datePicker.cancel'),
+      done: this.i18n.translate('shared.datePicker.done'),
+      today: this.i18n.translate('shared.datePicker.today'),
+      selectDate: this.i18n.translate('shared.datePicker.selectDate'),
+      unavailableDate: this.i18n.translate('shared.datePicker.unavailableDate'),
       formatHint: this.i18n.translate('shared.datePicker.formatHint'),
       invalidDate: this.i18n.translate('shared.datePicker.invalidDate'),
       requiredDate: this.i18n.translate('shared.datePicker.requiredDate'),
@@ -242,12 +247,12 @@ export class ArticlesPageComponent implements OnInit {
     this.searchQuery.set(value);
   }
 
-  setPublishedFrom(value: string): void {
-    this.publishedFrom.set(value);
+  setPublishedFrom(value: string | null): void {
+    this.publishedFrom.set(value ?? '');
   }
 
-  setPublishedTo(value: string): void {
-    this.publishedTo.set(value);
+  setPublishedTo(value: string | null): void {
+    this.publishedTo.set(value ?? '');
   }
 
   setPublishedFromValidity(valid: boolean): void {

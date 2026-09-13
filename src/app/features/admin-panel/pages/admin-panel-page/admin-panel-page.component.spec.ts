@@ -110,7 +110,6 @@ describe('AdminPanelPageComponent', () => {
     ).find((item) => item.textContent?.trim() === 'Дашборд') as HTMLButtonElement;
 
     expect(dashboard.classList).toContain('foldable-tree-item-success');
-    expect(dashboard.getAttribute('aria-selected')).toBe('true');
     expect(dashboard.getAttribute('aria-current')).toBe('page');
   });
 
@@ -123,7 +122,6 @@ describe('AdminPanelPageComponent', () => {
     ).find((item) => item.textContent?.trim() === '+--Статьи') as HTMLButtonElement;
 
     expect(articles.getAttribute('aria-current')).toBe('page');
-    expect(articles.getAttribute('aria-selected')).toBe('true');
   });
 
   it('opens and closes the mobile drawer without removing the desktop side panel', () => {

@@ -5,7 +5,7 @@ import { provideRouter } from '@angular/router';
 import { Observable, of, throwError } from 'rxjs';
 import { AccountInfo, AuthService } from '../../../core/auth/auth.service';
 import { ApiError } from '../../../core/models/api-error.model';
-import { NotificationService } from '../../../core/notifications/notification.service';
+import { NotificationService } from '@alittlemore.dev/design-system';
 import { provideI18nTesting } from '../../../testing/i18n-testing';
 import {
   ModeratorDashboardMatrixStats,
@@ -169,15 +169,15 @@ describe('DashboardPageComponent', () => {
     const matrixBody = fixture.nativeElement.querySelector(
       '[data-testid="dashboard-section-body-moderator-matrix-quality"]',
     ) as HTMLElement;
-    expect(queueBody.querySelector('app-error-message')).not.toBeNull();
-    expect(matrixBody.querySelector('app-error-message')).toBeNull();
+    expect(queueBody.querySelector('ds-error-message')).not.toBeNull();
+    expect(matrixBody.querySelector('ds-error-message')).toBeNull();
     expect(matrixBody.textContent).toContain('Черновики с пропусками');
 
     moderatorQueueResponse = of({ total: 3, available: 1, claimed: 2 });
-    (queueBody.querySelector('app-error-message button') as HTMLButtonElement).click();
+    (queueBody.querySelector('ds-error-message button') as HTMLButtonElement).click();
     fixture.detectChanges();
 
-    expect(queueBody.querySelector('app-error-message')).toBeNull();
+    expect(queueBody.querySelector('ds-error-message')).toBeNull();
     expect(getQueueStats).toHaveBeenCalledTimes(2);
     expect(getMatrixStats).toHaveBeenCalledTimes(1);
   });

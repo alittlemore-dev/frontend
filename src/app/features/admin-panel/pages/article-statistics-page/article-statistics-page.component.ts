@@ -13,7 +13,7 @@ import { ActivatedRoute, ParamMap, Router } from '@angular/router';
 import { I18nService } from '../../../../core/i18n/i18n.service';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
 import { ApiError } from '../../../../core/models/api-error.model';
-import { LocalizedDatePickerLabels } from '../../../../shared/ui/localized-date-picker/localized-date-picker.component';
+import { LocalizedDatePickerLabels } from '@alittlemore.dev/design-system';
 import { AdminArticleStats } from '../../models/article-workspace.model';
 import { ArticleWorkspaceService } from '../../services/article-workspace.service';
 import { AdminArticleStatisticsPanelComponent } from './components/article-statistics-panel/article-statistics-panel.component';
@@ -64,7 +64,11 @@ export class AdminArticleStatisticsPageComponent implements OnInit {
       previousYear: this.i18n.translate('shared.datePicker.previousYear'),
       nextYear: this.i18n.translate('shared.datePicker.nextYear'),
       clear: this.i18n.translate('shared.datePicker.clear'),
-      close: this.i18n.translate('shared.datePicker.close'),
+      cancel: this.i18n.translate('shared.datePicker.cancel'),
+      done: this.i18n.translate('shared.datePicker.done'),
+      today: this.i18n.translate('shared.datePicker.today'),
+      selectDate: this.i18n.translate('shared.datePicker.selectDate'),
+      unavailableDate: this.i18n.translate('shared.datePicker.unavailableDate'),
       formatHint: this.i18n.translate('shared.datePicker.formatHint'),
       invalidDate: this.i18n.translate('shared.datePicker.invalidDate'),
       requiredDate: this.i18n.translate('shared.datePicker.requiredDate'),
@@ -83,12 +87,12 @@ export class AdminArticleStatisticsPageComponent implements OnInit {
     this.setupQueryState();
   }
 
-  setDateFrom(value: string): void {
-    this.dateFrom.set(value);
+  setDateFrom(value: string | null): void {
+    this.dateFrom.set(value ?? '');
   }
 
-  setDateTo(value: string): void {
-    this.dateTo.set(value);
+  setDateTo(value: string | null): void {
+    this.dateTo.set(value ?? '');
   }
 
   loadStats(): void {

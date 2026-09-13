@@ -31,7 +31,11 @@ import {
   AdminMatrixStructureSubsection,
 } from '../../models/matrix-question-workspace.model';
 import { MatrixQuestionWorkspaceService } from '../../services/matrix-question-workspace.service';
-import { AdminControlValidationStateDirective } from '../../directives/admin-control-validation-state.directive';
+import {
+  ControlValidationStateDirective,
+  SiteSelectComponent,
+  SiteSelectOption,
+} from '@alittlemore.dev/design-system';
 import {
   AdminUnsavedChangesScope,
   AdminUnsavedChangesSource,
@@ -42,10 +46,6 @@ import {
   trimRequired,
   validationMessage,
 } from '../../utils/admin-validation';
-import {
-  SiteSelectComponent,
-  SiteSelectOption,
-} from '../../../../shared/ui/site-select/site-select.component';
 
 interface MatrixStructureCreateFormValue {
   nameRu: string;
@@ -58,7 +58,7 @@ interface MatrixStructureCreateFormValue {
   imports: [
     ReactiveFormsModule,
     TranslatePipe,
-    AdminControlValidationStateDirective,
+    ControlValidationStateDirective,
     SiteSelectComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -216,9 +216,9 @@ export class MatrixStructurePickerComponent implements OnInit, OnChanges {
     const subsection = this.subsectionSelect();
     const section = this.sectionSelect();
     const sheet = this.sheetSelect();
-    const select = !subsection.effectiveDisabled()
+    const select = !subsection.controlDisabled()
       ? subsection
-      : !section.effectiveDisabled()
+      : !section.controlDisabled()
         ? section
         : sheet;
     select.scrollIntoView({ behavior: 'smooth', block: 'center' });

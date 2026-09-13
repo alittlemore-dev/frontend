@@ -24,9 +24,9 @@
   </div>
 
   @if (loading()) {
-    <app-loading-spinner [ariaLabel]="'shared.loading' | t" />
+    <ds-loading-spinner [ariaLabel]="'shared.loading' | t" />
   } @else if (error()) {
-    <app-error-message
+    <ds-error-message
       [error]="error()!"
       [retryLabel]="'shared.retry' | t"
       (retry)="loadAccount()"
@@ -88,9 +88,9 @@
       </div>
 
       @if (sessionsLoading()) {
-        <app-loading-spinner [ariaLabel]="'shared.loading' | t" />
+        <ds-loading-spinner [ariaLabel]="'shared.loading' | t" />
       } @else if (sessionsError()) {
-        <app-error-message
+        <ds-error-message
           [error]="sessionsError()!"
           [retryLabel]="'shared.retry' | t"
           (retry)="loadSessions()"
@@ -165,7 +165,7 @@
   @if (roleDialogOpen()) {
     <div
       class="modal d-block bg-dark bg-opacity-50"
-      [appModalScroll]="roleScrollArea"
+      [dsModalScroll]="roleScrollArea"
       role="dialog"
       aria-modal="true"
       [attr.aria-label]="'adminTeamWorkspace.roleTitle' | t"
@@ -198,7 +198,7 @@
           </div>
           <div #roleScrollArea class="modal-body">
             @if (roleError()) {
-              <app-error-message
+              <ds-error-message
                 [error]="roleError()!"
                 [retryLabel]="'shared.retry' | t"
                 (retry)="updateRole()"
@@ -207,7 +207,7 @@
             <label class="form-label" for="team-role-role">
               {{ 'adminTeamWorkspace.field.role' | t }}
             </label>
-            <app-site-select
+            <ds-site-select
               inputId="team-role-role"
               [options]="roleSelectOptions()"
               controlSize="default"
@@ -243,7 +243,7 @@
   @if (passwordDialogOpen()) {
     <div
       class="modal d-block bg-dark bg-opacity-50"
-      [appModalScroll]="passwordScrollArea"
+      [dsModalScroll]="passwordScrollArea"
       role="dialog"
       aria-modal="true"
       [attr.aria-label]="'adminTeamWorkspace.passwordTitle' | t"
@@ -276,7 +276,7 @@
           </div>
           <div #passwordScrollArea class="modal-body">
             @if (passwordError()) {
-              <app-error-message
+              <ds-error-message
                 [error]="passwordError()!"
                 [retryLabel]="'shared.retry' | t"
                 (retry)="updatePassword()"

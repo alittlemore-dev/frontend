@@ -18,15 +18,11 @@
   />
 
   @if (loading()) {
-    <app-loading-spinner [ariaLabel]="'shared.loading' | t" />
+    <ds-loading-spinner [ariaLabel]="'shared.loading' | t" />
   } @else if (error()) {
-    <app-error-message
-      [error]="error()!"
-      [retryLabel]="'shared.retry' | t"
-      (retry)="loadSheets()"
-    />
+    <ds-error-message [error]="error()!" [retryLabel]="'shared.retry' | t" (retry)="loadSheets()" />
   } @else if (isEmpty()) {
-    <app-empty-state [message]="'matrix.empty' | t" />
+    <ds-empty-state [message]="'matrix.empty' | t" />
   } @else if (filteredQuestions()) {
     <app-matrix-readonly-grouped-grid
       [questions]="filteredQuestions()!"
@@ -42,7 +38,7 @@
 @if (detailVisible()) {
   <div
     class="modal d-block modal-backdrop-overlay"
-    [appModalScroll]="detailScrollArea"
+    [dsModalScroll]="detailScrollArea"
     role="dialog"
     aria-modal="true"
     [attr.aria-label]="'matrix.detailAria' | t"
@@ -89,7 +85,7 @@
 @if (suggestionVisible()) {
   <div
     class="modal d-block modal-backdrop-overlay"
-    [appModalScroll]="suggestionScrollArea"
+    [dsModalScroll]="suggestionScrollArea"
     role="dialog"
     aria-modal="true"
     [attr.aria-label]="'matrix.suggestion.title' | t"
@@ -119,7 +115,7 @@
           <label class="form-label" for="matrix-question-suggestion-sheet">
             {{ 'matrix.form.sheet' | t }}
           </label>
-          <app-site-select
+          <ds-site-select
             inputId="matrix-question-suggestion-sheet"
             class="mb-3"
             [options]="suggestionSheetOptions()"

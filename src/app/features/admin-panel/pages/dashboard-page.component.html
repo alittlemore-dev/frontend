@@ -62,9 +62,9 @@
           (expandedChange)="setSectionExpanded('moderator-question-queue', $event)"
         >
           @if (moderatorQueueLoading()) {
-            <app-loading-spinner [ariaLabel]="'shared.loading' | t" />
+            <ds-loading-spinner [ariaLabel]="'shared.loading' | t" />
           } @else if (moderatorQueueError()) {
-            <app-error-message
+            <ds-error-message
               [error]="moderatorQueueError()!"
               [retryLabel]="'shared.retry' | t"
               (retry)="loadModeratorQueue()"
@@ -126,9 +126,9 @@
           (expandedChange)="setSectionExpanded('moderator-matrix-quality', $event)"
         >
           @if (moderatorMatrixLoading()) {
-            <app-loading-spinner [ariaLabel]="'shared.loading' | t" />
+            <ds-loading-spinner [ariaLabel]="'shared.loading' | t" />
           } @else if (moderatorMatrixError()) {
-            <app-error-message
+            <ds-error-message
               [error]="moderatorMatrixError()!"
               [retryLabel]="'shared.retry' | t"
               (retry)="loadModeratorMatrix()"

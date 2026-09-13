@@ -15,7 +15,7 @@ describe('ArticlesSidePanelComponent', () => {
     fixture = TestBed.createComponent(ArticlesSidePanelComponent);
   });
 
-  it('renders expanded folders and articles as a tree with article indentation', () => {
+  it('renders expanded folder navigation and the current article', () => {
     const tree: ArticleTree = {
       folders: [
         {
@@ -48,10 +48,10 @@ describe('ArticlesSidePanelComponent', () => {
       '[data-testid="articles-tree-article"]',
     ) as HTMLButtonElement;
 
-    expect(fixture.nativeElement.querySelector('[role="tree"]')).toBeTruthy();
-    expect(fixture.nativeElement.querySelector('app-foldable-tree')).not.toBeNull();
-    expect(folder.getAttribute('role')).toBe('treeitem');
-    expect(article.getAttribute('role')).toBe('treeitem');
+    expect(fixture.nativeElement.querySelector('ds-foldable-tree ul')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('ds-foldable-tree')).not.toBeNull();
+    expect(folder.getAttribute('aria-expanded')).toBe('true');
+    expect(article.getAttribute('aria-current')).toBe('page');
     expect(article.classList).toContain('active');
   });
 });

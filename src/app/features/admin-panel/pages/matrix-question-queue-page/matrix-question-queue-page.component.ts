@@ -16,15 +16,18 @@ import { debounceTime, merge } from 'rxjs';
 import { ApiError } from '../../../../core/models/api-error.model';
 import { I18nService } from '../../../../core/i18n/i18n.service';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
-import { ModalScrollDirective } from '../../../../core/layout/modal-scroll.directive';
-import { NotificationService } from '../../../../core/notifications/notification.service';
-import { EmptyStateComponent } from '../../../../shared/ui/empty-state/empty-state.component';
 import {
+  ModalScrollDirective,
+  NotificationService,
+  EmptyStateComponent,
   ErrorMessageComponent,
   errorDisplayMessages,
-} from '../../../../shared/ui/error-message/error-message.component';
-import { LoadingSpinnerComponent } from '../../../../shared/ui/loading-spinner/loading-spinner.component';
-import { formatLocalizedDate } from '../../../../shared/utils/localized-date';
+  LoadingSpinnerComponent,
+  formatLocalizedDate,
+  SiteSelectComponent,
+  SiteSelectOption,
+} from '@alittlemore.dev/design-system';
+
 import { MatrixQuestionFormComponent } from '../../components/matrix-question-form/matrix-question-form.component';
 import { AdminRemoveButtonComponent } from '../../components/admin-remove-button/admin-remove-button.component';
 import {
@@ -50,10 +53,6 @@ import {
   readOptionalStringQuery,
   replaceAdminQueryParams,
 } from '../../utils/admin-query-state';
-import {
-  SiteSelectComponent,
-  SiteSelectOption,
-} from '../../../../shared/ui/site-select/site-select.component';
 
 const LINE_BREAKS_PATTERN = /[\r\n]+/g;
 const IMPORT_FILE_ACCEPT =

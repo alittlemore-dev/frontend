@@ -1,12 +1,12 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
 import { BehaviorSubject, of } from 'rxjs';
-import { NotificationService } from '../../../../core/notifications/notification.service';
+import { NotificationService } from '@alittlemore.dev/design-system';
 import { provideI18nTesting } from '../../../../testing/i18n-testing';
 import {
   chooseSiteSelectOption,
   siteSelectOptionValues,
-} from '../../../../testing/site-select-testing';
+} from '@alittlemore.dev/design-system/testing';
 import {
   AdminArticleDetail,
   AdminArticleList,
@@ -139,7 +139,8 @@ describe('AdminArticlesPageComponent', () => {
     expect(publishedFrom.value).toBe('01.01.2026');
     expect(publishedTo.value).toBe('01.02.2026');
     expect(
-      fixture.nativeElement.querySelectorAll('[data-testid="date-picker-toggle"]').length,
+      fixture.nativeElement.querySelectorAll('[data-testid="temporal-picker-field-trigger"]')
+        .length,
     ).toBe(2);
   });
 
@@ -154,8 +155,12 @@ describe('AdminArticlesPageComponent', () => {
 
     publishedFrom.value = '15/03/2026';
     publishedFrom.dispatchEvent(new Event('input'));
+    publishedFrom.dispatchEvent(new Event('blur'));
+    fixture.detectChanges();
     publishedTo.value = '20/03/2026';
     publishedTo.dispatchEvent(new Event('input'));
+    publishedTo.dispatchEvent(new Event('blur'));
+    fixture.detectChanges();
     fixture.nativeElement.querySelector<HTMLButtonElement>('button[type="submit"]')?.click();
 
     expect(service.listArticles).toHaveBeenLastCalledWith(
@@ -173,6 +178,8 @@ describe('AdminArticlesPageComponent', () => {
     ) as HTMLInputElement;
     publishedFrom.value = '31.02.2026';
     publishedFrom.dispatchEvent(new Event('input'));
+    publishedFrom.dispatchEvent(new Event('blur'));
+    fixture.detectChanges();
     fixture.detectChanges();
     service.listArticles.mockClear();
 

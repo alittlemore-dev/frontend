@@ -170,7 +170,7 @@ async function assertSiteBuildCaseStudyHtml(frontendPort, requests) {
     ['architecture', html.includes('Angular hybrid SSR/CSR and backend-driven i18n.')],
     [
       'source code CTA',
-      html.includes('href="https://github.com/alittlemore-dev/frontend"'),
+      html.includes('href="https://github.com/alittlemore-dev"'),
     ],
     [
       'canonical',

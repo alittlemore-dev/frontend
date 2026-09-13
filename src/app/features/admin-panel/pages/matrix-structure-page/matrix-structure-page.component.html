@@ -23,15 +23,15 @@
 </div>
 
 @if (loading()) {
-  <app-loading-spinner [ariaLabel]="'shared.loading' | t" />
+  <ds-loading-spinner [ariaLabel]="'shared.loading' | t" />
 } @else if (error()) {
-  <app-error-message
+  <ds-error-message
     [error]="error()!"
     [retryLabel]="'shared.retry' | t"
     (retry)="loadStructure()"
   />
 } @else if (isEmpty()) {
-  <app-empty-state [message]="'adminMatrixStructure.empty' | t" />
+  <ds-empty-state [message]="'adminMatrixStructure.empty' | t" />
 } @else {
   <div
     class="matrix-structure-sheet-list mb-3"
@@ -135,7 +135,7 @@
             </div>
           </section>
         } @empty {
-          <app-empty-state [message]="'adminMatrixStructure.emptySections' | t" />
+          <ds-empty-state [message]="'adminMatrixStructure.emptySections' | t" />
         }
       </div>
     </div>
@@ -145,7 +145,7 @@
 @if (createDialog(); as dialog) {
   <div
     class="modal d-block bg-dark bg-opacity-50"
-    [appModalScroll]="structureScrollArea"
+    [dsModalScroll]="structureScrollArea"
     role="dialog"
     aria-modal="true"
     data-testid="matrix-structure-create-dialog"
@@ -179,7 +179,7 @@
         </div>
         <div #structureScrollArea class="modal-body">
           @if (createError()) {
-            <app-error-message
+            <ds-error-message
               [error]="createError()!"
               [retryLabel]="'shared.retry' | t"
               (retry)="retryCreateDialog()"

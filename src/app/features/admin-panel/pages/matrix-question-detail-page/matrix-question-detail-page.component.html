@@ -34,16 +34,16 @@
   </div>
 
   @if (loading()) {
-    <app-loading-spinner [ariaLabel]="'shared.loading' | t" />
+    <ds-loading-spinner [ariaLabel]="'shared.loading' | t" />
   } @else if (error()) {
-    <app-error-message
+    <ds-error-message
       [error]="error()!"
       [retryLabel]="'shared.retry' | t"
       (retry)="retryLoadQuestion()"
     />
   } @else if (question(); as currentQuestion) {
     @if (saveError()) {
-      <app-error-message
+      <ds-error-message
         [error]="saveError()!"
         [retryLabel]="'shared.close' | t"
         (retry)="dismissSaveError()"

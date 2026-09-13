@@ -21,22 +21,23 @@ import {
 } from '../../models/matrix-question.model';
 import { ApiError } from '../../../../core/models/api-error.model';
 import { SeoService } from '../../../../core/seo/seo.service';
-import { NotificationService } from '../../../../core/notifications/notification.service';
+import {
+  NotificationService,
+  ModalScrollDirective,
+  LoadingSpinnerComponent,
+  ErrorMessageComponent,
+  EmptyStateComponent,
+  SiteSelectComponent,
+  SiteSelectOption,
+} from '@alittlemore.dev/design-system';
 import { I18nService } from '../../../../core/i18n/i18n.service';
 import { LanguageCode } from '../../../../core/i18n/i18n.model';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
-import { ModalScrollDirective } from '../../../../core/layout/modal-scroll.directive';
-import { LoadingSpinnerComponent } from '../../../../shared/ui/loading-spinner/loading-spinner.component';
-import { ErrorMessageComponent } from '../../../../shared/ui/error-message/error-message.component';
-import { EmptyStateComponent } from '../../../../shared/ui/empty-state/empty-state.component';
+
 import { MatrixSheetTabsComponent } from '../../../../shared/ui/matrix-sheet-tabs/matrix-sheet-tabs.component';
 import { MatrixFilterBarComponent } from './components/matrix-filter-bar/matrix-filter-bar.component';
 import { MatrixGroupedGridComponent } from '../../../../shared/ui/matrix-grouped-grid/matrix-grouped-grid.component';
 import { MatrixQuestionDetailComponent } from './components/matrix-question-detail/matrix-question-detail.component';
-import {
-  SiteSelectComponent,
-  SiteSelectOption,
-} from '../../../../shared/ui/site-select/site-select.component';
 
 const CHOSEN_SHEET_KEY = 'chosenSheet';
 const LINE_BREAKS_PATTERN = /[\r\n]+/g;

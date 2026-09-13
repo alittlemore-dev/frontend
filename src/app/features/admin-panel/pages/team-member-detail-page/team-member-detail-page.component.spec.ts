@@ -5,12 +5,12 @@ import { of } from 'rxjs';
 import { AuthModalService } from '../../../../core/auth/auth-modal.service';
 import { AccountInfo, AuthService } from '../../../../core/auth/auth.service';
 import { I18nService } from '../../../../core/i18n/i18n.service';
-import { NotificationService } from '../../../../core/notifications/notification.service';
+import { NotificationService } from '@alittlemore.dev/design-system';
 import { provideI18nTesting } from '../../../../testing/i18n-testing';
 import {
   chooseSiteSelectOption,
   siteSelectOptionValues,
-} from '../../../../testing/site-select-testing';
+} from '@alittlemore.dev/design-system/testing';
 import { ManagedAccount, ManagedAccountSession } from '../../models/team-workspace.model';
 import { TeamWorkspaceService } from '../../services/team-workspace.service';
 import { AdminUnsavedChangesService } from '../../services/admin-unsaved-changes.service';

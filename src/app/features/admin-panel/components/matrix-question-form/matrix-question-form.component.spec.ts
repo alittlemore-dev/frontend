@@ -4,9 +4,9 @@ import { By } from '@angular/platform-browser';
 import { of, throwError } from 'rxjs';
 import { I18nService } from '../../../../core/i18n/i18n.service';
 import { provideI18nTesting } from '../../../../testing/i18n-testing';
-import { chooseSiteSelectOption, siteSelectValue } from '../../../../testing/site-select-testing';
+import { chooseSiteSelectOption, siteSelectValue } from '@alittlemore.dev/design-system/testing';
 import { MarkdownEditorComponent } from '../../../../core/editor/markdown-editor.component';
-import { MarkdownEditorStickyBottomInsetDirective } from '../../../../core/editor/markdown-editor.sticky-bottom-inset.directive';
+import { MarkdownEditorStickyBottomInsetDirective } from '@alittlemore.dev/design-system/markdown-editor';
 import {
   AdminMatrixQuestionDetailDto,
   AdminMatrixQuestionPayload,
@@ -119,7 +119,7 @@ describe('MatrixQuestionFormComponent', () => {
     const insetDirective = footer.injector.get(MarkdownEditorStickyBottomInsetDirective);
     const editors = fixture.debugElement.queryAll(By.directive(MarkdownEditorStubComponent));
 
-    expect(insetDirective.appMarkdownEditorStickyBottomInset()).toBe(form);
+    expect(insetDirective.dsMarkdownEditorStickyBottomInset()).toBe(form);
     expect(editors).toHaveLength(4);
     expect(editors.every((editor) => form.contains(editor.nativeElement as HTMLElement))).toBe(
       true,

@@ -89,6 +89,8 @@ describe('AdminArticleStatisticsPageComponent', () => {
       .nativeElement as HTMLInputElement;
     fromInput.value = '01/07/2026';
     fromInput.dispatchEvent(new Event('input'));
+    fromInput.dispatchEvent(new Event('blur'));
+    fixture.detectChanges();
     fixture.debugElement
       .query(By.css('[data-testid="admin-article-statistics-refresh"]'))
       .nativeElement.click();

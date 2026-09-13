@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
 import { BehaviorSubject, of, Subject, throwError } from 'rxjs';
-import { NotificationService } from '../../../../core/notifications/notification.service';
+import { NotificationService } from '@alittlemore.dev/design-system';
 import { provideI18nTesting } from '../../../../testing/i18n-testing';
 import { ArticleTag } from '../../models/article-workspace.model';
 import { ArticleWorkspaceService } from '../../services/article-workspace.service';
@@ -98,16 +98,16 @@ describe('ArticleTagsPageComponent', () => {
     const tags$ = new Subject<ArticleTag[]>();
     articlesService.getTags.mockReturnValue(tags$);
     render();
-    expect(fixture.nativeElement.querySelector('app-loading-spinner')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('ds-loading-spinner')).not.toBeNull();
 
     tags$.error({ code: 'load', type: 'error', message: 'Nope', location: null, attr: null });
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('app-error-message')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('ds-error-message')).not.toBeNull();
 
     articlesService.getTags.mockReturnValue(of([]));
     fixture.componentInstance.loadTags();
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('app-empty-state')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('ds-empty-state')).not.toBeNull();
   });
 
   it('filters locally by both names and slug', () => {
@@ -231,7 +231,7 @@ describe('ArticleTagsPageComponent', () => {
     submit('[data-testid="article-tag-form"]');
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('app-error-message')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('ds-error-message')).not.toBeNull();
     expect(notifications.error).toHaveBeenCalledWith('Не удалось создать тег.');
   });
 

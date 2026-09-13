@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { NotificationService } from '../../../../core/notifications/notification.service';
+import { NotificationService } from '@alittlemore.dev/design-system';
 import { ApiError } from '../../../../core/models/api-error.model';
 import { provideI18nTesting } from '../../../../testing/i18n-testing';
 import { Subject, of, throwError } from 'rxjs';

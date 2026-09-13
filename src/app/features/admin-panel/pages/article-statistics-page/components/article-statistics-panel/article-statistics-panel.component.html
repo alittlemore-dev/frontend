@@ -8,9 +8,9 @@
         {{ 'articles.stats.from' | t }}
         <span class="text-danger" aria-hidden="true">*</span>
       </label>
-      <app-localized-date-picker
+      <ds-localized-date-picker
         inputId="adminArticleStatsDateFrom"
-        [value]="dateFrom()"
+        [value]="dateFrom() || null"
         controlSize="small"
         [dateLocale]="dateLocale()"
         [labels]="datePickerLabels()"
@@ -30,9 +30,9 @@
         {{ 'articles.stats.to' | t }}
         <span class="text-danger" aria-hidden="true">*</span>
       </label>
-      <app-localized-date-picker
+      <ds-localized-date-picker
         inputId="adminArticleStatsDateTo"
-        [value]="dateTo()"
+        [value]="dateTo() || null"
         controlSize="small"
         [dateLocale]="dateLocale()"
         [labels]="datePickerLabels()"
@@ -65,9 +65,9 @@
   </div>
 
   @if (loading()) {
-    <app-loading-spinner [ariaLabel]="'shared.loading' | t" />
+    <ds-loading-spinner [ariaLabel]="'shared.loading' | t" />
   } @else if (error()) {
-    <app-error-message
+    <ds-error-message
       [error]="error()!"
       [retryLabel]="'shared.retry' | t"
       (retry)="requestRefresh()"
@@ -80,7 +80,7 @@
     </div>
 
     @if (stats()!.articles.length === 0) {
-      <app-empty-state [message]="'articles.stats.empty' | t" />
+      <ds-empty-state [message]="'articles.stats.empty' | t" />
     } @else {
       <div class="table-responsive">
         <table class="table table-sm align-middle">

@@ -16,9 +16,9 @@
 </div>
 
 @if (loading()) {
-  <app-loading-spinner [ariaLabel]="'shared.loading' | t" />
+  <ds-loading-spinner [ariaLabel]="'shared.loading' | t" />
 } @else if (error()) {
-  <app-error-message [error]="error()!" [retryLabel]="'shared.retry' | t" (retry)="loadQueue()" />
+  <ds-error-message [error]="error()!" [retryLabel]="'shared.retry' | t" (retry)="loadQueue()" />
 } @else {
   <div class="row g-2 mb-3" role="status" aria-live="polite">
     <div class="col-6 col-xl-3">
@@ -74,7 +74,7 @@
         <label class="form-label" for="matrix-queue-filter-sheet">
           {{ 'adminMatrixQueue.filters.sheet' | t }}
         </label>
-        <app-site-select
+        <ds-site-select
           inputId="matrix-queue-filter-sheet"
           [options]="sheetSelectOptions()"
           controlSize="small"
@@ -90,7 +90,7 @@
         <label class="form-label" for="matrix-queue-filter-grade">
           {{ 'adminMatrixQueue.filters.grade' | t }}
         </label>
-        <app-site-select
+        <ds-site-select
           inputId="matrix-queue-filter-grade"
           [options]="gradeSelectOptions()"
           controlSize="small"
@@ -106,7 +106,7 @@
         <label class="form-label" for="matrix-queue-filter-availability">
           {{ 'adminMatrixQueue.filters.availability' | t }}
         </label>
-        <app-site-select
+        <ds-site-select
           inputId="matrix-queue-filter-availability"
           [options]="availabilitySelectOptions()"
           controlSize="small"
@@ -132,9 +132,9 @@
   }
 
   @if (!hasQuestions()) {
-    <app-empty-state [message]="'adminMatrixQueue.empty' | t" />
+    <ds-empty-state [message]="'adminMatrixQueue.empty' | t" />
   } @else if (!hasFilteredQuestions()) {
-    <app-empty-state [message]="'adminMatrixQueue.filteredEmpty' | t" />
+    <ds-empty-state [message]="'adminMatrixQueue.filteredEmpty' | t" />
     <div class="text-center mb-4">
       <button
         type="button"
@@ -217,7 +217,7 @@
 @if (selectedQuestion()) {
   <div
     class="modal d-block bg-dark bg-opacity-50"
-    [appModalScroll]="queueQuestionScrollArea"
+    [dsModalScroll]="queueQuestionScrollArea"
     role="dialog"
     aria-modal="true"
     [attr.aria-label]="'matrix.modal.create' | t"
@@ -304,7 +304,7 @@
 @if (manualAddVisible()) {
   <div
     class="modal d-block bg-dark bg-opacity-50"
-    [appModalScroll]="queueAddScrollArea"
+    [dsModalScroll]="queueAddScrollArea"
     role="dialog"
     aria-modal="true"
     [attr.aria-label]="'adminMatrixQueue.addManualTitle' | t"

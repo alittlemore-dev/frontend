@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { of, throwError } from 'rxjs';
-import { NotificationService } from '../../../../core/notifications/notification.service';
+import { NotificationService } from '@alittlemore.dev/design-system';
 import { provideI18nTesting } from '../../../../testing/i18n-testing';
 import { ArticleFolder } from '../../models/article-workspace.model';
 import { ArticleWorkspaceService } from '../../services/article-workspace.service';
@@ -142,7 +142,7 @@ describe('ArticleFoldersPageComponent', () => {
     expect(
       fixture.nativeElement.querySelector('[data-testid="article-folders-create-dialog"]'),
     ).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('app-error-message')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('ds-error-message')).toBeTruthy();
     expect(notifications.error).toHaveBeenCalledWith('Не удалось создать папку.');
   });
 

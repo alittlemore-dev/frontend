@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { provideI18nTesting } from '../../../../testing/i18n-testing';
-import { chooseSiteSelectOption } from '../../../../testing/site-select-testing';
+import { chooseSiteSelectOption } from '@alittlemore.dev/design-system/testing';
 import { AdminMatrixStructure } from '../../models/matrix-question-workspace.model';
 import { MatrixQuestionWorkspaceService } from '../../services/matrix-question-workspace.service';
 import { AdminUnsavedChangesScope } from '../../services/admin-unsaved-changes.service';

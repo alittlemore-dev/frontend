@@ -91,7 +91,7 @@ describe('MatrixQuestionPageComponent', () => {
 
     fixture.detectChanges();
 
-    expect(el.querySelector('app-loading-spinner')).toBeTruthy();
+    expect(el.querySelector('ds-loading-spinner')).toBeTruthy();
   });
 
   it('ignores stale responses after the route slug changes', () => {
@@ -128,7 +128,7 @@ describe('MatrixQuestionPageComponent', () => {
 
     fixture.detectChanges();
 
-    expect(el.querySelector('app-error-message')).toBeTruthy();
+    expect(el.querySelector('ds-error-message')).toBeTruthy();
     expect(seoService.setMeta).toHaveBeenCalledWith(
       expect.objectContaining({
         title: 'Вопрос не найден',

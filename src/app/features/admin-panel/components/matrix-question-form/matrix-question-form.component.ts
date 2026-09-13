@@ -29,7 +29,7 @@ import {
 import { EMPTY, catchError, map } from 'rxjs';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { MarkdownEditorComponent } from '../../../../core/editor/markdown-editor.component';
-import { MarkdownEditorStickyBottomInsetDirective } from '../../../../core/editor/markdown-editor.sticky-bottom-inset.directive';
+import { MarkdownEditorStickyBottomInsetDirective } from '@alittlemore.dev/design-system/markdown-editor';
 import { LanguageCode } from '../../../../core/i18n/i18n.model';
 import { I18nService } from '../../../../core/i18n/i18n.service';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
@@ -46,7 +46,11 @@ import {
 } from '../../models/matrix-question-workspace.model';
 import { MatrixQuestionWorkspaceService } from '../../services/matrix-question-workspace.service';
 import { MatrixStructurePickerComponent } from '../matrix-structure-picker/matrix-structure-picker.component';
-import { AdminControlValidationStateDirective } from '../../directives/admin-control-validation-state.directive';
+import {
+  ControlValidationStateDirective,
+  SiteSelectComponent,
+  SiteSelectOption,
+} from '@alittlemore.dev/design-system';
 import {
   AdminUnsavedChangesScope,
   AdminUnsavedChangesSource,
@@ -69,10 +73,7 @@ import {
   matrixQuestionTranslationFieldSignature,
 } from './matrix-question-readiness.model';
 import { MatrixQuestionReadinessPanelComponent } from './matrix-question-readiness-panel.component';
-import {
-  SiteSelectComponent,
-  SiteSelectOption,
-} from '../../../../shared/ui/site-select/site-select.component';
+
 import {
   ADMIN_VALIDATION_LIMITS,
   controlInvalid,
@@ -142,7 +143,7 @@ interface AdminMatrixResourceDraft {
     MatrixQuestionPublicPreviewComponent,
     MatrixQuestionTranslationWorkspaceComponent,
     MatrixQuestionReadinessPanelComponent,
-    AdminControlValidationStateDirective,
+    ControlValidationStateDirective,
     SiteSelectComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,

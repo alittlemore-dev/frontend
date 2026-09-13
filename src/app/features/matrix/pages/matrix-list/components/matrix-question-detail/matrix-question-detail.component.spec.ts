@@ -78,7 +78,7 @@ describe('MatrixQuestionDetailComponent', () => {
     fixture.componentRef.setInput('question', null);
     fixture.componentRef.setInput('error', null);
     fixture.detectChanges();
-    expect(el.querySelector('app-loading-spinner')).toBeTruthy();
+    expect(el.querySelector('ds-loading-spinner')).toBeTruthy();
   });
 
   it('should show error when error is set', () => {
@@ -86,7 +86,7 @@ describe('MatrixQuestionDetailComponent', () => {
     fixture.componentRef.setInput('question', null);
     fixture.componentRef.setInput('error', mockError);
     fixture.detectChanges();
-    expect(el.querySelector('app-error-message')).toBeTruthy();
+    expect(el.querySelector('ds-error-message')).toBeTruthy();
   });
 
   it('should show nothing when question is null and no loading/error', () => {

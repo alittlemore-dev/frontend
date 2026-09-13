@@ -11,7 +11,7 @@ import {
   UploadedMediaFile,
 } from '../../../../../../core/uploads/media-upload.service';
 import { provideI18nTesting } from '../../../../../../testing/i18n-testing';
-import { chooseSiteSelectOption } from '../../../../../../testing/site-select-testing';
+import { chooseSiteSelectOption } from '@alittlemore.dev/design-system/testing';
 import { ArticleWorkspaceService } from '../../../../services/article-workspace.service';
 import { ArticleDetail, ArticleTag } from '../../../../models/article-workspace.model';
 import { AdminUnsavedChangesScope } from '../../../../services/admin-unsaved-changes.service';

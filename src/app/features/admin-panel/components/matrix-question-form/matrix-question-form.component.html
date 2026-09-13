@@ -98,7 +98,7 @@
     </div>
     <div class="col-12 col-md-4">
       <label class="form-label" for="matrix-form-grade">{{ 'matrix.form.grade' | t }}</label>
-      <app-site-select
+      <ds-site-select
         inputId="matrix-form-grade"
         [options]="gradeSelectOptions()"
         controlSize="default"
@@ -113,7 +113,7 @@
       <label class="form-label" for="matrix-form-interview-frequency">
         {{ 'matrix.form.interviewFrequency' | t }}
       </label>
-      <app-site-select
+      <ds-site-select
         inputId="matrix-form-interview-frequency"
         [options]="interviewFrequencySelectOptions()"
         controlSize="default"
@@ -128,7 +128,7 @@
       <label class="form-label" for="matrix-form-status">
         {{ 'adminMatrixWorkspace.status' | t }}
       </label>
-      <app-site-select
+      <ds-site-select
         inputId="matrix-form-status"
         [options]="publishStatusSelectOptions()"
         controlSize="default"
@@ -571,7 +571,7 @@
   <div
     class="matrix-question-form-action-footer d-flex flex-wrap align-items-center gap-2 mt-4 py-3 border-top"
     data-testid="matrix-form-action-footer"
-    [appMarkdownEditorStickyBottomInset]="questionFormElement"
+    [dsMarkdownEditorStickyBottomInset]="questionFormElement"
   >
     <ng-content select="[matrixQuestionFormActions]" />
     <div class="d-flex flex-wrap justify-content-end gap-2 ms-auto">

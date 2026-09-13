@@ -15,21 +15,23 @@ import { AuthModalService } from '../../../../core/auth/auth-modal.service';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { I18nService } from '../../../../core/i18n/i18n.service';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
-import { ModalScrollDirective } from '../../../../core/layout/modal-scroll.directive';
-import { ApiError } from '../../../../core/models/api-error.model';
-import { NotificationService } from '../../../../core/notifications/notification.service';
-import { ErrorMessageComponent } from '../../../../shared/ui/error-message/error-message.component';
-import { LoadingSpinnerComponent } from '../../../../shared/ui/loading-spinner/loading-spinner.component';
 import {
+  ModalScrollDirective,
+  NotificationService,
+  ErrorMessageComponent,
+  LoadingSpinnerComponent,
   SiteSelectComponent,
   SiteSelectOption,
-} from '../../../../shared/ui/site-select/site-select.component';
-import { formatLocalizedDate } from '../../../../shared/utils/localized-date';
+  formatLocalizedDate,
+  ControlValidationStateDirective,
+} from '@alittlemore.dev/design-system';
+import { ApiError } from '../../../../core/models/api-error.model';
+
 import {
   AdminAction,
   AdminActionsDropdownComponent,
 } from '../../components/admin-actions-dropdown/admin-actions-dropdown.component';
-import { AdminControlValidationStateDirective } from '../../directives/admin-control-validation-state.directive';
+
 import {
   EditableManagedAccountRole,
   ManagedAccount,
@@ -73,7 +75,7 @@ const MANAGED_ACCOUNT_ROLE_OPTIONS: readonly ManagedAccountRoleOption[] = [
     LoadingSpinnerComponent,
     ErrorMessageComponent,
     AdminActionsDropdownComponent,
-    AdminControlValidationStateDirective,
+    ControlValidationStateDirective,
     ModalScrollDirective,
     SiteSelectComponent,
   ],

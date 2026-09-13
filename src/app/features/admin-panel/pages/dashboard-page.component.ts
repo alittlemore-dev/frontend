@@ -16,8 +16,8 @@ import { AuthService } from '../../../core/auth/auth.service';
 import { I18nService } from '../../../core/i18n/i18n.service';
 import { TranslatePipe } from '../../../core/i18n/translate.pipe';
 import { ApiError } from '../../../core/models/api-error.model';
-import { ErrorMessageComponent } from '../../../shared/ui/error-message/error-message.component';
-import { LoadingSpinnerComponent } from '../../../shared/ui/loading-spinner/loading-spinner.component';
+import { ErrorMessageComponent, LoadingSpinnerComponent } from '@alittlemore.dev/design-system';
+
 import { AdminToolsWidgetComponent } from '../components/admin-tools-widget/admin-tools-widget.component';
 import { DashboardFoldableSectionComponent } from '../components/dashboard-foldable-section/dashboard-foldable-section.component';
 import {

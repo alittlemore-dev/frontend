@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
-import { LocalizedDatePickerLabels } from '../../../../../../shared/ui/localized-date-picker/localized-date-picker.component';
+import { LocalizedDatePickerLabels } from '@alittlemore.dev/design-system';
 import { provideI18nTesting } from '../../../../../../testing/i18n-testing';
 import { AdminArticleStatisticsPanelComponent } from './article-statistics-panel.component';
 
@@ -15,7 +15,11 @@ const DATE_PICKER_LABELS: LocalizedDatePickerLabels = {
   previousYear: 'Предыдущий год',
   nextYear: 'Следующий год',
   clear: 'Очистить',
-  close: 'Закрыть',
+  cancel: 'Отмена',
+  done: 'Готово',
+  today: 'Сегодня',
+  selectDate: 'Выбрать дату',
+  unavailableDate: 'Дата недоступна',
   formatHint: 'Формат даты: ДД.ММ.ГГГГ',
   invalidDate: 'Введите корректную дату в формате ДД.ММ.ГГГГ.',
   requiredDate: 'Укажите дату.',
@@ -73,6 +77,8 @@ describe('AdminArticleStatisticsPanelComponent', () => {
       .nativeElement as HTMLInputElement;
     dateInput.value = '02/01/2026';
     dateInput.dispatchEvent(new Event('input'));
+    dateInput.dispatchEvent(new Event('blur'));
+    fixture.detectChanges();
     fixture.debugElement
       .query(By.css('[data-testid="admin-article-statistics-refresh"]'))
       .nativeElement.click();
@@ -133,10 +139,12 @@ describe('AdminArticleStatisticsPanelComponent', () => {
     expect(inputs[1].value).toBe('31.01.2026');
     expect(inputs[0].classList).toContain('form-control-sm');
     expect(
-      fixture.debugElement.queryAll(By.css('[data-testid="date-picker-toggle"]')),
+      fixture.debugElement.queryAll(By.css('[data-testid="temporal-picker-field-trigger"]')),
     ).toHaveLength(2);
 
-    fixture.debugElement.query(By.css('[data-testid="date-picker-toggle"]')).nativeElement.click();
+    fixture.debugElement
+      .query(By.css('[data-testid="temporal-picker-field-trigger"]'))
+      .nativeElement.click();
     fixture.detectChanges();
 
     const monthYearToggle = fixture.debugElement.query(

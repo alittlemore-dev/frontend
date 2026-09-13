@@ -1,17 +1,13 @@
-import { Injectable, SecurityContext, inject } from '@angular/core';
-import { DomSanitizer } from '@angular/platform-browser';
+import { Injectable, inject } from '@angular/core';
+import { MarkdownRendererService } from '@alittlemore.dev/design-system/markdown';
 import { LanguageCode } from '../i18n/i18n.model';
-import { renderMarkdownWithWikiLinks } from './wiki-links';
+import { applicationWikiLinks } from './wiki-links';
 
 @Injectable({ providedIn: 'root' })
 export class WikiLinkRendererService {
-  private readonly sanitizer = inject(DomSanitizer);
+  private readonly renderer = inject(MarkdownRendererService);
 
   render(markdown: string, language: LanguageCode): string {
-    return renderMarkdownWithWikiLinks(
-      markdown,
-      language,
-      (html) => this.sanitizer.sanitize(SecurityContext.HTML, html) ?? '',
-    );
+    return this.renderer.render(markdown, { wikiLinks: applicationWikiLinks(language) });
   }
 }

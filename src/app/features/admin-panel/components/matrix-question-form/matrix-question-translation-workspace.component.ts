@@ -14,7 +14,7 @@ import {
 import { MarkdownEditorComponent } from '../../../../core/editor/markdown-editor.component';
 import { I18nService } from '../../../../core/i18n/i18n.service';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
-import { NotificationService } from '../../../../core/notifications/notification.service';
+import { NotificationService } from '@alittlemore.dev/design-system';
 import {
   MatrixQuestionTranslationChange,
   MatrixQuestionTranslationField,

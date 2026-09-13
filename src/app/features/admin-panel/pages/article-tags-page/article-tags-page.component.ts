@@ -15,18 +15,22 @@ import { Observable, Subject, debounceTime, finalize } from 'rxjs';
 import { I18nService } from '../../../../core/i18n/i18n.service';
 import { LanguageCode } from '../../../../core/i18n/i18n.model';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
-import { ModalScrollDirective } from '../../../../core/layout/modal-scroll.directive';
+import {
+  ModalScrollDirective,
+  NotificationService,
+  EmptyStateComponent,
+  ErrorMessageComponent,
+  LoadingSpinnerComponent,
+  ControlValidationStateDirective,
+} from '@alittlemore.dev/design-system';
 import { ApiError } from '../../../../core/models/api-error.model';
-import { NotificationService } from '../../../../core/notifications/notification.service';
-import { EmptyStateComponent } from '../../../../shared/ui/empty-state/empty-state.component';
-import { ErrorMessageComponent } from '../../../../shared/ui/error-message/error-message.component';
-import { LoadingSpinnerComponent } from '../../../../shared/ui/loading-spinner/loading-spinner.component';
+
 import { slugify } from '../../../../shared/utils/slugify';
 import {
   AdminAction,
   AdminActionsDropdownComponent,
 } from '../../components/admin-actions-dropdown/admin-actions-dropdown.component';
-import { AdminControlValidationStateDirective } from '../../directives/admin-control-validation-state.directive';
+
 import { ArticleTag } from '../../models/article-workspace.model';
 import {
   AdminUnsavedChangesService,
@@ -68,7 +72,7 @@ interface ArticleTagFormControls {
     ErrorMessageComponent,
     EmptyStateComponent,
     AdminActionsDropdownComponent,
-    AdminControlValidationStateDirective,
+    ControlValidationStateDirective,
     ModalScrollDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -3,9 +3,12 @@ import { LanguageCode } from '../../../../../../core/i18n/i18n.model';
 import { TranslatePipe } from '../../../../../../core/i18n/translate.pipe';
 import { ApiError } from '../../../../../../core/models/api-error.model';
 import { WikiLinkRendererService } from '../../../../../../core/wiki-links/wiki-link-renderer.service';
-import { ErrorMessageComponent } from '../../../../../../shared/ui/error-message/error-message.component';
-import { LoadingSpinnerComponent } from '../../../../../../shared/ui/loading-spinner/loading-spinner.component';
-import { formatLocalizedDate } from '../../../../../../shared/utils/localized-date';
+import {
+  ErrorMessageComponent,
+  LoadingSpinnerComponent,
+  formatLocalizedDate,
+} from '@alittlemore.dev/design-system';
+
 import { ArticleDetail, ArticleReactionKind } from '../../../../models/articles.model';
 
 interface ReactionOption {

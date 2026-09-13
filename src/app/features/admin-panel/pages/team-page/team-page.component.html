@@ -17,15 +17,15 @@
   </div>
 
   @if (loading()) {
-    <app-loading-spinner [ariaLabel]="'shared.loading' | t" />
+    <ds-loading-spinner [ariaLabel]="'shared.loading' | t" />
   } @else if (error()) {
-    <app-error-message
+    <ds-error-message
       [error]="error()!"
       [retryLabel]="'shared.retry' | t"
       (retry)="loadAccounts()"
     />
   } @else if ((accounts()?.accounts?.length ?? 0) === 0) {
-    <app-empty-state [message]="'adminTeamWorkspace.empty' | t" />
+    <ds-empty-state [message]="'adminTeamWorkspace.empty' | t" />
   } @else if (accounts()) {
     <div class="table-responsive">
       <table class="table table-sm align-middle">
@@ -108,7 +108,7 @@
   @if (createDialogOpen()) {
     <div
       class="modal d-block bg-dark bg-opacity-50"
-      [appModalScroll]="teamCreateScrollArea"
+      [dsModalScroll]="teamCreateScrollArea"
       role="dialog"
       aria-modal="true"
       data-testid="team-create-dialog"
@@ -142,7 +142,7 @@
           </div>
           <div #teamCreateScrollArea class="modal-body">
             @if (createError()) {
-              <app-error-message
+              <ds-error-message
                 [error]="createError()!"
                 [retryLabel]="'shared.retry' | t"
                 (retry)="createAccount()"
@@ -173,7 +173,7 @@
                   {{ 'adminTeamWorkspace.field.role' | t }}
                   <span class="required-marker" aria-hidden="true">*</span>
                 </label>
-                <app-site-select
+                <ds-site-select
                   inputId="team-create-role"
                   [options]="createRoleSelectOptions()"
                   controlSize="default"
@@ -230,7 +230,7 @@
   @if (roleDialogOpen()) {
     <div
       class="modal d-block bg-dark bg-opacity-50"
-      [appModalScroll]="teamRoleScrollArea"
+      [dsModalScroll]="teamRoleScrollArea"
       role="dialog"
       aria-modal="true"
       [attr.aria-label]="'adminTeamWorkspace.roleTitle' | t"
@@ -263,7 +263,7 @@
           </div>
           <div #teamRoleScrollArea class="modal-body">
             @if (roleError()) {
-              <app-error-message
+              <ds-error-message
                 [error]="roleError()!"
                 [retryLabel]="'shared.retry' | t"
                 (retry)="updateRole()"
@@ -272,7 +272,7 @@
             <label class="form-label" for="team-role-role">
               {{ 'adminTeamWorkspace.field.role' | t }}
             </label>
-            <app-site-select
+            <ds-site-select
               inputId="team-role-role"
               [options]="roleSelectOptions()"
               controlSize="default"
@@ -308,7 +308,7 @@
   @if (passwordDialogOpen()) {
     <div
       class="modal d-block bg-dark bg-opacity-50"
-      [appModalScroll]="teamPasswordScrollArea"
+      [dsModalScroll]="teamPasswordScrollArea"
       role="dialog"
       aria-modal="true"
       [attr.aria-label]="'adminTeamWorkspace.passwordTitle' | t"
@@ -341,7 +341,7 @@
           </div>
           <div #teamPasswordScrollArea class="modal-body">
             @if (passwordError()) {
-              <app-error-message
+              <ds-error-message
                 [error]="passwordError()!"
                 [retryLabel]="'shared.retry' | t"
                 (retry)="updatePassword()"

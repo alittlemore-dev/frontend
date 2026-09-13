@@ -13,9 +13,12 @@ import { ActivatedRoute, ParamMap, Router } from '@angular/router';
 import { ApiError } from '../../../../core/models/api-error.model';
 import { I18nService } from '../../../../core/i18n/i18n.service';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
-import { NotificationService } from '../../../../core/notifications/notification.service';
-import { ErrorMessageComponent } from '../../../../shared/ui/error-message/error-message.component';
-import { LoadingSpinnerComponent } from '../../../../shared/ui/loading-spinner/loading-spinner.component';
+import {
+  NotificationService,
+  ErrorMessageComponent,
+  LoadingSpinnerComponent,
+} from '@alittlemore.dev/design-system';
+
 import {
   AdminAction,
   AdminActionsDropdownComponent,

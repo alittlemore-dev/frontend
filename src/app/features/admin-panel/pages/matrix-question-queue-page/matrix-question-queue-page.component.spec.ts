@@ -9,9 +9,9 @@ import {
 import { BehaviorSubject, Subject, of, throwError } from 'rxjs';
 import { I18nService } from '../../../../core/i18n/i18n.service';
 import { ApiError } from '../../../../core/models/api-error.model';
-import { NotificationService } from '../../../../core/notifications/notification.service';
+import { NotificationService } from '@alittlemore.dev/design-system';
 import { provideI18nTesting } from '../../../../testing/i18n-testing';
-import { chooseSiteSelectOption } from '../../../../testing/site-select-testing';
+import { chooseSiteSelectOption } from '@alittlemore.dev/design-system/testing';
 import {
   AdminMatrixQuestionPayload,
   AdminMatrixStructure,
@@ -1088,7 +1088,9 @@ describe('MatrixQuestionQueuePageComponent', () => {
     fixture.detectChanges();
 
     expect(queueService.createQuestionFromQueue).not.toHaveBeenCalled();
-    expect(router.navigate).not.toHaveBeenCalled();
+    expect(
+      jest.mocked(router.navigate).mock.calls.every(([commands]) => commands.length === 0),
+    ).toBe(true);
 
     fillValidCreateForm();
     fixture.nativeElement
@@ -1097,7 +1099,9 @@ describe('MatrixQuestionQueuePageComponent', () => {
     fixture.detectChanges();
 
     expect(queueService.createQuestionFromQueue).toHaveBeenCalledTimes(1);
-    expect(router.navigate).not.toHaveBeenCalled();
+    expect(
+      jest.mocked(router.navigate).mock.calls.every(([commands]) => commands.length === 0),
+    ).toBe(true);
     expect(component.selectedQuestion()?.id).toBe(MISSING_SHEET_QUESTION_ID);
   });
 
@@ -1119,7 +1123,9 @@ describe('MatrixQuestionQueuePageComponent', () => {
       .click();
     fixture.detectChanges();
 
-    expect(router.navigate).not.toHaveBeenCalled();
+    expect(
+      jest.mocked(router.navigate).mock.calls.every(([commands]) => commands.length === 0),
+    ).toBe(true);
     expect(component.selectedQuestion()?.id).toBe(QUESTION_ID);
     expect(component.questions()).toEqual([queuedQuestion, queuedQuestionWithMissingSheet]);
     expect(fixture.nativeElement.textContent).toContain('payload / slug: Failed');

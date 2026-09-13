@@ -47,7 +47,7 @@ import { slugify } from '../../../../../../shared/utils/slugify';
 import { ArticleAuthoringPreviewComponent } from '../article-authoring-preview/article-authoring-preview.component';
 import { ArticleFolderPickerComponent } from '../article-folder-picker/article-folder-picker.component';
 import { ArticleSeoPanelComponent } from '../article-seo-panel/article-seo-panel.component';
-import { AdminControlValidationStateDirective } from '../../../../directives/admin-control-validation-state.directive';
+import { ControlValidationStateDirective } from '@alittlemore.dev/design-system';
 import { AdminRemoveButtonComponent } from '../../../../components/admin-remove-button/admin-remove-button.component';
 import {
   ADMIN_VALIDATION_LIMITS,
@@ -118,7 +118,7 @@ type ArticleFormViewMode = 'edit' | 'preview';
     ArticleAuthoringPreviewComponent,
     ArticleFolderPickerComponent,
     ArticleSeoPanelComponent,
-    AdminControlValidationStateDirective,
+    ControlValidationStateDirective,
     AdminRemoveButtonComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,

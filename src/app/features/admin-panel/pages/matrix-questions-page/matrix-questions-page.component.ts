@@ -16,21 +16,21 @@ import { LanguageCode } from '../../../../core/i18n/i18n.model';
 import { ApiError } from '../../../../core/models/api-error.model';
 import { I18nService } from '../../../../core/i18n/i18n.service';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
-import { ModalScrollDirective } from '../../../../core/layout/modal-scroll.directive';
-import { NotificationService } from '../../../../core/notifications/notification.service';
-import { EmptyStateComponent } from '../../../../shared/ui/empty-state/empty-state.component';
-import { ErrorMessageComponent } from '../../../../shared/ui/error-message/error-message.component';
 import {
+  ModalScrollDirective,
+  NotificationService,
+  EmptyStateComponent,
+  ErrorMessageComponent,
   LocalizedDatePickerComponent,
   LocalizedDatePickerLabels,
-} from '../../../../shared/ui/localized-date-picker/localized-date-picker.component';
-import { LoadingSpinnerComponent } from '../../../../shared/ui/loading-spinner/loading-spinner.component';
-import { MatrixGroupedGridComponent } from '../../../../shared/ui/matrix-grouped-grid/matrix-grouped-grid.component';
-import { MatrixSheetTabsComponent } from '../../../../shared/ui/matrix-sheet-tabs/matrix-sheet-tabs.component';
-import {
+  LoadingSpinnerComponent,
   SiteSelectComponent,
   SiteSelectOption,
-} from '../../../../shared/ui/site-select/site-select.component';
+} from '@alittlemore.dev/design-system';
+
+import { MatrixGroupedGridComponent } from '../../../../shared/ui/matrix-grouped-grid/matrix-grouped-grid.component';
+import { MatrixSheetTabsComponent } from '../../../../shared/ui/matrix-sheet-tabs/matrix-sheet-tabs.component';
+
 import {
   AdminAction,
   AdminActionsDropdownComponent,
@@ -233,7 +233,11 @@ export class MatrixQuestionsPageComponent implements OnInit {
     previousYear: this.datePickerTranslation('previousYear'),
     nextYear: this.datePickerTranslation('nextYear'),
     clear: this.datePickerTranslation('clear'),
-    close: this.datePickerTranslation('close'),
+    cancel: this.datePickerTranslation('cancel'),
+    done: this.datePickerTranslation('done'),
+    today: this.datePickerTranslation('today'),
+    selectDate: this.datePickerTranslation('selectDate'),
+    unavailableDate: this.datePickerTranslation('unavailableDate'),
     formatHint: this.datePickerTranslation('formatHint'),
     invalidDate: this.datePickerTranslation('invalidDate'),
     requiredDate: this.datePickerTranslation('requiredDate'),
@@ -479,12 +483,12 @@ export class MatrixQuestionsPageComponent implements OnInit {
     });
   }
 
-  setPublishedFrom(value: string): void {
-    this.filtersForm.controls.publishedFrom.setValue(value);
+  setPublishedFrom(value: string | null): void {
+    this.filtersForm.controls.publishedFrom.setValue(value ?? '');
   }
 
-  setPublishedTo(value: string): void {
-    this.filtersForm.controls.publishedTo.setValue(value);
+  setPublishedTo(value: string | null): void {
+    this.filtersForm.controls.publishedTo.setValue(value ?? '');
   }
 
   setPublishedFromValidity(valid: boolean): void {

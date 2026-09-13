@@ -13,15 +13,18 @@ import { ActivatedRoute, ParamMap, Router, RouterLink } from '@angular/router';
 import { ApiError } from '../../../../core/models/api-error.model';
 import { I18nService } from '../../../../core/i18n/i18n.service';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
-import { ModalScrollDirective } from '../../../../core/layout/modal-scroll.directive';
-import { NotificationService } from '../../../../core/notifications/notification.service';
-import { EmptyStateComponent } from '../../../../shared/ui/empty-state/empty-state.component';
-import { ErrorMessageComponent } from '../../../../shared/ui/error-message/error-message.component';
 import {
+  ModalScrollDirective,
+  NotificationService,
+  EmptyStateComponent,
+  ErrorMessageComponent,
   LocalizedDatePickerComponent,
   LocalizedDatePickerLabels,
-} from '../../../../shared/ui/localized-date-picker/localized-date-picker.component';
-import { LoadingSpinnerComponent } from '../../../../shared/ui/loading-spinner/loading-spinner.component';
+  LoadingSpinnerComponent,
+  SiteSelectComponent,
+  SiteSelectOption,
+} from '@alittlemore.dev/design-system';
+
 import {
   AdminArticleList,
   AdminArticlePayload,
@@ -45,10 +48,6 @@ import {
   readPositiveIntegerQuery,
   replaceAdminQueryParams,
 } from '../../utils/admin-query-state';
-import {
-  SiteSelectComponent,
-  SiteSelectOption,
-} from '../../../../shared/ui/site-select/site-select.component';
 
 const PAGE_SIZE = 20;
 const ARTICLE_PUBLISH_STATUSES = ['Draft', 'Published'] as const;
@@ -148,7 +147,11 @@ export class AdminArticlesPageComponent implements OnInit {
     previousYear: this.datePickerTranslation('previousYear'),
     nextYear: this.datePickerTranslation('nextYear'),
     clear: this.datePickerTranslation('clear'),
-    close: this.datePickerTranslation('close'),
+    cancel: this.datePickerTranslation('cancel'),
+    done: this.datePickerTranslation('done'),
+    today: this.datePickerTranslation('today'),
+    selectDate: this.datePickerTranslation('selectDate'),
+    unavailableDate: this.datePickerTranslation('unavailableDate'),
     formatHint: this.datePickerTranslation('formatHint'),
     invalidDate: this.datePickerTranslation('invalidDate'),
     requiredDate: this.datePickerTranslation('requiredDate'),
@@ -370,12 +373,12 @@ export class AdminArticlesPageComponent implements OnInit {
     this.tagSlug.set(value === '' ? null : value);
   }
 
-  setPublishedFrom(value: string): void {
-    this.publishedFrom.set(value);
+  setPublishedFrom(value: string | null): void {
+    this.publishedFrom.set(value ?? '');
   }
 
-  setPublishedTo(value: string): void {
-    this.publishedTo.set(value);
+  setPublishedTo(value: string | null): void {
+    this.publishedTo.set(value ?? '');
   }
 
   setPublishedFromValidity(valid: boolean): void {

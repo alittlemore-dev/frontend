@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { provideI18nTesting } from '../../../../../../testing/i18n-testing';
-import { chooseSiteSelectOption } from '../../../../../../testing/site-select-testing';
+import { chooseSiteSelectOption } from '@alittlemore.dev/design-system/testing';
 import { ArticleWorkspaceService } from '../../../../services/article-workspace.service';
 import { AdminUnsavedChangesScope } from '../../../../services/admin-unsaved-changes.service';
 import { ArticleFolderPickerComponent } from './article-folder-picker.component';

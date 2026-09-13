@@ -37,11 +37,11 @@
 </div>
 
 @if (loading()) {
-  <app-loading-spinner [ariaLabel]="'shared.loading' | t" />
+  <ds-loading-spinner [ariaLabel]="'shared.loading' | t" />
 } @else if (error()) {
-  <app-error-message [error]="error()!" [retryLabel]="'shared.retry' | t" (retry)="loadTags()" />
+  <ds-error-message [error]="error()!" [retryLabel]="'shared.retry' | t" (retry)="loadTags()" />
 } @else if (filteredTags().length === 0) {
-  <app-empty-state [message]="'articles.tags.empty' | t" />
+  <ds-empty-state [message]="'articles.tags.empty' | t" />
 } @else {
   <div class="table-responsive">
     <table class="table table-sm align-middle">
@@ -81,7 +81,7 @@
 @if (dialogOpen()) {
   <div
     class="modal d-block bg-dark bg-opacity-50"
-    [appModalScroll]="tagScrollArea"
+    [dsModalScroll]="tagScrollArea"
     role="dialog"
     aria-modal="true"
     data-testid="article-tag-dialog"
@@ -121,7 +121,7 @@
         </div>
         <div #tagScrollArea class="modal-body">
           @if (formError()) {
-            <app-error-message
+            <ds-error-message
               [error]="formError()!"
               [retryLabel]="'shared.retry' | t"
               (retry)="saveTag()"
