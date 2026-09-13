@@ -1,89 +1,40 @@
 # alittlemore.dev Frontend
 
-Shared Angular frontend repository for alittlemore.dev. It currently contains the migrated
-Competency Trainer hybrid SSR/CSR application unchanged and is the root build context for the
-single frontend image. Public article pages, the public site-build case study, the public updates
-page, and public competency matrix question pages are server-rendered for SEO, while protected
-admin content/team workspaces and interactive areas stay hydrated Angular.
+<p align="center">
+  <img src="./public/logo-512x512.png" alt="alittlemore.dev logo" width="180">
+</p>
 
-In the full application stack, infrastructure nginx remains the public edge proxy:
+[🇷🇺 Russian version](./README_RU.md)
 
-- `/` is proxied to the frontend Node.js SSR container.
-- `/api/*` is proxied to the backend service.
-- `/sitemap.xml` and `/robots.txt` are proxied to backend-generated discovery endpoints.
-- TLS, public domains, MinIO, and backup UI routing stay in the infrastructure layer.
+Shared frontend for [alittlemore.dev](https://alittlemore.dev): public site pages and protected workspaces. Built with Angular hybrid SSR/CSR.
 
-## Development server
+| Category             | Technologies                                                                                                                                                                                                                                                                                                 |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Coverage             | ![coverage-frontend](./.github/badges/coverage-frontend.svg)                                                                                                                                                                                                                                                 |
+| Frontend             | ![angular](./.github/badges/angular.svg) ![typescript](./.github/badges/typescript.svg) ![rxjs](./.github/badges/rxjs.svg) ![zonejs](./.github/badges/zonejs.svg) ![bootstrap](./.github/badges/bootstrap.svg) ![sass](./.github/badges/sass.svg)                                                            |
+| SSR runtime          | ![node](./.github/badges/node.svg) ![express](./.github/badges/express.svg) ![angular-ssr](./.github/badges/angular-ssr.svg)                                                                                                                                                                                 |
+| Editor and content   | ![codemirror](./.github/badges/codemirror.svg) ![lezer](./.github/badges/lezer.svg) ![marked](./.github/badges/marked.svg) ![dompurify](./.github/badges/dompurify.svg) ![prismjs](./.github/badges/prismjs.svg)                                                                                             |
+| Testing              | ![jest](./.github/badges/jest.svg) ![jest-preset-angular](./.github/badges/jest-preset-angular.svg) ![jsdom](./.github/badges/jsdom.svg) ![lhci](./.github/badges/lhci.svg)                                                                                                                                  |
+| Quality and security | ![eslint](./.github/badges/eslint.svg) ![angular-eslint](./.github/badges/angular-eslint.svg) ![prettier](./.github/badges/prettier.svg) ![npm-audit](./.github/badges/npm-audit.svg) ![hadolint](./.github/badges/hadolint.svg) ![dockle](./.github/badges/dockle.svg) ![trivy](./.github/badges/trivy.svg) |
+| Build and delivery   | ![angular-cli](./.github/badges/angular-cli.svg) ![npm](./.github/badges/npm.svg) ![docker](./.github/badges/docker.svg) ![github-actions](./.github/badges/github-actions.svg) ![dependabot](./.github/badges/dependabot.svg)                                                                               |
 
-Use Node.js 24.16.0 for local frontend commands (`.nvmrc` matches CI). The production Docker
-image uses its own pinned Node.js runtime documented below.
+## Local development
 
-To start a local development server, run:
+Use the Node.js version from [`.nvmrc`](./.nvmrc).
 
 ```bash
+nvm use
+make install
 npm start
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+Application: `http://localhost:4200`, API: `http://localhost:8000`.
+Run the full stack with `make dev` in the [infrastructure repository](https://github.com/alittlemore-dev/infrastructure).
 
-## Building
-
-Frontend Make targets prepare npm dependencies automatically when `node_modules` is missing or stale.
-
-```bash
-make build
-```
-
-The production build is written to `dist/competency-trainer-frontend/browser`.
-
-SSR output is written to `dist/competency-trainer-frontend/server`. To build and run the public SEO HTML smoke check for public article pages, the site-build case study, the updates page, and matrix question pages, run:
+## Checks
 
 ```bash
-make ssr-smoke
+make format-check lint typecheck tests-coverage
 ```
 
-To build the production SSR bundle and run strict Lighthouse CI quality and performance gates for
-the public SSR/CSR route sample, run:
-
-```bash
-make lighthouse
-```
-
-Reports are written to `performance/reports/lighthouse/`.
-
-## Docker image
-
-Build the frontend image from this directory:
-
-```bash
-docker build -t "frontend:${IMAGE_TAG:?set IMAGE_TAG}" .
-```
-
-The image uses:
-
-- `node:26.7.0-alpine` to install dependencies and run the Angular production build.
-- `node:26.7.0-alpine` as the production runtime for `dist/competency-trainer-frontend/server/server.mjs`.
-- Production dependencies are installed in the runtime stage, then npm/npx and the npm cache are removed from the final image because the server runtime only needs `node`.
-- Explicit runtime environment: `PORT`, `SSR_API_ORIGIN`, `APP_URL_SCHEMA`, `APP_DOMAIN`, and optionally `SSR_PUBLIC_ORIGIN` / `NG_ALLOWED_HOSTS`.
-
-Canonical SEO routes served by the frontend SSR runtime include `/ru/competency/articles/:slug`, `/en/competency/articles/:slug`, `/ru/how-this-site-is-built`, `/en/how-this-site-is-built`, `/ru/updates`, `/en/updates`, `/ru/competency/matrix/questions/:slug`, and `/en/competency/matrix/questions/:slug`. The matrix overview routes remain hydrated Angular pages. Legacy localized article and matrix routes temporarily redirect to the corresponding `/competency/...` paths.
-
-## Repository boundary
-
-Frontend-owned files live directly at this repository root, including Angular source code, public
-assets, the frontend Dockerfile, and the Angular SSR runtime entrypoint. Do not introduce another
-top-level `frontend/` directory.
-
-The frontend should not own TLS, public domain routing, backend proxy rules, sitemap/robots routing, MinIO routing, or backup service routing. Those belong to the infrastructure repository.
-
-## Running unit tests
-
-```bash
-make test
-```
-
-## Linting
-
-```bash
-make lint
-```
+See the [Makefile](./Makefile) for other build and check commands.

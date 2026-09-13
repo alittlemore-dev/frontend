@@ -9,7 +9,12 @@ import {
   PLATFORM_ID,
 } from '@angular/core';
 import { DOCUMENT, isPlatformBrowser } from '@angular/common';
-import { HttpRequest, provideHttpClient, withInterceptors } from '@angular/common/http';
+import {
+  HttpBackend,
+  HttpRequest,
+  provideHttpClient,
+  withInterceptors,
+} from '@angular/common/http';
 import {
   provideClientHydration,
   withEventReplay,
@@ -23,13 +28,13 @@ import {
 } from '@angular/router';
 import { routes } from './app.routes';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
-import { browserApiOriginInterceptor } from './core/interceptors/browser-api-origin.interceptor';
 import { errorInterceptor } from './core/interceptors/error.interceptor';
 import { GlobalErrorHandler } from './core/error/global-error-handler';
 import { I18nService } from './core/i18n/i18n.service';
 import { of } from 'rxjs';
 import { AuthService } from './core/auth/auth.service';
 import { LocalizedTitleStrategy } from './core/seo/localized-title.strategy';
+import { BrowserApiBackend } from './core/http/browser-api.backend';
 
 export const SKIP_I18N_STARTUP = new InjectionToken<boolean>('SKIP_I18N_STARTUP', {
   providedIn: 'root',
@@ -53,9 +58,9 @@ export const appConfig: ApplicationConfig = {
       withEventReplay(),
       withHttpTransferCacheOptions({ filter: shouldTransferCacheRequest }),
     ),
-    provideHttpClient(
-      withInterceptors([authInterceptor, errorInterceptor, browserApiOriginInterceptor]),
-    ),
+    provideHttpClient(withInterceptors([authInterceptor, errorInterceptor])),
+    BrowserApiBackend,
+    { provide: HttpBackend, useExisting: BrowserApiBackend },
     provideAppInitializer(() => initializeAuth()),
     provideAppInitializer(() => initializeI18n()),
     { provide: TitleStrategy, useClass: LocalizedTitleStrategy },

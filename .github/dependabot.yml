@@ -1,0 +1,38 @@
+version: 2
+
+updates:
+  - package-ecosystem: 'npm'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '09:30'
+      timezone: 'Europe/Moscow'
+    groups:
+      frontend-non-major:
+        patterns: ['*']
+        update-types:
+          - 'minor'
+          - 'patch'
+
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '10:00'
+      timezone: 'Europe/Moscow'
+    groups:
+      github-actions:
+        patterns: ['*']
+
+  - package-ecosystem: 'docker'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '10:30'
+      timezone: 'Europe/Moscow'
+    groups:
+      docker-images:
+        patterns: ['*']

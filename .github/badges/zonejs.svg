@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="115" height="20" role="img" aria-label="zone.js: 0.16.2">
+  <title>zone.js: 0.16.2</title>
+  <linearGradient id="s" x2="0" y2="100%"><stop offset="0" stop-color="#bbb" stop-opacity=".1"/><stop offset="1" stop-opacity=".1"/></linearGradient>
+  <clipPath id="r"><rect width="115" height="20" rx="3"/></clipPath>
+  <g clip-path="url(#r)"><rect width="61" height="20" fill="#555"/><rect x="61" width="54" height="20" fill="#007EC6"/><rect width="115" height="20" fill="url(#s)"/></g>
+  <g fill="#fff" text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" font-size="11">
+    <text x="30.5" y="15" fill="#010101" fill-opacity=".3">zone.js</text><text x="30.5" y="14">zone.js</text>
+    <text x="88.0" y="15" fill="#010101" fill-opacity=".3">0.16.2</text><text x="88.0" y="14">0.16.2</text>
+  </g>
+</svg>

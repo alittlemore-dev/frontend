@@ -1,0 +1,76 @@
+name: Frontend CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: frontend-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend-style:
+    name: Formatting
+    uses: ./.github/workflows/_frontend_style.yaml
+
+  frontend-lint:
+    name: Lint
+    uses: ./.github/workflows/_frontend_lint.yaml
+
+  frontend-types:
+    name: Type-check
+    uses: ./.github/workflows/_frontend_types.yaml
+
+  frontend-tests:
+    name: Tests and coverage
+    needs:
+      - frontend-style
+      - frontend-lint
+      - frontend-types
+    uses: ./.github/workflows/_frontend_tests.yaml
+
+  npm-security:
+    name: Production dependency audit
+    uses: ./.github/workflows/_frontend_security.yaml
+
+  ssr-smoke:
+    name: SSR smoke
+    uses: ./.github/workflows/_frontend_ssr_smoke.yaml
+
+  lighthouse:
+    name: Lighthouse
+    uses: ./.github/workflows/_frontend_lighthouse.yaml
+
+  container-image:
+    name: Container image
+    needs:
+      - frontend-tests
+      - npm-security
+      - ssr-smoke
+      - lighthouse
+    permissions:
+      contents: read
+    uses: ./.github/workflows/_frontend_container_image.yaml
+
+  publish-image:
+    name: Publish image
+    if: ${{ github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
+    needs: container-image
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/_publish_image.yaml
+
+  publish-coverage-badge:
+    name: Update coverage badge
+    if: ${{ github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
+    needs: publish-image
+    permissions:
+      contents: write
+    uses: ./.github/workflows/_publish_coverage_badge.yaml

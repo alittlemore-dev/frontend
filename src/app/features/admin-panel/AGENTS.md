@@ -1,6 +1,6 @@
 # Admin Panel Instructions
 
-These rules apply to every file under `frontend/src/app/features/admin-panel/`.
+These rules apply to every file under `src/app/features/admin-panel/`.
 
 ## Access and Rendering
 

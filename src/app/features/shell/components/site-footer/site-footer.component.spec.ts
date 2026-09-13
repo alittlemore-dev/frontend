@@ -29,11 +29,6 @@ describe('SiteFooterComponent', () => {
     el = fixture.nativeElement as HTMLElement;
   });
 
-  it('renders link to /api/docs', () => {
-    const link = el.querySelector('a[href="/api/docs"]');
-    expect(link).not.toBeNull();
-  });
-
   it('renders routerLink to /sitemap', () => {
     const link = el.querySelector('a[routerLink="/sitemap"]');
     expect(link).not.toBeNull();

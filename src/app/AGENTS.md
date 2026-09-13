@@ -1,12 +1,12 @@
 # Frontend Architecture Instructions
 
-These rules apply to every file under `frontend/src/app/`, including TypeScript, templates, styles,
+These rules apply to every file under `src/app/`, including TypeScript, templates, styles,
 tests, and app-specific supporting files.
 
 ## Layer Structure
 
 ```text
-frontend/src/app/
+src/app/
 ├── core/          # App-wide infrastructure only
 ├── shared/        # Reusable UI primitives and framework-independent utilities
 ├── features/      # Feature modules — all domain code lives here
@@ -143,8 +143,10 @@ match a template.
 Keep browser/app-wide providers, interceptors, initializers, hydration, title strategy, and global
 error handling in `app.config.ts`; keep server-only providers in `app.config.server.ts`.
 
-- Preserve interceptor security ordering: authentication must run before browser-origin rewriting,
-  and error/refresh handling must retain the authenticated request context when retrying.
+- Preserve authentication and retry context before browser transport URL rewriting. Keep logical
+  `/api/*` requests available to auth/error interceptors and transfer-cache matching; the browser
+  HTTP backend maps them to the same-origin `/api/competency/*` transport namespace. SSR uses the
+  internal backend origin. See the current `app.config.ts` and `core/http/` integration.
 - Auth initialization restores admin auth from `/api/auth/refresh`
   only for protected admin startup routes; public routes must not send anonymous refresh probes.
   Protected guards may restore from the same session cookie when no in-memory token exists. Keep

@@ -9,6 +9,7 @@ const defaultServerEntry = pathToFileURL(
   resolve(frontendRoot, 'dist/competency-trainer-frontend/server/server.mjs'),
 ).href;
 const ARTICLE_COVER_PATH = '/api/fixtures/article-cover.svg';
+const PUBLIC_ARTICLE_COVER_PATH = '/api/competency/fixtures/article-cover.svg';
 const ARTICLE_COVER_SVG =
   '<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">'
   + '<rect width="1600" height="900" fill="#198754"/>'
@@ -32,7 +33,7 @@ export const articleDto = {
       'SEO description RU with enough text to be useful for search snippets and social cards.',
     seoDescriptionEn:
       'SEO description EN with enough text to be useful for search snippets and social cards.',
-    coverImageUrl: ARTICLE_COVER_PATH,
+    coverImageUrl: PUBLIC_ARTICLE_COVER_PATH,
     coverImageAltRu: 'Typed articles cover RU',
     coverImageAltEn: 'Typed articles cover',
   },
@@ -147,8 +148,15 @@ function createFrontendServer(serverHandler, backendHandler) {
         return;
       }
 
-      if (url.pathname.startsWith('/api/')) {
+      if (url.pathname.startsWith('/api/competency/')) {
+        req.url = `${url.pathname.replace('/api/competency/', '/api/')}${url.search}`;
         backendHandler(req, res);
+        return;
+      }
+
+      if (url.pathname.startsWith('/api/')) {
+        res.statusCode = 404;
+        res.end('Not found');
         return;
       }
 
@@ -495,7 +503,7 @@ function articleDtoForRequest(req) {
     ...articleDto,
     metadata: {
       ...articleDto.metadata,
-      coverImageUrl: `${readFixtureOrigin(req)}${ARTICLE_COVER_PATH}`,
+      coverImageUrl: `${readFixtureOrigin(req)}${PUBLIC_ARTICLE_COVER_PATH}`,
     },
   };
 }

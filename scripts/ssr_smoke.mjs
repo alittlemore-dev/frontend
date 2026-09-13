@@ -7,6 +7,7 @@ const { frontendPort, requests } = fixture;
 try {
   await assertDiscoveryEndpoints(frontendPort);
   await assertBrowserApiProxy(frontendPort);
+  await assertUnnamespacedApiIsRejected(frontendPort);
   await assertFixtureCover(frontendPort);
   await assertBrowserAnalyticsProxy(frontendPort);
   await assertLegacyCompetencyRedirects(frontendPort);
@@ -106,7 +107,9 @@ async function assertLegacyCompetencyRedirects(frontendPort) {
 }
 
 async function assertBrowserApiProxy(frontendPort) {
-  const response = await fetch(`http://127.0.0.1:${frontendPort}/api/i18n/languages`);
+  const response = await fetch(
+    `http://127.0.0.1:${frontendPort}/api/competency/i18n/languages`,
+  );
   const contentType = response.headers.get('content-type') ?? '';
   const body = await response.text();
   const expected = [
@@ -117,9 +120,15 @@ async function assertBrowserApiProxy(frontendPort) {
   assertExpected(expected, body, 'browser API proxy');
 }
 
+async function assertUnnamespacedApiIsRejected(frontendPort) {
+  const response = await fetch(`http://127.0.0.1:${frontendPort}/api/i18n/languages`);
+  const expected = [['status 404', response.status === 404]];
+  assertExpected(expected, await response.text(), 'unnamespaced browser API rejection');
+}
+
 async function assertFixtureCover(frontendPort) {
   const response = await fetch(
-    `http://127.0.0.1:${frontendPort}/api/fixtures/article-cover.svg`,
+    `http://127.0.0.1:${frontendPort}/api/competency/fixtures/article-cover.svg`,
   );
   const contentType = response.headers.get('content-type') ?? '';
   const cacheControl = response.headers.get('cache-control') ?? '';
@@ -135,7 +144,7 @@ async function assertFixtureCover(frontendPort) {
 
 async function assertBrowserAnalyticsProxy(frontendPort) {
   const response = await fetch(
-    `http://127.0.0.1:${frontendPort}/api/articles/detail/typed-articles/analytics/view?language=ru`,
+    `http://127.0.0.1:${frontendPort}/api/competency/articles/detail/typed-articles/analytics/view?language=ru`,
     { method: 'POST' },
   );
   const body = await response.text();
@@ -161,7 +170,7 @@ async function assertSiteBuildCaseStudyHtml(frontendPort, requests) {
     ['architecture', html.includes('Angular hybrid SSR/CSR and backend-driven i18n.')],
     [
       'source code CTA',
-      html.includes('href="https://github.com/alittlemore-dev/competency-trainer"'),
+      html.includes('href="https://github.com/alittlemore-dev/frontend"'),
     ],
     [
       'canonical',
@@ -222,7 +231,7 @@ async function assertPublishedArticleHtml(frontendPort, requests) {
     [
       'og image',
       html.includes(
-        `property="og:image" content="${origin}/api/fixtures/article-cover.svg"`,
+        `property="og:image" content="${origin}/api/competency/fixtures/article-cover.svg"`,
       ),
     ],
     ['json-ld', html.includes('"@type":"BlogPosting"')],
