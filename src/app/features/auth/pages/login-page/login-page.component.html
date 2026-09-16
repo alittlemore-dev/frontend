@@ -1,6 +1,11 @@
-<div
+<dialog
+  dsModalDialog
+  [dismissible]="!authModal.loginRequired()"
+  (dismissed)="close()"
   id="login-modal"
-  class="modal force-display-block login-modal-backdrop"
+  aria-modal="true"
+  aria-labelledby="login-title"
+  class="modal login-modal-backdrop"
   [dsModalScroll]="loginScrollArea"
 >
   <form
@@ -11,21 +16,21 @@
   >
     <div class="modal-content login-modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">{{ 'auth.login.title' | t }}</h5>
-        <button
-          type="button"
-          class="btn-close"
-          [attr.aria-label]="'shared.close' | t"
-          (click)="close()"
-        ></button>
+        <h5 id="login-title" class="modal-title">{{ 'auth.login.title' | t }}</h5>
+        @if (!authModal.loginRequired()) {
+          <button
+            type="button"
+            class="btn-close"
+            [attr.aria-label]="'shared.close' | t"
+            (click)="close()"
+          ></button>
+        }
       </div>
 
       <div #loginScrollArea class="modal-body">
-        <div class="alert alert-warning" role="alert">
-          <strong>{{ 'auth.login.restrictedAccessWarning.title' | t }}</strong>
-          <div>{{ 'auth.login.restrictedAccessWarning.message' | t }}</div>
-        </div>
-
+        @if (authModal.loginRequired()) {
+          <p role="status">{{ 'auth.login.sessionExpired' | t }}</p>
+        }
         @if (loginError()) {
           <div class="alert alert-danger" role="alert" aria-live="polite">
             {{ loginError() }}
@@ -33,9 +38,13 @@
         }
 
         <div class="mb-3">
-          <label for="username" class="form-label">{{ 'auth.login.username' | t }}</label>
+          <label for="username" class="form-label"
+            >{{ 'auth.login.username' | t }}
+            <span class="required-marker text-danger" aria-hidden="true">*</span></label
+          >
           <input
             id="username"
+            required
             type="text"
             class="form-control"
             formControlName="username"
@@ -45,9 +54,13 @@
         </div>
 
         <div class="mb-4">
-          <label for="password" class="form-label">{{ 'auth.login.password' | t }}</label>
+          <label for="password" class="form-label"
+            >{{ 'auth.login.password' | t }}
+            <span class="required-marker text-danger" aria-hidden="true">*</span></label
+          >
           <input
             id="password"
+            required
             type="password"
             class="form-control"
             formControlName="password"
@@ -74,4 +87,4 @@
       </div>
     </div>
   </form>
-</div>
+</dialog>

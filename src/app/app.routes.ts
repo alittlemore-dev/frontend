@@ -1,6 +1,12 @@
 import { inject } from '@angular/core';
 import { RedirectFunction, Router, Routes } from '@angular/router';
-import { authGuard } from './core/auth/auth.guard';
+import {
+  authGuard,
+  workspaceGuard,
+  workspaceChildGuard,
+  authChildGuard,
+} from './core/auth/auth.guard';
+import { I18nService } from './core/i18n/i18n.service';
 import { LanguageCode } from './core/i18n/i18n.model';
 import { injectedPublicHomePath } from './core/routing/public-home';
 
@@ -25,8 +31,17 @@ export const routes: Routes = [
     loadChildren: () => import('./features/auth/auth.routes').then((m) => m.authRoutes),
   },
   {
+    path: 'personal-workspace',
+    canActivate: [workspaceGuard],
+    canActivateChild: [workspaceChildGuard],
+    resolve: { localization: () => inject(I18nService).ensureWorkspaceBundle() },
+    loadChildren: () =>
+      import('./features/workspace/workspace.routes').then((m) => m.workspaceRoutes),
+  },
+  {
     path: 'admin-panel',
     canActivate: [authGuard],
+    canActivateChild: [authChildGuard],
     loadChildren: () =>
       import('./features/admin-panel/admin-panel.routes').then((m) => m.adminPanelRoutes),
   },

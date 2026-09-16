@@ -66,6 +66,10 @@ export class AuthService {
       .pipe(
         tap((response) => this.storeAccessToken(response.accessToken)),
         switchMap(() => this.loadCurrentUser()),
+        catchError((error: unknown) => {
+          this.clearLocalSession();
+          return throwError(() => error);
+        }),
       );
   }
 
@@ -193,8 +197,12 @@ export class AuthService {
   }
 
   loadCurrentUser(): Observable<void> {
-    return this.apiClient.get<AccountInfo>('/api/account/base').pipe(
+    return this.apiClient.get<AccountInfo>('/api/auth/account/base').pipe(
       map((account) => {
+        if (account.role === 'anon') {
+          this.clearLocalSession();
+          throw new Error();
+        }
         this.session.setCurrentUser(account);
       }),
     );

@@ -1,7 +1,19 @@
 .login-modal-backdrop {
-  background-color: rgba(0, 0, 0, 0.5);
-}
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
 
-.login-modal-content {
-  z-index: 1067;
+  &[open] {
+    display: block;
+  }
+
+  &::backdrop {
+    background-color: rgba(0, 0, 0, 0.5);
+  }
 }

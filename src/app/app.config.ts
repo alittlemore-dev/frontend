@@ -114,7 +114,13 @@ export type AuthStartupMode = 'skip' | 'after-render' | 'blocking';
 
 export function authStartupMode(url: string, hasKnownSession: boolean): AuthStartupMode {
   const pathname = readPathname(url);
-  if (pathname === '/admin-panel' || pathname.startsWith('/admin-panel/')) {
+  if (
+    pathname === '/login' ||
+    pathname === '/personal-workspace' ||
+    pathname.startsWith('/personal-workspace/') ||
+    pathname === '/admin-panel' ||
+    pathname.startsWith('/admin-panel/')
+  ) {
     return 'blocking';
   }
   return hasKnownSession ? 'after-render' : 'skip';

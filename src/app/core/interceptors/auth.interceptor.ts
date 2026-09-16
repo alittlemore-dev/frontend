@@ -1,10 +1,12 @@
+import { DOCUMENT } from '@angular/common';
+import { isOwnApiRequest } from '../http/api-request';
 import { HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { AuthTokenService } from '../auth/auth-token.service';
 import { SKIP_AUTH_HEADER } from '../auth/auth-http-context';
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
-  if (req.context.get(SKIP_AUTH_HEADER)) {
+  if (req.context.get(SKIP_AUTH_HEADER) || !isOwnApiRequest(req.url, inject(DOCUMENT))) {
     return next(req);
   }
   const token = inject(AuthTokenService).token();

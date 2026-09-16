@@ -11,7 +11,13 @@ import {
 } from '@angular/router';
 import { provideRouter } from '@angular/router';
 import { firstValueFrom, isObservable, of, throwError } from 'rxjs';
-import { authGuard, ownerGuard, teamGuard } from './auth.guard';
+import {
+  authGuard,
+  ownerGuard,
+  teamGuard,
+  workspaceGuard,
+  workspaceChildGuard,
+} from './auth.guard';
 import { AuthService } from './auth.service';
 import { AuthTokenService } from './auth-token.service';
 import { ApiClient } from '../http/api-client.service';
@@ -21,6 +27,7 @@ describe('authGuard', () => {
   function mockAuthService(canManageContent: boolean): Partial<AuthService> {
     return {
       canManageContent: () => canManageContent,
+      isLoggedIn: () => true,
       ensureCurrentUserLoaded: () => of(void 0),
       clearLocalSession: jest.fn(),
     };
@@ -35,7 +42,10 @@ describe('authGuard', () => {
       ],
     });
     return TestBed.runInInjectionContext(() =>
-      authGuard({} as ActivatedRouteSnapshot, {} as RouterStateSnapshot),
+      authGuard(
+        {} as ActivatedRouteSnapshot,
+        { url: '/admin-panel/articles' } as RouterStateSnapshot,
+      ),
     );
   }
 
@@ -60,7 +70,7 @@ describe('authGuard', () => {
     expect((result as UrlTree).toString()).toBe('/ru/how-this-site-is-built');
   });
 
-  it('clears local session and redirects to localized public home when account restore fails', async () => {
+  it('redirects failed account restoration to login with the target URL', async () => {
     const clearLocalSession = jest.fn();
     TestBed.configureTestingModule({
       providers: [
@@ -78,13 +88,16 @@ describe('authGuard', () => {
 
     const result = await resolveGuardResult(
       TestBed.runInInjectionContext(() =>
-        authGuard({} as ActivatedRouteSnapshot, {} as RouterStateSnapshot),
+        authGuard(
+          {} as ActivatedRouteSnapshot,
+          { url: '/admin-panel/articles' } as RouterStateSnapshot,
+        ),
       ),
     );
 
     expect(clearLocalSession).toHaveBeenCalledTimes(1);
     expect(result instanceof UrlTree).toBe(true);
-    expect((result as UrlTree).toString()).toBe('/ru/how-this-site-is-built');
+    expect((result as UrlTree).toString()).toBe('/login?returnUrl=%2Fadmin-panel%2Farticles');
   });
 
   it('waits for in-memory token account restore before allowing admin-panel reload', async () => {
@@ -102,9 +115,14 @@ describe('authGuard', () => {
     TestBed.inject(AuthTokenService).setToken('existing-token');
 
     const result = TestBed.runInInjectionContext(() =>
-      resolveGuardResult(authGuard({} as ActivatedRouteSnapshot, {} as RouterStateSnapshot)),
+      resolveGuardResult(
+        authGuard(
+          {} as ActivatedRouteSnapshot,
+          { url: '/admin-panel/articles' } as RouterStateSnapshot,
+        ),
+      ),
     );
-    const accountReq = httpMock.expectOne((req) => req.url.includes('/api/account/base'));
+    const accountReq = httpMock.expectOne((req) => req.url.includes('/api/auth/account/base'));
     expect(accountReq.request.method).toBe('GET');
     accountReq.flush({ username: 'moderator', role: 'moderator' });
 
@@ -126,13 +144,18 @@ describe('authGuard', () => {
     const httpMock = TestBed.inject(HttpTestingController);
 
     const result = TestBed.runInInjectionContext(() =>
-      resolveGuardResult(authGuard({} as ActivatedRouteSnapshot, {} as RouterStateSnapshot)),
+      resolveGuardResult(
+        authGuard(
+          {} as ActivatedRouteSnapshot,
+          { url: '/admin-panel/articles' } as RouterStateSnapshot,
+        ),
+      ),
     );
     const refreshReq = httpMock.expectOne((req) => req.url.includes('/api/auth/refresh'));
     expect(refreshReq.request.method).toBe('POST');
     refreshReq.flush({ accessToken: 'restored-token', accessTokenExpiresInSeconds: 900 });
 
-    const accountReq = httpMock.expectOne((req) => req.url.includes('/api/account/base'));
+    const accountReq = httpMock.expectOne((req) => req.url.includes('/api/auth/account/base'));
     expect(accountReq.request.method).toBe('GET');
     accountReq.flush({ username: 'moderator', role: 'moderator' });
 
@@ -145,6 +168,7 @@ describe('teamGuard', () => {
   function mockAuthService(canManageTeam: boolean): Partial<AuthService> {
     return {
       canManageTeam: () => canManageTeam,
+      isLoggedIn: () => true,
       ensureCurrentUserLoaded: () => of(void 0),
       clearLocalSession: jest.fn(),
     };
@@ -159,7 +183,7 @@ describe('teamGuard', () => {
       ],
     });
     return TestBed.runInInjectionContext(() =>
-      teamGuard({} as ActivatedRouteSnapshot, {} as RouterStateSnapshot),
+      teamGuard({} as ActivatedRouteSnapshot, { url: '/admin-panel/team' } as RouterStateSnapshot),
     );
   }
 
@@ -181,7 +205,7 @@ describe('teamGuard', () => {
     expect((result as UrlTree).toString()).toBe('/admin-panel/articles');
   });
 
-  it('clears local session and redirects to localized public home when team account restore fails', async () => {
+  it('redirects a failed team account restore to login', async () => {
     const clearLocalSession = jest.fn();
     TestBed.configureTestingModule({
       providers: [
@@ -199,13 +223,16 @@ describe('teamGuard', () => {
 
     const result = await resolveGuardResult(
       TestBed.runInInjectionContext(() =>
-        teamGuard({} as ActivatedRouteSnapshot, {} as RouterStateSnapshot),
+        teamGuard(
+          {} as ActivatedRouteSnapshot,
+          { url: '/admin-panel/team' } as RouterStateSnapshot,
+        ),
       ),
     );
 
     expect(clearLocalSession).toHaveBeenCalledTimes(1);
     expect(result instanceof UrlTree).toBe(true);
-    expect((result as UrlTree).toString()).toBe('/ru/how-this-site-is-built');
+    expect((result as UrlTree).toString()).toBe('/login?returnUrl=%2Fadmin-panel%2Fteam');
   });
 });
 
@@ -219,6 +246,7 @@ describe('ownerGuard', () => {
           provide: AuthService,
           useValue: {
             isOwner: () => isOwner,
+            isLoggedIn: () => true,
             ensureCurrentUserLoaded: () => of(void 0),
             clearLocalSession: jest.fn(),
           },
@@ -242,5 +270,69 @@ describe('ownerGuard', () => {
     const denied = await resolveGuardResult(runGuard(false));
     expect(denied instanceof UrlTree).toBe(true);
     expect((denied as UrlTree).toString()).toBe('/admin-panel/articles');
+  });
+});
+
+describe('workspace access', () => {
+  it.each([workspaceGuard, workspaceChildGuard])(
+    'preserves anonymous deep links through login',
+    async (guard) => {
+      TestBed.configureTestingModule({
+        providers: [
+          provideRouter([]),
+          {
+            provide: AuthService,
+            useValue: {
+              ensureCurrentUserLoaded: () => of(void 0),
+              isOwner: () => false,
+              isLoggedIn: () => false,
+            },
+          },
+          { provide: I18nService, useValue: { language: signal('ru') } },
+        ],
+      });
+      const result = await firstValueFrom(
+        TestBed.runInInjectionContext(() =>
+          guard(
+            {} as ActivatedRouteSnapshot,
+            { url: '/personal-workspace/resumes/123?tab=edit' } as RouterStateSnapshot,
+          ),
+        ) as import('rxjs').Observable<GuardResult>,
+      );
+      expect((result as UrlTree).toString()).toBe(
+        '/login?returnUrl=%2Fpersonal-workspace%2Fresumes%2F123%3Ftab%3Dedit',
+      );
+    },
+  );
+  it.each([
+    ['owner', true],
+    ['admin', false],
+    ['user', false],
+  ])('applies owner access to role %s', async (role, permitted) => {
+    TestBed.configureTestingModule({
+      providers: [
+        provideRouter([]),
+        {
+          provide: AuthService,
+          useValue: {
+            ensureCurrentUserLoaded: () => of(void 0),
+            isOwner: () => role === 'owner',
+            isLoggedIn: () => true,
+          },
+        },
+        { provide: I18nService, useValue: { language: signal('ru') } },
+      ],
+    });
+    const result = await firstValueFrom(
+      TestBed.runInInjectionContext(() =>
+        workspaceGuard(
+          {} as ActivatedRouteSnapshot,
+          { url: '/personal-workspace' } as RouterStateSnapshot,
+        ),
+      ) as import('rxjs').Observable<GuardResult>,
+    );
+    expect(permitted ? result : (result as UrlTree).toString()).toBe(
+      permitted ? true : '/ru/how-this-site-is-built',
+    );
   });
 });

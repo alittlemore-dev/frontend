@@ -46,13 +46,13 @@ export class AdminToolsService {
 
   getAuthSessionsStatus(): Observable<AuthSessionsStatus> {
     return this.api
-      .get<AuthSessionsStatusDto>('/api/admin/tools/auth-sessions')
+      .get<AuthSessionsStatusDto>('/api/auth/admin/tools/auth-sessions')
       .pipe(map(mapAuthSessionsStatusDto));
   }
 
   pruneAuthSessions(): Observable<AuthSessionsPruneResult> {
     return this.api
-      .post<AuthSessionsPruneResultDto>('/api/admin/tools/auth-sessions/prune', {})
+      .post<AuthSessionsPruneResultDto>('/api/auth/admin/tools/auth-sessions/prune', {})
       .pipe(map(mapAuthSessionsPruneResultDto));
   }
 }

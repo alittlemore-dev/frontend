@@ -46,6 +46,12 @@ describe('AuthSessionService', () => {
     expect(service.canManageTeam()).toBe(false);
   });
 
+  it('does not treat an anonymous account response as a session', () => {
+    service.setCurrentUser({ username: '', role: 'anon' });
+    expect(service.isLoggedIn()).toBe(false);
+    expect(service.currentUser()).toBeNull();
+  });
+
   it('clears current user', () => {
     service.setCurrentUser({ username: 'admin', role: 'admin' });
 

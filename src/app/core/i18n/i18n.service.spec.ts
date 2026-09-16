@@ -220,3 +220,98 @@ describe('I18nService', () => {
     expect(service.translate('i18n.startupError.title')).toBe('Failed to load localization');
   });
 });
+
+describe('Workspace localization integration', () => {
+  let service: I18nService;
+  let http: HttpTestingController;
+  beforeEach(() => {
+    localStorage.clear();
+    history.replaceState({}, '', '/ru/how-this-site-is-built');
+    TestBed.configureTestingModule({
+      providers: [provideHttpClient(), provideHttpClientTesting()],
+    });
+    service = TestBed.inject(I18nService);
+    http = TestBed.inject(HttpTestingController);
+    service.initialize().subscribe();
+    http
+      .expectOne((req) => req.url.endsWith('/api/i18n/languages'))
+      .flush({
+        defaultLanguage: 'ru',
+        languages: [
+          { code: 'ru', label: 'Русский' },
+          { code: 'en', label: 'English' },
+        ],
+      });
+    http
+      .expectOne((req) => req.url.endsWith('/api/i18n/bundles/ru'))
+      .flush({
+        language: 'ru',
+        messages: { 'shared.save': 'Сохранить', 'dashboard.tools.summary': 'Кэш и сессии' },
+      });
+  });
+  afterEach(() => {
+    http.verify();
+    history.replaceState({}, '', '/');
+  });
+
+  it('loads workspace text only on demand without replacing shared or admin strings', () => {
+    http.expectNone((req) => req.url.includes('/personal-workspace/'));
+    service.ensureWorkspaceBundle().subscribe();
+    http
+      .expectOne((req) => req.url.endsWith('/api/personal-workspace/i18n/bundles/ru'))
+      .flush({
+        language: 'ru',
+        messages: {
+          'shared.save': 'Другая подпись',
+          'knowledgePeople.title': 'Люди',
+          'dashboard.tools.summary': 'Кэш',
+        },
+      });
+    expect(service.translate('shared.save')).toBe('Сохранить');
+    expect(service.translate('dashboard.tools.summary')).toBe('Кэш и сессии');
+    expect(service.translate('workspaceDashboard.tools.summary')).toBe('Кэш');
+    expect(service.translate('knowledgePeople.title')).toBe('Люди');
+    service.ensureWorkspaceBundle().subscribe();
+    http.expectNone((req) => req.url.includes('/personal-workspace/'));
+  });
+
+  it('loads both language bundles before changing the active workspace language', () => {
+    history.replaceState({}, '', '/personal-workspace/resumes');
+    service.switchLanguage('en').subscribe();
+    expect(service.language()).toBe('ru');
+    http
+      .expectOne((req) => req.url.endsWith('/api/personal-workspace/i18n/bundles/en'))
+      .flush({ language: 'en', messages: { 'resumeWorkspace.title': 'Resumes' } });
+    http
+      .expectOne((req) => req.url.endsWith('/api/i18n/bundles/en'))
+      .flush({ language: 'en', messages: { 'shared.save': 'Save' } });
+    expect(service.language()).toBe('en');
+    expect(service.translate('resumeWorkspace.title')).toBe('Resumes');
+    expect(service.translate('shared.save')).toBe('Save');
+  });
+
+  it('keeps the current language and reports errors if the workspace bundle cannot load', () => {
+    history.replaceState({}, '', '/personal-workspace/resumes');
+    const error = jest.fn();
+    service.switchLanguage('en').subscribe({ error });
+    http
+      .expectOne((req) => req.url.endsWith('/api/personal-workspace/i18n/bundles/en'))
+      .flush({}, { status: 503, statusText: 'Unavailable' });
+    expect(service.language()).toBe('ru');
+    expect(error).toHaveBeenCalled();
+    http.expectNone((req) => req.url.endsWith('/api/i18n/bundles/en'));
+  });
+
+  it('shows a retryable startup error when a workspace bundle is unavailable', () => {
+    service.ensureWorkspaceBundle().subscribe();
+    http
+      .expectOne((req) => req.url.endsWith('/api/personal-workspace/i18n/bundles/ru'))
+      .flush({}, { status: 503, statusText: 'Unavailable' });
+    expect(service.startupError()).toBe(true);
+    service.ensureWorkspaceBundle().subscribe();
+    http
+      .expectOne((req) => req.url.endsWith('/api/personal-workspace/i18n/bundles/ru'))
+      .flush({ language: 'ru', messages: { 'knowledgePeople.title': 'Люди' } });
+    expect(service.translate('knowledgePeople.title')).toBe('Люди');
+  });
+});

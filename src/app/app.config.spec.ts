@@ -68,6 +68,8 @@ describe('appConfig auth startup', () => {
   });
 
   it('blocks protected admin startup until auth restoration completes', () => {
+    expect(authStartupMode('/personal-workspace/resumes/123', false)).toBe('blocking');
+    expect(authStartupMode('/login?returnUrl=%2Fpersonal-workspace', false)).toBe('blocking');
     expect(authStartupMode('/admin-panel', false)).toBe('blocking');
     expect(authStartupMode('/admin-panel/articles', false)).toBe('blocking');
     expect(authStartupMode('/admin-panel/articles', true)).toBe('blocking');

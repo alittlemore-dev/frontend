@@ -26,6 +26,17 @@ describe('BrowserApiBackend', () => {
     expect(requestSentTo(transport).url).toBe('https://site.example/api/competency/articles');
   });
 
+  it.each([
+    '/api/auth/login',
+    '/api/auth/account/base',
+    '/api/personal-workspace/resumes',
+    '/api/competency/articles',
+  ])('preserves the explicit service namespace %s', (path) => {
+    const { http, transport } = configure('browser');
+    http.get(path).subscribe();
+    expect(requestSentTo(transport).url).toBe(`https://site.example${path}`);
+  });
+
   it('does not rewrite server API requests', () => {
     const { http, transport } = configure('server');
 

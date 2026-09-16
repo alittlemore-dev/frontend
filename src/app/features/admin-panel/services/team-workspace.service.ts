@@ -25,7 +25,7 @@ export class TeamWorkspaceService {
 
   listAccounts(params: ManagedAccountListParams): Observable<ManagedAccounts> {
     return this.api
-      .get<ManagedAccountsDto>('/api/admin/accounts', {
+      .get<ManagedAccountsDto>('/api/auth/admin/accounts', {
         page: String(params.page),
         pageSize: String(params.pageSize),
       })
@@ -34,13 +34,13 @@ export class TeamWorkspaceService {
 
   getAccount(username: string): Observable<ManagedAccount> {
     return this.api
-      .get<ManagedAccountDto>(`/api/admin/accounts/${encodeURIComponent(username)}`)
+      .get<ManagedAccountDto>(`/api/auth/admin/accounts/${encodeURIComponent(username)}`)
       .pipe(map(mapManagedAccountDto));
   }
 
   createAccount(payload: ManagedAccountCreatePayload): Observable<ManagedAccount> {
     return this.api
-      .post<ManagedAccountDto>('/api/admin/accounts', payload)
+      .post<ManagedAccountDto>('/api/auth/admin/accounts', payload)
       .pipe(map(mapManagedAccountDto));
   }
 
@@ -49,7 +49,7 @@ export class TeamWorkspaceService {
     role: EditableManagedAccountRole,
   ): Observable<ManagedAccount> {
     return this.api
-      .put<ManagedAccountDto>(`/api/admin/accounts/${encodeURIComponent(username)}/role`, {
+      .put<ManagedAccountDto>(`/api/auth/admin/accounts/${encodeURIComponent(username)}/role`, {
         role,
       })
       .pipe(map(mapManagedAccountDto));
@@ -57,7 +57,7 @@ export class TeamWorkspaceService {
 
   updateAccountPassword(username: string, password: string): Observable<ManagedAccount> {
     return this.api
-      .put<ManagedAccountDto>(`/api/admin/accounts/${encodeURIComponent(username)}/password`, {
+      .put<ManagedAccountDto>(`/api/auth/admin/accounts/${encodeURIComponent(username)}/password`, {
         password,
       })
       .pipe(map(mapManagedAccountDto));
@@ -65,24 +65,30 @@ export class TeamWorkspaceService {
 
   activateAccount(username: string): Observable<ManagedAccount> {
     return this.api
-      .post<ManagedAccountDto>(`/api/admin/accounts/${encodeURIComponent(username)}/activate`, {})
+      .post<ManagedAccountDto>(
+        `/api/auth/admin/accounts/${encodeURIComponent(username)}/activate`,
+        {},
+      )
       .pipe(map(mapManagedAccountDto));
   }
 
   deactivateAccount(username: string): Observable<ManagedAccount> {
     return this.api
-      .post<ManagedAccountDto>(`/api/admin/accounts/${encodeURIComponent(username)}/deactivate`, {})
+      .post<ManagedAccountDto>(
+        `/api/auth/admin/accounts/${encodeURIComponent(username)}/deactivate`,
+        {},
+      )
       .pipe(map(mapManagedAccountDto));
   }
 
   deleteAccount(username: string): Observable<void> {
-    return this.api.delete<void>(`/api/admin/accounts/${encodeURIComponent(username)}`);
+    return this.api.delete<void>(`/api/auth/admin/accounts/${encodeURIComponent(username)}`);
   }
 
   listAccountSessions(username: string): Observable<ManagedAccountSessions> {
     return this.api
       .get<ManagedAccountSessionsDto>(
-        `/api/admin/accounts/${encodeURIComponent(username)}/sessions`,
+        `/api/auth/admin/accounts/${encodeURIComponent(username)}/sessions`,
       )
       .pipe(map(mapManagedAccountSessionsDto));
   }
@@ -93,7 +99,7 @@ export class TeamWorkspaceService {
   ): Observable<ManagedAccountSessionRevocation> {
     return this.api
       .post<ManagedAccountSessionRevocationDto>(
-        `/api/admin/accounts/${encodeURIComponent(username)}/sessions/${encodeURIComponent(
+        `/api/auth/admin/accounts/${encodeURIComponent(username)}/sessions/${encodeURIComponent(
           sessionId,
         )}/revoke`,
         {},
@@ -104,7 +110,7 @@ export class TeamWorkspaceService {
   revokeAllAccountSessions(username: string): Observable<ManagedAccountSessionRevocation> {
     return this.api
       .post<ManagedAccountSessionRevocationDto>(
-        `/api/admin/accounts/${encodeURIComponent(username)}/sessions/revoke-all`,
+        `/api/auth/admin/accounts/${encodeURIComponent(username)}/sessions/revoke-all`,
         {},
       )
       .pipe(map(mapManagedAccountSessionRevocationDto));
@@ -113,7 +119,7 @@ export class TeamWorkspaceService {
   revokeOtherAccountSessions(username: string): Observable<ManagedAccountSessionRevocation> {
     return this.api
       .post<ManagedAccountSessionRevocationDto>(
-        `/api/admin/accounts/${encodeURIComponent(username)}/sessions/revoke-others`,
+        `/api/auth/admin/accounts/${encodeURIComponent(username)}/sessions/revoke-others`,
         {},
       )
       .pipe(map(mapManagedAccountSessionRevocationDto));

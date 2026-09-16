@@ -34,6 +34,9 @@ export class I18nService {
   private readonly transferState = inject(TransferState);
   private readonly bundleCache = new Map<LanguageCode, Record<string, string>>();
   private readonly messages = signal<Record<string, string> | null>(null);
+  private readonly workspaceBundles = signal<Partial<Record<LanguageCode, Record<string, string>>>>(
+    {},
+  );
 
   readonly language = signal<LanguageCode | null>(null);
   readonly languages = signal<I18nLanguage[]>([]);
@@ -63,14 +66,55 @@ export class I18nService {
   }
 
   retryStartup(): Observable<void> {
-    return this.initialize();
+    return this.initialize().pipe(
+      switchMap(() =>
+        !this.startupError() && this.document.location.pathname.startsWith('/personal-workspace')
+          ? this.ensureWorkspaceBundle()
+          : of(void 0),
+      ),
+    );
   }
 
   switchLanguage(language: LanguageCode): Observable<void> {
     if (!this.isAvailableLanguage(language)) {
       return throwError(() => new Error(`Unsupported language: ${language}`));
     }
-    return this.loadLanguage(language, true);
+    return this.document.location.pathname.startsWith('/personal-workspace')
+      ? this.fetchWorkspaceBundle(language).pipe(switchMap(() => this.loadLanguage(language, true)))
+      : this.loadLanguage(language, true);
+  }
+
+  ensureWorkspaceBundle(): Observable<void> {
+    const language = this.language();
+    if (language === null) return throwError(() => new Error('I18n language is not initialized'));
+    return this.fetchWorkspaceBundle(language).pipe(
+      catchError(() => {
+        this.startupError.set(true);
+        return of(void 0);
+      }),
+    );
+  }
+
+  private fetchWorkspaceBundle(language: LanguageCode): Observable<void> {
+    if (this.workspaceBundles()[language]) return of(void 0);
+    return this.api()
+      .get<I18nBundleDto>(`/api/personal-workspace/i18n/bundles/${language}`)
+      .pipe(
+        tap((bundle) => {
+          if (bundle.language !== language)
+            throw new Error('Workspace localization language mismatch');
+          const messages = Object.fromEntries(
+            Object.entries(bundle.messages).map(([key, value]) => [
+              key.startsWith('dashboard.')
+                ? key.replace(/^dashboard\./u, 'workspaceDashboard.')
+                : key,
+              value,
+            ]),
+          );
+          this.workspaceBundles.update((bundles) => ({ ...bundles, [language]: messages }));
+        }),
+        map(() => void 0),
+      );
   }
 
   ensureLanguageBundle(language: LanguageCode): Observable<void> {
@@ -84,7 +128,12 @@ export class I18nService {
   }
 
   translate(key: string, params?: I18nParams): string {
-    const template = this.messages()?.[key] ?? STARTUP_ERROR_MESSAGES[key] ?? key;
+    const language = this.language();
+    const template =
+      this.messages()?.[key] ??
+      (language === null ? undefined : this.workspaceBundles()[language]?.[key]) ??
+      STARTUP_ERROR_MESSAGES[key] ??
+      key;
     return interpolate(template, params);
   }
 
@@ -92,6 +141,7 @@ export class I18nService {
     const template =
       this.bundleCache.get(language)?.[key] ??
       (language === this.language() ? this.messages()?.[key] : undefined) ??
+      this.workspaceBundles()[language]?.[key] ??
       STARTUP_ERROR_MESSAGES[key] ??
       key;
     return interpolate(template, params);

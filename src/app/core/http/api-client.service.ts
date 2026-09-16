@@ -28,6 +28,20 @@ export class ApiClient {
     return this.http.get<T>(`${this.baseUrl}${path}`, this.toHttpOptions(paramsOrOptions));
   }
 
+  getBlob(path: string, paramsOrOptions?: ParamsOrOptions): Observable<Blob> {
+    return this.http.get(`${this.baseUrl}${path}`, {
+      ...this.toHttpOptions(paramsOrOptions),
+      responseType: 'blob',
+    });
+  }
+
+  postBlob(path: string, body: unknown, paramsOrOptions?: ParamsOrOptions): Observable<Blob> {
+    return this.http.post(`${this.baseUrl}${path}`, body, {
+      ...this.toHttpOptions(paramsOrOptions),
+      responseType: 'blob',
+    });
+  }
+
   post<T>(path: string, body: unknown, paramsOrOptions?: ParamsOrOptions): Observable<T> {
     return this.http.post<T>(`${this.baseUrl}${path}`, body, this.toHttpOptions(paramsOrOptions));
   }

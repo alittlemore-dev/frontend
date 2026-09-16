@@ -19,6 +19,7 @@ describe('errorInterceptor', () => {
           useValue: {
             refreshAccessToken: jest.fn(() => of(void 0)),
             clearLocalSession: jest.fn(),
+            currentUser: () => ({ username: 'owner', role: 'owner' }),
             ...authService,
           },
         },
@@ -105,7 +106,7 @@ describe('errorInterceptor', () => {
 
   it('refreshes and retries a protected request once after a 401', (done) => {
     const refreshAccessToken = jest.fn(() => of(void 0));
-    const req = new HttpRequest('GET', '/api/admin/articles').clone({
+    const req = new HttpRequest('GET', '/api/auth/admin/accounts').clone({
       setHeaders: { Authorization: 'Bearer old-token' },
     });
     const responses: Observable<HttpResponse<unknown>>[] = [
@@ -148,7 +149,36 @@ describe('errorInterceptor', () => {
           }),
         );
         expect(clearLocalSession).toHaveBeenCalledTimes(1);
-        expect(openLogin).toHaveBeenCalledTimes(1);
+        expect(openLogin).toHaveBeenCalledWith({
+          required: true,
+          account: { username: 'owner', role: 'owner' },
+        });
+        done();
+      },
+    });
+  });
+
+  it('opens required recovery when refresh fails with a normalized API error', (done) => {
+    const refreshAccessToken = jest.fn(() =>
+      throwError(() => ({ status: 401, message: 'Expired' })),
+    );
+    const clearLocalSession = jest.fn();
+    const openLogin = jest.fn();
+    const next = jest.fn(() => throwError(() => httpError(401, {})));
+    setup({ refreshAccessToken, clearLocalSession }, openLogin);
+    TestBed.runInInjectionContext(() =>
+      errorInterceptor(
+        new HttpRequest('POST', '/api/personal-workspace/resumes', { title: 'Draft' }),
+        next,
+      ),
+    ).subscribe({
+      error: () => {
+        expect(openLogin).toHaveBeenCalledWith({
+          required: true,
+          account: { username: 'owner', role: 'owner' },
+        });
+        expect(clearLocalSession).toHaveBeenCalledTimes(1);
+        expect(next).toHaveBeenCalledTimes(1);
         done();
       },
     });
@@ -173,6 +203,25 @@ describe('errorInterceptor', () => {
             status: 401,
           }),
         );
+        expect(refreshAccessToken).not.toHaveBeenCalled();
+        expect(clearLocalSession).not.toHaveBeenCalled();
+        expect(openLogin).not.toHaveBeenCalled();
+        done();
+      },
+    });
+  });
+
+  it('ignores unrelated external unauthorized responses', (done) => {
+    const refreshAccessToken = jest.fn(() => of(void 0));
+    const clearLocalSession = jest.fn();
+    const openLogin = jest.fn();
+    setup({ refreshAccessToken, clearLocalSession }, openLogin);
+    TestBed.runInInjectionContext(() =>
+      errorInterceptor(new HttpRequest('GET', 'https://external.example/api/data'), () =>
+        throwError(() => httpError(401, {})),
+      ),
+    ).subscribe({
+      error: () => {
         expect(refreshAccessToken).not.toHaveBeenCalled();
         expect(clearLocalSession).not.toHaveBeenCalled();
         expect(openLogin).not.toHaveBeenCalled();

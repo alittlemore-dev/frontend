@@ -34,6 +34,7 @@ describe('AppComponent', () => {
           provide: AuthModalService,
           useValue: {
             isLoginOpen,
+            loginRequired: signal(false),
             openLogin: jest.fn(),
             closeLogin: jest.fn(() => isLoginOpen.set(false)),
           },
@@ -149,13 +150,13 @@ describe('AppComponent', () => {
     expect(retryStartup).toHaveBeenCalled();
   });
 
-  it('hides the public site header and footer on admin-panel routes', async () => {
+  it('keeps the shared site header and footer on admin-panel routes', async () => {
     const router = TestBed.inject(Router);
 
     await router.navigateByUrl('/admin-panel');
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('app-site-header')).toBeNull();
-    expect(fixture.nativeElement.querySelector('app-site-footer')).toBeNull();
+    expect(fixture.nativeElement.querySelector('app-site-header')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('app-site-footer')).not.toBeNull();
   });
 });

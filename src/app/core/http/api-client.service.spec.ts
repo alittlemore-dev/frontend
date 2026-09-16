@@ -17,6 +17,24 @@ describe('ApiClient', () => {
 
   afterEach(() => httpMock.verify());
 
+  it.each(['GET', 'POST'])('fetches private binary responses with %s', (method) => {
+    const blob = new Blob(['private']);
+    let result: Blob | undefined;
+    const options = { params: { documentId: 'doc-1' }, headers: { 'X-Test': 'private' } };
+    const request =
+      method === 'GET'
+        ? service.getBlob('/api/personal-workspace/files/1', options)
+        : service.postBlob('/api/personal-workspace/export', { id: '1' }, options);
+    request.subscribe((value) => (result = value));
+    const pending = httpMock.expectOne((req) => req.url.includes('/api/personal-workspace/'));
+    expect(pending.request.responseType).toBe('blob');
+    expect(pending.request.method).toBe(method);
+    expect(pending.request.params.get('documentId')).toBe('doc-1');
+    expect(pending.request.headers.get('X-Test')).toBe('private');
+    pending.flush(blob);
+    expect(result).toBe(blob);
+  });
+
   it('should prepend base URL on GET', () => {
     let result: { id: string } | undefined;
     service.get<{ id: string }>('/api/test').subscribe((r) => (result = r));

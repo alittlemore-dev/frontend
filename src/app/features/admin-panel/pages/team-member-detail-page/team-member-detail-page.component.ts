@@ -619,8 +619,9 @@ export class TeamMemberDetailPageComponent implements OnInit {
     this.sessionActionSubmitting.set(null);
     this.notifications.success(this.i18n.translate(successMessageKey));
     if (result.currentSessionRevoked) {
+      const account = this.auth.currentUser();
       this.auth.clearLocalSession();
-      this.authModal.openLogin();
+      this.authModal.openLogin({ required: true, account });
       return;
     }
     this.loadSessions();

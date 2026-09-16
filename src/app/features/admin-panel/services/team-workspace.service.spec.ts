@@ -28,7 +28,9 @@ describe('TeamWorkspaceService', () => {
       firstStatus = list.accounts[0].isActive;
     });
 
-    const listReq = httpMock.expectOne((request) => request.url.endsWith('/api/admin/accounts'));
+    const listReq = httpMock.expectOne((request) =>
+      request.url.endsWith('/api/auth/admin/accounts'),
+    );
     expect(listReq.request.method).toBe('GET');
     expect(listReq.request.params.get('page')).toBe('2');
     expect(listReq.request.params.get('pageSize')).toBe('20');
@@ -54,7 +56,7 @@ describe('TeamWorkspaceService', () => {
       expect(account.role).toBe('admin');
     });
     const detailReq = httpMock.expectOne((request) =>
-      request.url.endsWith('/api/admin/accounts/AdminUser'),
+      request.url.endsWith('/api/auth/admin/accounts/AdminUser'),
     );
     expect(detailReq.request.method).toBe('GET');
     detailReq.flush(accountDto());
@@ -62,14 +64,16 @@ describe('TeamWorkspaceService', () => {
     service.createAccount(payload).subscribe((account) => {
       expect(account.username).toBe('AdminUser');
     });
-    const createReq = httpMock.expectOne((request) => request.url.endsWith('/api/admin/accounts'));
+    const createReq = httpMock.expectOne((request) =>
+      request.url.endsWith('/api/auth/admin/accounts'),
+    );
     expect(createReq.request.method).toBe('POST');
     expect(createReq.request.body).toEqual(payload);
     createReq.flush(accountDto());
 
     service.updateAccountRole('AdminUser', 'moderator').subscribe();
     const roleReq = httpMock.expectOne((request) =>
-      request.url.endsWith('/api/admin/accounts/AdminUser/role'),
+      request.url.endsWith('/api/auth/admin/accounts/AdminUser/role'),
     );
     expect(roleReq.request.method).toBe('PUT');
     expect(roleReq.request.body).toEqual({ role: 'moderator' });
@@ -77,7 +81,7 @@ describe('TeamWorkspaceService', () => {
 
     service.updateAccountPassword('AdminUser', 'new-password').subscribe();
     const passwordReq = httpMock.expectOne((request) =>
-      request.url.endsWith('/api/admin/accounts/AdminUser/password'),
+      request.url.endsWith('/api/auth/admin/accounts/AdminUser/password'),
     );
     expect(passwordReq.request.method).toBe('PUT');
     expect(passwordReq.request.body).toEqual({ password: 'new-password' });
@@ -85,7 +89,7 @@ describe('TeamWorkspaceService', () => {
 
     service.activateAccount('AdminUser').subscribe();
     const activateReq = httpMock.expectOne((request) =>
-      request.url.endsWith('/api/admin/accounts/AdminUser/activate'),
+      request.url.endsWith('/api/auth/admin/accounts/AdminUser/activate'),
     );
     expect(activateReq.request.method).toBe('POST');
     expect(activateReq.request.body).toEqual({});
@@ -93,7 +97,7 @@ describe('TeamWorkspaceService', () => {
 
     service.deactivateAccount('AdminUser').subscribe();
     const deactivateReq = httpMock.expectOne((request) =>
-      request.url.endsWith('/api/admin/accounts/AdminUser/deactivate'),
+      request.url.endsWith('/api/auth/admin/accounts/AdminUser/deactivate'),
     );
     expect(deactivateReq.request.method).toBe('POST');
     expect(deactivateReq.request.body).toEqual({});
@@ -101,7 +105,7 @@ describe('TeamWorkspaceService', () => {
 
     service.deleteAccount('AdminUser').subscribe();
     const deleteReq = httpMock.expectOne((request) =>
-      request.url.endsWith('/api/admin/accounts/AdminUser'),
+      request.url.endsWith('/api/auth/admin/accounts/AdminUser'),
     );
     expect(deleteReq.request.method).toBe('DELETE');
     deleteReq.flush(null);
@@ -125,7 +129,7 @@ describe('TeamWorkspaceService', () => {
       ]);
     });
     const listReq = httpMock.expectOne((request) =>
-      request.url.endsWith('/api/admin/accounts/AdminUser/sessions'),
+      request.url.endsWith('/api/auth/admin/accounts/AdminUser/sessions'),
     );
     expect(listReq.request.method).toBe('GET');
     listReq.flush({
@@ -139,7 +143,7 @@ describe('TeamWorkspaceService', () => {
       });
     const revokeReq = httpMock.expectOne((request) =>
       request.url.endsWith(
-        '/api/admin/accounts/AdminUser/sessions/10000000000040008000000000000001/revoke',
+        '/api/auth/admin/accounts/AdminUser/sessions/10000000000040008000000000000001/revoke',
       ),
     );
     expect(revokeReq.request.method).toBe('POST');
@@ -150,7 +154,7 @@ describe('TeamWorkspaceService', () => {
       expect(result.currentSessionRevoked).toBe(true);
     });
     const revokeAllReq = httpMock.expectOne((request) =>
-      request.url.endsWith('/api/admin/accounts/AdminUser/sessions/revoke-all'),
+      request.url.endsWith('/api/auth/admin/accounts/AdminUser/sessions/revoke-all'),
     );
     expect(revokeAllReq.request.method).toBe('POST');
     expect(revokeAllReq.request.body).toEqual({});
@@ -160,7 +164,7 @@ describe('TeamWorkspaceService', () => {
       expect(result.currentSessionRevoked).toBe(false);
     });
     const revokeOthersReq = httpMock.expectOne((request) =>
-      request.url.endsWith('/api/admin/accounts/AdminUser/sessions/revoke-others'),
+      request.url.endsWith('/api/auth/admin/accounts/AdminUser/sessions/revoke-others'),
     );
     expect(revokeOthersReq.request.method).toBe('POST');
     expect(revokeOthersReq.request.body).toEqual({});

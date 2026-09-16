@@ -3,368 +3,186 @@ import { Component, signal } from '@angular/core';
 import { Router, provideRouter } from '@angular/router';
 import { of, Subject } from 'rxjs';
 import { SiteHeaderComponent, rewriteLanguagePrefixedUrl } from './site-header.component';
-import { ThemeService, ThemeName } from '@alittlemore.dev/design-system';
-
+import { ThemeService } from '@alittlemore.dev/design-system';
 import { AuthService, AccountInfo } from '../../../../core/auth/auth.service';
 import { AuthModalService } from '../../../../core/auth/auth-modal.service';
 import { I18nService } from '../../../../core/i18n/i18n.service';
-import { I18nLanguage, LanguageCode } from '../../../../core/i18n/i18n.model';
+import { UnsavedChangesService } from '../../../../core/unsaved-changes/unsaved-changes.service';
+import { createI18nTestingValue } from '../../../../testing/i18n-testing';
 
-@Component({
-  standalone: true,
-  template: '',
-})
+@Component({ standalone: true, template: '' })
 class EmptyRouteComponent {}
 
-describe('SiteHeaderComponent', () => {
+describe('Shared site header', () => {
   let fixture: ComponentFixture<SiteHeaderComponent>;
   let el: HTMLElement;
-  let themeSignal: ReturnType<typeof signal<ThemeName>>;
-  let currentUserSignal: ReturnType<typeof signal<AccountInfo | null>>;
-  let restoringSessionSignal: ReturnType<typeof signal<boolean>>;
-  let languageSignal: ReturnType<typeof signal<LanguageCode | null>>;
-  let languagesSignal: ReturnType<typeof signal<I18nLanguage[]>>;
-  let router: Router;
-  let mockThemeService: {
-    theme: ReturnType<typeof signal<ThemeName>>;
-    toggleTheme: jest.Mock;
-    setTheme: jest.Mock;
+  const currentUser = signal<AccountInfo | null>(null);
+  const restoring = signal(false);
+  const theme = { theme: signal('light'), toggleTheme: jest.fn() };
+  const modal = { openLogin: jest.fn(), isLoginOpen: signal(false) };
+  const auth = {
+    currentUser,
+    isRestoringSession: restoring,
+    isLoggedIn: () => currentUser() !== null,
+    canManageContent: () => ['owner', 'admin', 'moderator'].includes(currentUser()?.role ?? ''),
+    ensureCurrentUserLoaded: jest.fn(),
+    logout: jest.fn(),
   };
-  let mockAuthService: {
-    currentUser: ReturnType<typeof signal<AccountInfo | null>>;
-    isLoggedIn: () => boolean;
-    canManageContent: () => boolean;
-    isRestoringSession: ReturnType<typeof signal<boolean>>;
-    ensureCurrentUserLoaded: jest.Mock;
-    logout: jest.Mock;
-  };
-  let mockAuthModalService: { openLogin: jest.Mock };
-  let mockI18nService: {
-    language: ReturnType<typeof signal<LanguageCode | null>>;
-    languages: ReturnType<typeof signal<I18nLanguage[]>>;
-    switchLanguage: jest.Mock;
-    translate: jest.Mock;
-  };
+  const changes = { confirmDiscard: jest.fn(), discardChanges: jest.fn() };
+  let i18n: ReturnType<typeof createI18nTestingValue>;
 
   beforeEach(async () => {
-    themeSignal = signal<ThemeName>('light');
-    currentUserSignal = signal<AccountInfo | null>(null);
-    restoringSessionSignal = signal(false);
-    languageSignal = signal<LanguageCode | null>('ru');
-    languagesSignal = signal<I18nLanguage[]>([
-      { code: 'ru', label: 'Русский' },
-      { code: 'en', label: 'English' },
-    ]);
-
-    mockThemeService = {
-      theme: themeSignal,
-      toggleTheme: jest.fn(),
-      setTheme: jest.fn(),
-    };
-
-    mockAuthService = {
-      currentUser: currentUserSignal,
-      isLoggedIn: () => currentUserSignal() !== null,
-      canManageContent: () => {
-        const role = currentUserSignal()?.role;
-        return role === 'owner' || role === 'admin' || role === 'moderator';
-      },
-      isRestoringSession: restoringSessionSignal,
-      ensureCurrentUserLoaded: jest.fn().mockReturnValue(of(void 0)),
-      logout: jest.fn().mockReturnValue({ subscribe: jest.fn() }),
-    };
-    mockAuthModalService = {
-      openLogin: jest.fn(),
-    };
-    mockI18nService = {
-      language: languageSignal,
-      languages: languagesSignal,
-      switchLanguage: jest.fn().mockReturnValue(of(void 0)),
-      translate: jest.fn((key: string, params?: Record<string, string | number>) => {
-        const messages: Record<string, string> = {
-          'shell.nav.matrix': 'Матрица компетенций',
-          'shell.nav.articles': 'Статьи',
-          'shell.nav.adminPanel': 'Админ-панель',
-          'shell.nav.toggleNavigation': 'Открыть навигацию',
-          'siteBuild.hero.logoAlt': 'Логотип сайта',
-          'shell.theme.dark': 'Dark',
-          'shell.theme.light': 'Light',
-          'shell.theme.toggle': 'Переключить тему',
-          'shell.auth.login': 'Войти',
-          'shell.auth.logout': 'Выйти',
-          'shell.auth.loggedInAs': 'Вы вошли как {username}',
-          'shell.language.label': 'Язык',
-        };
-        const template = messages[key] ?? key;
-        if (!params) return template;
-        return Object.entries(params).reduce(
-          (text, [name, value]) => text.replaceAll(`{${name}}`, String(value)),
-          template,
-        );
-      }),
-    };
-
+    jest.clearAllMocks();
+    modal.isLoginOpen.set(false);
+    currentUser.set(null);
+    restoring.set(false);
+    auth.ensureCurrentUserLoaded.mockReturnValue(of(void 0));
+    auth.logout.mockReturnValue(of(void 0));
+    changes.confirmDiscard.mockReturnValue(true);
+    i18n = createI18nTestingValue();
     await TestBed.configureTestingModule({
-      imports: [SiteHeaderComponent, EmptyRouteComponent],
+      imports: [SiteHeaderComponent],
       providers: [
-        provideRouter([
-          {
-            path: 'ru',
-            children: [
-              {
-                path: 'competency',
-                children: [{ path: 'matrix', component: EmptyRouteComponent }],
-              },
-            ],
-          },
-        ]),
-        { provide: ThemeService, useValue: mockThemeService },
-        { provide: AuthService, useValue: mockAuthService },
-        { provide: AuthModalService, useValue: mockAuthModalService },
-        { provide: I18nService, useValue: mockI18nService },
+        provideRouter([{ path: '**', component: EmptyRouteComponent }]),
+        { provide: AuthService, useValue: auth },
+        { provide: AuthModalService, useValue: modal },
+        { provide: ThemeService, useValue: theme },
+        { provide: I18nService, useValue: i18n },
+        { provide: UnsavedChangesService, useValue: changes },
       ],
     }).compileComponents();
-
     fixture = TestBed.createComponent(SiteHeaderComponent);
     fixture.detectChanges();
-    el = fixture.nativeElement as HTMLElement;
-    router = TestBed.inject(Router);
+    el = fixture.nativeElement;
+    const dialog = el.querySelector('dialog')!;
+    dialog.showModal = () => {
+      dialog.open = true;
+    };
+    dialog.close = () => {
+      dialog.open = false;
+      dialog.dispatchEvent(new Event('close'));
+    };
   });
 
-  it('uses the localized site-build case study as home and does not render about navigation', () => {
-    expect(fixture.componentInstance.homeLink()).toBe('/ru/how-this-site-is-built');
-    expect(el.querySelector('a[href="/ru/about-me"]')).toBeNull();
-    expect(el.textContent).not.toContain('Обо мне');
-  });
+  function button(label: string): HTMLButtonElement {
+    label = i18n.translate!(label);
+    const match = [...el.querySelectorAll('button')].find(
+      (b) => b.textContent?.trim() === label || b.getAttribute('aria-label') === label,
+    );
+    if (!match) throw new Error(`Missing button: ${label}`);
+    return match;
+  }
 
-  it('renders the primary project logo in the home link', () => {
-    const logo = el.querySelector('a.navbar-brand img') as HTMLImageElement | null;
-
-    expect(logo).not.toBeNull();
-    expect(logo?.getAttribute('src')).toBe('/logo-192x192.webp');
-    expect(logo?.getAttribute('srcset')).toBe('/logo-192x192.webp 1x, /logo-512x512.webp 2x');
-    expect(logo?.getAttribute('width')).toBe('40');
-    expect(logo?.getAttribute('height')).toBe('40');
-    expect(logo?.getAttribute('alt')).toBe('Логотип сайта');
-  });
-
-  it('renders nav link to the localized competency matrix page', () => {
-    expect(fixture.componentInstance.matrixLink()).toBe('/ru/competency/matrix');
-  });
-
-  it('renders nav link to the localized articles page', () => {
-    expect(fixture.componentInstance.articlesLink()).toBe('/ru/competency/articles');
-  });
-
-  it('uses responsive containers for collapsed public navigation and actions', () => {
-    const navList = el.querySelector('[data-testid="site-header-nav-list"]') as HTMLElement | null;
-    const actions = el.querySelector('[data-testid="site-header-actions"]') as HTMLElement | null;
-
-    expect(navList).not.toBeNull();
-    expect(navList?.classList).toContain('flex-column');
-    expect(navList?.classList).toContain('flex-lg-row');
-    expect(actions).not.toBeNull();
-    expect(actions?.classList).toContain('flex-wrap');
-    expect(actions?.classList).toContain('justify-content-start');
-    expect(actions?.classList).toContain('justify-content-lg-end');
-  });
-
-  it('closes expanded navigation when a public nav link is selected', () => {
-    fixture.componentInstance.toggleNav();
+  it('provides guest service entry paths without the admin panel', () => {
+    button('shell.nav.toggleNavigation').click();
     fixture.detectChanges();
-
-    expect(fixture.componentInstance.isNavOpen()).toBe(true);
-
-    const matrixLink = el.querySelector('a[aria-label="Матрица компетенций"]') as HTMLAnchorElement;
-    matrixLink.click();
-
-    expect(fixture.componentInstance.isNavOpen()).toBe(false);
-  });
-
-  it('hides admin-panel navigation from guests and regular users', () => {
-    expect(el.querySelector('a[aria-label="Админ-панель"]')).toBeNull();
-
-    currentUserSignal.set({ username: 'user', role: 'user' });
+    expect(el.querySelector('dialog')!.open).toBe(true);
+    expect([...el.querySelectorAll('ds-drawer a')].map((a) => a.getAttribute('href'))).toEqual([
+      '/personal-workspace',
+      '/ru/competency/matrix',
+      '/ru/competency/articles',
+    ]);
+    el.querySelector<HTMLAnchorElement>('a[href="/ru/competency/matrix"]')!.click();
     fixture.detectChanges();
-
-    expect(el.querySelector('a[aria-label="Админ-панель"]')).toBeNull();
+    expect(el.querySelector('dialog')!.open).toBe(false);
   });
 
-  it('shows admin-panel navigation to owners, admins, and moderators', () => {
-    currentUserSignal.set({ username: 'owner', role: 'owner' });
+  it('hides owner-only workspace from other authenticated roles', () => {
+    currentUser.set({ username: 'moderator', role: 'moderator' });
     fixture.detectChanges();
-
-    let adminLink = el.querySelector('a[aria-label="Админ-панель"]') as HTMLAnchorElement;
-    expect(adminLink).not.toBeNull();
-    expect(adminLink.getAttribute('href')).toBe('/admin-panel');
-
-    currentUserSignal.set({ username: 'moderator', role: 'moderator' });
+    expect(el.querySelector('a[href="/personal-workspace"]')).toBeNull();
+    expect(el.querySelector('a[href="/admin-panel"]')).not.toBeNull();
+    currentUser.set({ username: 'reader', role: 'user' });
     fixture.detectChanges();
+    expect(el.querySelector('a[href="/admin-panel"]')).toBeNull();
+  });
 
-    adminLink = el.querySelector('a[aria-label="Админ-панель"]') as HTMLAnchorElement;
-    expect(adminLink).not.toBeNull();
-
-    currentUserSignal.set({ username: 'admin', role: 'admin' });
+  it('retains one header and changes its service icon on route changes', async () => {
+    await TestBed.inject(Router).navigateByUrl('/admin-panel');
     fixture.detectChanges();
-
-    adminLink = el.querySelector('a[aria-label="Админ-панель"]') as HTMLAnchorElement;
-    expect(adminLink).not.toBeNull();
-  });
-
-  it('theme toggle button calls themeService.toggleTheme()', () => {
-    const button = findButtonByText(el, 'Dark');
-    expect(button).not.toBeNull();
-    button.click();
-    expect(mockThemeService.toggleTheme).toHaveBeenCalled();
-  });
-
-  it('toggle button text reflects current theme label', () => {
-    const button = findButtonByText(el, 'Dark');
-    expect(button).not.toBeNull();
-    expect(button.getAttribute('aria-label')).toBeNull();
-    expect(button.textContent?.trim()).toBe('Dark');
-
-    themeSignal.set('dark');
+    expect(el.querySelector('.service-logo')!.getAttribute('src')).toBe(
+      '/brand/admin-frame-64.png',
+    );
+    expect(el.querySelector('a[title="На главную"]')).toBeNull();
+    await TestBed.inject(Router).navigateByUrl('/personal-workspace/resumes');
     fixture.detectChanges();
-    expect(button.textContent?.trim()).toBe('Light');
+    expect(el.querySelector('.service-logo')!.getAttribute('src')).toBe(
+      '/brand/archive-portal-64.png',
+    );
+    await TestBed.inject(Router).navigateByUrl('/ru/competency/matrix');
+    fixture.detectChanges();
+    expect(el.querySelector('.service-logo')!.getAttribute('src')).toBe('/logo-192x192.webp');
+    await TestBed.inject(Router).navigateByUrl('/en/competency/articles');
+    fixture.detectChanges();
+    expect(el.querySelector('.service-logo')!.getAttribute('src')).toBe('/logo-192x192.webp');
+    await TestBed.inject(Router).navigateByUrl('/ru/how-this-site-is-built');
+    fixture.detectChanges();
+    expect(el.querySelector('.service-logo')).toBeNull();
   });
 
-  it('shows login modal button when user is not logged in', () => {
-    const loginButton = el.querySelector('button[aria-label="Войти"]') as HTMLButtonElement;
-    expect(loginButton).not.toBeNull();
-    expect(loginButton.textContent?.trim()).toBe('Войти');
-    expect(el.querySelector('a[routerLink="/login"]')).toBeNull();
+  it('uses the account dropdown for theme, nested language choice and login', () => {
+    expect(el.querySelector('ds-dropdown')).not.toBeNull();
+    button('shell.theme.toggle').click();
+    expect(theme.toggleTheme).toHaveBeenCalled();
+    expect(el.querySelector('#site-language-options')).toBeNull();
+    button('shell.language.label').click();
+    fixture.detectChanges();
+    const switchLanguage = jest.spyOn(i18n, 'switchLanguage');
+    button('EN').click();
+    expect(switchLanguage).toHaveBeenCalledWith('en');
+    fixture.componentInstance.accountMenuChanged(false);
+    fixture.detectChanges();
+    expect(el.querySelector('#site-language-options')).toBeNull();
   });
 
-  it('restores an existing session before asking for credentials', () => {
-    mockAuthService.ensureCurrentUserLoaded.mockImplementation(() => {
-      currentUserSignal.set({ username: 'admin', role: 'admin' });
+  it('restores a session before opening the shared login modal', () => {
+    button('shell.auth.login').click();
+    expect(auth.ensureCurrentUserLoaded).toHaveBeenCalled();
+    expect(modal.openLogin).toHaveBeenCalled();
+  });
+
+  it('does not reopen login when restoration recovered an existing account', () => {
+    auth.ensureCurrentUserLoaded.mockImplementation(() => {
+      currentUser.set({ username: 'owner', role: 'owner' });
       return of(void 0);
     });
+    button('shell.auth.login').click();
+    expect(modal.openLogin).not.toHaveBeenCalled();
+  });
 
-    const loginButton = el.querySelector('button[aria-label="Войти"]') as HTMLButtonElement;
-    loginButton.click();
+  it('disables login while session restoration is in flight', () => {
+    restoring.set(true);
     fixture.detectChanges();
-
-    expect(mockAuthModalService.openLogin).not.toHaveBeenCalled();
-    expect(el.querySelector('[aria-label="Вы вошли как admin"]')).not.toBeNull();
+    expect(button('shell.auth.login').disabled).toBe(true);
   });
 
-  it('opens login modal when session restoration leaves the user anonymous', () => {
-    const loginButton = el.querySelector('button[aria-label="Войти"]') as HTMLButtonElement;
-    loginButton.click();
-    expect(mockAuthModalService.openLogin).toHaveBeenCalled();
-  });
-
-  it('disables login while one session restoration is in flight', () => {
-    const restoration = new Subject<void>();
-    mockAuthService.ensureCurrentUserLoaded.mockImplementation(() => {
-      restoringSessionSignal.set(true);
-      return restoration;
-    });
-    const loginButton = el.querySelector('button[aria-label="Войти"]') as HTMLButtonElement;
-
-    loginButton.click();
+  it('guards logout against unsaved edits and disables repeated submissions', () => {
+    currentUser.set({ username: 'owner', role: 'owner' });
     fixture.detectChanges();
-
-    expect(loginButton.disabled).toBe(true);
-    expect(loginButton.getAttribute('aria-busy')).toBe('true');
-    loginButton.click();
-    expect(mockAuthService.ensureCurrentUserLoaded).toHaveBeenCalledTimes(1);
-
-    restoration.next();
-    restoringSessionSignal.set(false);
-    restoration.complete();
+    changes.confirmDiscard.mockReturnValue(false);
+    button('shell.auth.logout').click();
+    expect(auth.logout).not.toHaveBeenCalled();
+    changes.confirmDiscard.mockReturnValue(true);
+    const pending = new Subject<void>();
+    auth.logout.mockReturnValue(pending);
+    button('shell.auth.logout').click();
     fixture.detectChanges();
-
-    expect(mockAuthModalService.openLogin).toHaveBeenCalledTimes(1);
-    expect(loginButton.disabled).toBe(false);
-    expect(loginButton.getAttribute('aria-busy')).toBe('false');
-  });
-
-  it('disables login during automatic startup restoration', () => {
-    restoringSessionSignal.set(true);
+    expect(button('shell.auth.logout').disabled).toBe(true);
+    pending.next();
+    pending.complete();
     fixture.detectChanges();
-    const loginButton = el.querySelector('button[aria-label="Войти"]') as HTMLButtonElement;
-
-    expect(loginButton.disabled).toBe(true);
-    expect(loginButton.getAttribute('aria-busy')).toBe('true');
-    loginButton.click();
-    expect(mockAuthService.ensureCurrentUserLoaded).not.toHaveBeenCalled();
+    expect(changes.discardChanges).toHaveBeenCalledTimes(1);
   });
 
-  it('shows username and logout button when logged in', () => {
-    currentUserSignal.set({ username: 'admin', role: 'admin' });
-    fixture.detectChanges();
-
-    const logoutBtn = el.querySelector('button[aria-label="Выйти"]') as HTMLButtonElement;
-    expect(logoutBtn).not.toBeNull();
-
-    const usernameEl = el.querySelector('[aria-label="Вы вошли как admin"]');
-    expect(usernameEl).not.toBeNull();
-    expect(usernameEl?.textContent?.trim()).toBe('admin');
-  });
-
-  it('calls authService.logout() when logout button is clicked', () => {
-    currentUserSignal.set({ username: 'admin', role: 'admin' });
-    fixture.detectChanges();
-
-    const logoutBtn = el.querySelector('button[aria-label="Выйти"]') as HTMLButtonElement;
-    logoutBtn.click();
-    expect(mockAuthService.logout).toHaveBeenCalled();
-  });
-
-  it('renders language switcher with current language selected', () => {
-    const switcher = el.querySelector('[aria-label="Язык"]');
-    expect(switcher).not.toBeNull();
-
-    const buttons = Array.from(switcher?.querySelectorAll('button') ?? []);
-    expect(buttons.map((button) => button.textContent?.trim())).toEqual(['RU', 'EN']);
-    expect(buttons[0].getAttribute('aria-pressed')).toBe('true');
-    expect(buttons[1].getAttribute('aria-pressed')).toBe('false');
-  });
-
-  it('switches language and rewrites the current localized URL', () => {
-    jest
-      .spyOn(router, 'url', 'get')
-      .mockReturnValue('/ru/competency/articles/typed-articles?tag=angular');
-    const navigateByUrlSpy = jest.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
-    const englishButton = Array.from(el.querySelectorAll('button')).find(
-      (button) => button.textContent?.trim() === 'EN',
-    ) as HTMLButtonElement;
-
-    englishButton.click();
-
-    expect(mockI18nService.switchLanguage).toHaveBeenCalledWith('en');
-    expect(navigateByUrlSpy).toHaveBeenCalledWith(
-      '/en/competency/articles/typed-articles?tag=angular',
-    );
-  });
-
-  it('rewrites the site-build case-study URL between localized public routes', () => {
-    expect(rewriteLanguagePrefixedUrl('/ru/how-this-site-is-built#quality', 'en')).toBe(
-      '/en/how-this-site-is-built#quality',
-    );
-    expect(rewriteLanguagePrefixedUrl('/how-this-site-is-built', 'ru')).toBe(
-      '/ru/how-this-site-is-built',
-    );
-    expect(rewriteLanguagePrefixedUrl('/ru/updates?from=footer', 'en')).toBe(
-      '/en/updates?from=footer',
-    );
-    expect(rewriteLanguagePrefixedUrl('/updates', 'ru')).toBe('/ru/updates');
-    expect(rewriteLanguagePrefixedUrl('/competency/articles/typed-articles', 'ru')).toBe(
-      '/ru/competency/articles/typed-articles',
-    );
-    expect(rewriteLanguagePrefixedUrl('/about-me', 'ru')).toBe('/about-me');
+  it.each([
+    ['/ru/competency/articles?tag=x#body', 'en', '/en/competency/articles?tag=x#body'],
+    [
+      '/personal-workspace/resumes/42?tab=preview',
+      'en',
+      '/personal-workspace/resumes/42?tab=preview',
+    ],
+    ['/admin-panel/articles', 'ru', '/admin-panel/articles'],
+  ] as const)('preserves service paths when switching %s to %s', (url, language, expected) => {
+    expect(rewriteLanguagePrefixedUrl(url, language)).toBe(expected);
   });
 });
-
-function findButtonByText(root: ParentNode, text: string): HTMLButtonElement {
-  const button = Array.from(root.querySelectorAll<HTMLButtonElement>('button')).find(
-    (item) => item.textContent?.trim() === text,
-  );
-  if (button === undefined) {
-    throw new Error(`Missing ${text} button.`);
-  }
-  return button;
-}

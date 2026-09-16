@@ -1,3 +1,5 @@
+import { BreakpointObserver, BreakpointState } from '@angular/cdk/layout';
+import { BehaviorSubject } from 'rxjs';
 import { Component, WritableSignal, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
@@ -20,8 +22,10 @@ describe('AdminPanelPageComponent', () => {
   let canManageTeam: WritableSignal<boolean>;
   let isLoggedIn: WritableSignal<boolean>;
   let router: Router;
+  let viewport: BehaviorSubject<BreakpointState>;
 
   beforeEach(async () => {
+    viewport = new BehaviorSubject<BreakpointState>({ matches: false, breakpoints: {} });
     currentUser = signal({ username: 'admin', role: 'admin' });
     isAdmin = signal(true);
     isOwner = signal(false);
@@ -33,6 +37,7 @@ describe('AdminPanelPageComponent', () => {
       providers: [
         provideRouter([{ path: '**', component: EmptyRouteComponent }]),
         provideI18nTesting(),
+        { provide: BreakpointObserver, useValue: { observe: () => viewport } },
         {
           provide: AuthService,
           useValue: {
@@ -124,20 +129,40 @@ describe('AdminPanelPageComponent', () => {
     expect(articles.getAttribute('aria-current')).toBe('page');
   });
 
-  it('opens and closes the mobile drawer without removing the desktop side panel', () => {
-    const toggle = fixture.nativeElement.querySelector(
-      '[data-testid="admin-panel-side-panel-toggle"]',
+  it('closes the DS mobile drawer after selecting an allowed admin page', async () => {
+    const dialog = openDrawer();
+    const item = Array.from(
+      fixture.nativeElement.querySelectorAll('ds-drawer [data-testid="admin-panel-tree-item"]'),
+    ).find((candidate) =>
+      (candidate as HTMLElement).textContent?.includes('Команда'),
     ) as HTMLButtonElement;
-    const panel = fixture.nativeElement.querySelector(
-      '[data-testid="admin-panel-side-panel"]',
-    ) as HTMLElement;
-
-    expect(panel.classList).toContain('admin-panel-side-panel-open');
-    toggle.click();
+    item.click();
+    await fixture.whenStable();
     fixture.detectChanges();
-
-    expect(panel.classList).toContain('admin-panel-side-panel-closed');
-    expect(panel.getAttribute('inert')).toBeNull();
-    expect(panel.getAttribute('aria-hidden')).toBeNull();
+    expect(router.url).toBe('/admin-panel/workspace/team');
+    expect(dialog.open).toBe(false);
+    expect(fixture.nativeElement.querySelector('aside')).not.toBeNull();
   });
+
+  it('ends mobile modality when returning to desktop layout', () => {
+    const dialog = openDrawer();
+    viewport.next({ matches: true, breakpoints: {} });
+    fixture.detectChanges();
+    expect(dialog.open).toBe(false);
+    expect(fixture.nativeElement.querySelector('aside')).not.toBeNull();
+  });
+
+  function openDrawer(): HTMLDialogElement {
+    const dialog = fixture.nativeElement.querySelector('ds-drawer dialog') as HTMLDialogElement;
+    dialog.showModal = () => dialog.setAttribute('open', '');
+    dialog.close = () => dialog.removeAttribute('open');
+    (
+      fixture.nativeElement.querySelector(
+        '[data-testid="admin-panel-side-panel-toggle"]',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    expect(dialog.open).toBe(true);
+    return dialog;
+  }
 });

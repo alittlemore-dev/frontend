@@ -14,7 +14,12 @@ export class BrowserApiBackend implements HttpBackend {
       return this.transport.handle(request);
     }
 
-    const publicApiUrl = request.url.replace(/^\/api\//, '/api/competency/');
+    const explicitService = /^\/api\/(auth|personal-workspace|competency)(?:\/|\?|$)/.test(
+      request.url,
+    );
+    const publicApiUrl = explicitService
+      ? request.url
+      : request.url.replace(/^\/api\//, '/api/competency/');
     return this.transport.handle(
       request.clone({ url: `${this.document.location.origin}${publicApiUrl}` }),
     );

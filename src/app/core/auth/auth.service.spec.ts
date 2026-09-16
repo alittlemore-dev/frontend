@@ -31,6 +31,21 @@ describe('AuthService', () => {
   });
 
   describe('login', () => {
+    it('rejects an anonymous account response after a token was issued', () => {
+      let failed = false;
+      service.login('owner', 'secret').subscribe({ error: () => (failed = true) });
+      httpMock
+        .expectOne((req) => req.url.endsWith('/api/auth/login'))
+        .flush({ accessToken: 'invalid', accessTokenExpiresInSeconds: 900 });
+      httpMock
+        .expectOne((req) => req.url.endsWith('/api/auth/account/base'))
+        .flush({ username: '', role: 'anon' });
+      expect(failed).toBe(true);
+      expect(service.isLoggedIn()).toBe(false);
+      expect(tokenService.token()).toBeNull();
+      expect(service.hasKnownSession()).toBe(false);
+    });
+
     it('stores token and loads user', () => {
       const mockAccount: AccountInfo = { username: 'moderator', role: 'moderator' };
 
@@ -41,7 +56,7 @@ describe('AuthService', () => {
       expect(loginReq.request.withCredentials).toBe(true);
       loginReq.flush({ accessToken: 'new-token', accessTokenExpiresInSeconds: 900 });
 
-      const accountReq = httpMock.expectOne((req) => req.url.includes('/api/account/base'));
+      const accountReq = httpMock.expectOne((req) => req.url.includes('/api/auth/account/base'));
       expect(accountReq.request.method).toBe('GET');
       accountReq.flush(mockAccount);
 
@@ -102,7 +117,7 @@ describe('AuthService', () => {
       const refreshReq = httpMock.expectOne((req) => req.url.includes('/api/auth/refresh'));
       refreshReq.flush({ accessToken: 'startup-token', accessTokenExpiresInSeconds: 900 });
 
-      const accountReq = httpMock.expectOne((req) => req.url.includes('/api/account/base'));
+      const accountReq = httpMock.expectOne((req) => req.url.includes('/api/auth/account/base'));
       accountReq.flush(mockAccount);
 
       expect(completed).toBe(true);
@@ -130,7 +145,7 @@ describe('AuthService', () => {
         accessTokenExpiresInSeconds: 900,
       });
 
-      const accountRequests = httpMock.match((req) => req.url.includes('/api/account/base'));
+      const accountRequests = httpMock.match((req) => req.url.includes('/api/auth/account/base'));
       expect(accountRequests).toHaveLength(1);
       accountRequests[0].flush(mockAccount);
 
@@ -155,7 +170,7 @@ describe('AuthService', () => {
         completions += 1;
       });
 
-      const accountRequests = httpMock.match((req) => req.url.includes('/api/account/base'));
+      const accountRequests = httpMock.match((req) => req.url.includes('/api/auth/account/base'));
       expect(accountRequests).toHaveLength(1);
       accountRequests[0].flush(mockAccount);
 
@@ -178,7 +193,7 @@ describe('AuthService', () => {
       expect(completed).toBe(true);
       expect(tokenService.token()).toBeNull();
       expect(service.currentUser()).toBeNull();
-      httpMock.expectNone((req) => req.url.includes('/api/account/base'));
+      httpMock.expectNone((req) => req.url.includes('/api/auth/account/base'));
     });
   });
 
@@ -254,7 +269,7 @@ describe('AuthService', () => {
 
       service.loadCurrentUser().subscribe();
 
-      const req = httpMock.expectOne((r) => r.url.includes('/api/account/base'));
+      const req = httpMock.expectOne((r) => r.url.includes('/api/auth/account/base'));
       req.flush(mockAccount);
 
       expect(service.currentUser()).toEqual(mockAccount);
@@ -278,7 +293,7 @@ describe('AuthService', () => {
       expect(refreshReq.request.withCredentials).toBe(true);
       refreshReq.flush({ accessToken: 'session-token', accessTokenExpiresInSeconds: 900 });
 
-      const accountReq = httpMock.expectOne((r) => r.url.includes('/api/account/base'));
+      const accountReq = httpMock.expectOne((r) => r.url.includes('/api/auth/account/base'));
       expect(accountReq.request.method).toBe('GET');
       accountReq.flush(mockAccount);
 
@@ -295,7 +310,7 @@ describe('AuthService', () => {
       service.ensureCurrentUserLoaded().subscribe(() => {
         completed = true;
       });
-      const req = httpMock.expectOne((r) => r.url.includes('/api/account/base'));
+      const req = httpMock.expectOne((r) => r.url.includes('/api/auth/account/base'));
       expect(req.request.method).toBe('GET');
       req.flush(mockAccount);
 
@@ -316,7 +331,7 @@ describe('AuthService', () => {
       service.ensureCurrentUserLoaded().subscribe(() => {
         completions += 1;
       });
-      const requests = httpMock.match((r) => r.url.includes('/api/account/base'));
+      const requests = httpMock.match((r) => r.url.includes('/api/auth/account/base'));
       expect(requests).toHaveLength(1);
       requests[0].flush(mockAccount);
 
@@ -333,7 +348,7 @@ describe('AuthService', () => {
           failed = true;
         },
       });
-      const req = httpMock.expectOne((r) => r.url.includes('/api/account/base'));
+      const req = httpMock.expectOne((r) => r.url.includes('/api/auth/account/base'));
       req.flush({ message: 'Unauthorized' }, { status: 401, statusText: 'Unauthorized' });
 
       expect(failed).toBe(true);
@@ -426,7 +441,7 @@ describe('AuthService with unavailable browser storage', () => {
       .expectOne((req) => req.url.includes('/api/auth/login'))
       .flush({ accessToken: 'token', accessTokenExpiresInSeconds: 900 });
     httpMock
-      .expectOne((req) => req.url.includes('/api/account/base'))
+      .expectOne((req) => req.url.includes('/api/auth/account/base'))
       .flush({ username: 'admin', role: 'admin' } satisfies AccountInfo);
 
     expect(completed).toBe(true);

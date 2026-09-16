@@ -1,3 +1,5 @@
+import { DOCUMENT } from '@angular/common';
+import { isOwnApiRequest } from '../http/api-request';
 import { HttpInterceptorFn, HttpErrorResponse, HttpRequest } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { catchError, switchMap, throwError } from 'rxjs';
@@ -8,6 +10,7 @@ import { AuthTokenService } from '../auth/auth-token.service';
 import { AUTH_REFRESH_ATTEMPTED, SKIP_AUTH_REFRESH } from '../auth/auth-http-context';
 
 export const errorInterceptor: HttpInterceptorFn = (req, next) => {
+  const ownApi = isOwnApiRequest(req.url, inject(DOCUMENT));
   const authService = inject(AuthService);
   const authModal = inject(AuthModalService);
   const tokenService = inject(AuthTokenService);
@@ -17,7 +20,7 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
       if (!(error instanceof HttpErrorResponse)) {
         return throwError(() => error);
       }
-      if (shouldRefreshAfterUnauthorized(req, error)) {
+      if (ownApi && shouldRefreshAfterUnauthorized(req, error)) {
         return authService.refreshAccessToken().pipe(
           switchMap(() => next(createRetryRequest(req, tokenService.token()))),
           catchError((retryError: unknown) => {
@@ -26,7 +29,7 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
           }),
         );
       }
-      handleFinalAuthFailure(req, error, authService, authModal);
+      if (ownApi) handleFinalAuthFailure(req, error, authService, authModal);
       return throwError(() => toApiError(error));
     }),
   );
@@ -64,9 +67,16 @@ function handleFinalAuthFailure(
   authService: AuthService,
   authModal: AuthModalService,
 ): void {
-  if (error instanceof HttpErrorResponse && error.status === 401 && !isAuthEndpoint(req.url)) {
+  if (
+    error !== null &&
+    typeof error === 'object' &&
+    'status' in error &&
+    error.status === 401 &&
+    !isAuthEndpoint(req.url)
+  ) {
+    const account = authService.currentUser();
     authService.clearLocalSession();
-    authModal.openLogin();
+    authModal.openLogin({ required: true, account });
   }
 }
 
@@ -91,5 +101,6 @@ function isApiErrorBody(value: unknown): value is Partial<ApiError> {
 }
 
 function isAuthEndpoint(url: string): boolean {
-  return new URL(url, 'http://localhost').pathname.startsWith('/api/auth/');
+  const pathname = new URL(url, 'http://localhost').pathname;
+  return /^\/api\/auth\/(?:login|refresh|logout|account\/base)\/?$/.test(pathname);
 }

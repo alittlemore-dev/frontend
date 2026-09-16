@@ -1,8 +1,19 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
+import { BreakpointObserver } from '@angular/cdk/layout';
+import { AuthModalService } from '../../../../core/auth/auth-modal.service';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  viewChild,
+} from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { filter, map } from 'rxjs';
 import {
+  DrawerComponent,
   FoldableTreeComponent,
   FoldableTreeItem,
   FoldableTreeSection,
@@ -12,12 +23,11 @@ import { I18nService } from '../../../../core/i18n/i18n.service';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
 import { ADMIN_PANEL_NAVIGATION_SECTIONS } from '../../admin-panel-navigation';
 import { AdminPanelNavigationSection } from '../../models/admin-panel-navigation.model';
-import { AdminPanelHeaderComponent } from '../../components/admin-panel-header/admin-panel-header.component';
 
 @Component({
   selector: 'app-admin-panel-page',
   standalone: true,
-  imports: [AdminPanelHeaderComponent, FoldableTreeComponent, RouterOutlet, TranslatePipe],
+  imports: [DrawerComponent, FoldableTreeComponent, NgTemplateOutlet, RouterOutlet, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './admin-panel-page.component.html',
   styleUrl: './admin-panel-page.component.scss',
@@ -27,7 +37,15 @@ export class AdminPanelPageComponent {
   private readonly i18n = inject(I18nService);
   private readonly router = inject(Router);
 
-  readonly sidePanelOpen = signal(true);
+  private readonly drawer = viewChild(DrawerComponent);
+  private readonly authModal = inject(AuthModalService);
+  private readonly desktop = toSignal(
+    inject(BreakpointObserver)
+      .observe('(min-width: 992px)')
+      .pipe(map((state) => state.matches)),
+    { initialValue: false },
+  );
+  readonly sidePanelOpen = computed(() => this.drawer()?.isOpen() ?? false);
   readonly currentUrl = toSignal(
     this.router.events.pipe(
       filter((event): event is NavigationEnd => event instanceof NavigationEnd),
@@ -92,12 +110,19 @@ export class AdminPanelPageComponent {
     );
   });
 
+  constructor() {
+    effect(() => {
+      if (this.desktop() || this.authModal.isLoginOpen()) this.closeSidePanel();
+    });
+  }
+
   toggleSidePanel(): void {
-    this.sidePanelOpen.update((value) => !value);
+    if (this.sidePanelOpen()) this.closeSidePanel();
+    else this.drawer()?.open();
   }
 
   closeSidePanel(): void {
-    this.sidePanelOpen.set(false);
+    this.drawer()?.close();
   }
 
   selectPage(pageKey: string): void {

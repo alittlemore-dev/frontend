@@ -165,7 +165,10 @@ describe('TeamMemberDetailPageComponent', () => {
       '10000000000040008000000000000001',
     );
     expect(auth.clearLocalSession).toHaveBeenCalledTimes(1);
-    expect(authModal.openLogin).toHaveBeenCalledTimes(1);
+    expect(authModal.openLogin).toHaveBeenCalledWith({
+      required: true,
+      account: { username: 'AdminUser', role: 'admin' },
+    });
   });
 
   it('revokes other self sessions without clearing the current session', () => {

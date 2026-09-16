@@ -1,5 +1,3 @@
-<app-admin-panel-header />
-
 <main class="admin-panel-main container-fluid py-4">
   <div class="d-flex align-items-center gap-2 mb-3 d-lg-none">
     <button
@@ -50,42 +48,33 @@
 
   <div class="admin-panel-layout">
     <aside
-      class="admin-panel-side-panel border-end pe-lg-3"
+      class="admin-panel-side-panel border-end pe-lg-3 d-none d-lg-block"
       data-testid="admin-panel-side-panel"
-      [class.admin-panel-side-panel-open]="sidePanelOpen()"
-      [class.admin-panel-side-panel-closed]="!sidePanelOpen()"
     >
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2 class="h6 mb-0">{{ 'adminPanel.sections' | t }}</h2>
-        <button
-          type="button"
-          class="btn-close d-lg-none"
-          [attr.aria-label]="'shared.close' | t"
-          (click)="closeSidePanel()"
-        ></button>
-      </div>
-      <ds-foldable-tree
-        [rootItems]="rootItems()"
-        [sections]="sections()"
-        [emptyMessage]="'adminPanel.emptySections' | t"
-        [selectedItemKey]="selectedPageKey()"
-        [defaultExpandedSectionKeys]="defaultExpandedSectionKeys()"
-        sectionTestId="admin-panel-tree-section"
-        itemTestId="admin-panel-tree-item"
-        (itemSelected)="selectPage($event)"
-      />
+      <h2 class="h6 mb-3">{{ 'adminPanel.sections' | t }}</h2>
+      <ng-container [ngTemplateOutlet]="navigationTree" />
     </aside>
-    @if (sidePanelOpen()) {
-      <button
-        type="button"
-        class="admin-panel-mobile-backdrop d-lg-none"
-        [attr.aria-label]="'shared.close' | t"
-        (click)="closeSidePanel()"
-      ></button>
-    }
 
     <section class="admin-panel-content">
       <router-outlet />
     </section>
   </div>
+  <ds-drawer [label]="'adminPanel.sections' | t" [closeLabel]="'shared.close' | t">
+    @if (sidePanelOpen()) {
+      <ng-container [ngTemplateOutlet]="navigationTree" />
+    }
+  </ds-drawer>
+
+  <ng-template #navigationTree>
+    <ds-foldable-tree
+      [rootItems]="rootItems()"
+      [sections]="sections()"
+      [emptyMessage]="'adminPanel.emptySections' | t"
+      [selectedItemKey]="selectedPageKey()"
+      [defaultExpandedSectionKeys]="defaultExpandedSectionKeys()"
+      sectionTestId="admin-panel-tree-section"
+      itemTestId="admin-panel-tree-item"
+      (itemSelected)="selectPage($event)"
+    />
+  </ng-template>
 </main>

@@ -14,10 +14,12 @@ export class AuthSessionService {
     const role = this.currentUser()?.role;
     return role === 'owner' || role === 'admin';
   });
-  readonly isLoggedIn = computed(() => this.currentUser() !== null);
+  readonly isLoggedIn = computed(
+    () => this.currentUser() !== null && this.currentUser()?.role !== 'anon',
+  );
 
   setCurrentUser(account: AccountInfo): void {
-    this.currentUser.set(account);
+    this.currentUser.set(account.role === 'anon' ? null : account);
   }
 
   clear(): void {

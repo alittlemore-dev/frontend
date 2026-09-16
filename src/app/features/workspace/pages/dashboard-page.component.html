@@ -1,0 +1,138 @@
+<div>
+  <ul
+    class="nav nav-tabs flex-wrap gap-1 mb-3"
+    role="tablist"
+    [attr.aria-label]="'workspaceDashboard.title' | t"
+    data-testid="dashboard-tabs"
+  >
+    @for (tab of tabs(); track tab.key) {
+      <li class="nav-item" role="presentation">
+        <button
+          type="button"
+          class="nav-link"
+          role="tab"
+          [id]="tabId(tab.key)"
+          [class.active]="activeTab() === tab.key"
+          [attr.aria-selected]="activeTab() === tab.key"
+          [attr.aria-controls]="tabPanelId(tab.key)"
+          [attr.data-testid]="'dashboard-tab-' + tab.key"
+          (click)="setActiveTab(tab.key)"
+        >
+          {{ tab.labelKey | t }}
+        </button>
+      </li>
+    }
+  </ul>
+
+  <div data-testid="dashboard-manager-view">
+    <div
+      role="tabpanel"
+      [id]="tabPanelId('home')"
+      [attr.aria-labelledby]="tabId('home')"
+      [attr.data-testid]="'dashboard-tabpanel-home'"
+      [hidden]="activeTab() !== 'home'"
+    >
+      <ds-foldable-section
+        sectionKey="upcoming-dates"
+        [title]="'workspaceDashboard.dates.title' | t"
+        [summary]="datesSummary()"
+        [expanded]="isSectionExpanded('upcoming-dates')"
+        (expandedChange)="setSectionExpanded('upcoming-dates', $event)"
+      >
+        @if (upcomingLoading()) {
+          <ds-loading-spinner [ariaLabel]="'shared.loading' | t" />
+        } @else if (upcomingError()) {
+          <ds-error-message
+            [error]="upcomingError()!"
+            [retryLabel]="'shared.retry' | t"
+            (retry)="loadUpcomingDates()"
+          />
+        } @else if ((upcomingCalendar()?.entries?.length ?? 0) === 0) {
+          <ds-empty-state [message]="'workspaceDashboard.dates.empty' | t" />
+        } @else if (upcomingCalendar(); as calendar) {
+          <div class="table-responsive">
+            <table
+              class="table table-sm align-middle mb-0 dashboard-dates-table"
+              data-testid="dashboard-dates-table"
+            >
+              <thead>
+                <tr>
+                  <th scope="col">{{ 'workspaceDashboard.dates.name' | t }}</th>
+                  <th scope="col">{{ 'workspaceDashboard.dates.date' | t }}</th>
+                  <th scope="col">{{ 'workspaceDashboard.dates.type' | t }}</th>
+                  <th scope="col">{{ 'workspaceDashboard.dates.people' | t }}</th>
+                  <th scope="col">{{ 'workspaceDashboard.dates.additionalInfo' | t }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (entry of calendar.entries; track entry.kind + ':' + entry.id) {
+                  <tr>
+                    <td>
+                      <a class="fw-semibold" [routerLink]="entryRoute(entry)">
+                        {{ entry.displayName }}
+                      </a>
+                    </td>
+                    <td>{{ annualDateLabel(entry) }}</td>
+                    <td>{{ 'workspaceDashboard.dates.type.' + entry.kind | t }}</td>
+                    <td>
+                      @if (entry.kind === 'memorableDate') {
+                        @for (person of entry.relatedPeople; track person.id) {
+                          <a
+                            class="d-block"
+                            [routerLink]="['/personal-workspace/knowledge/people', person.id]"
+                          >
+                            {{ person.displayName }}
+                          </a>
+                        } @empty {
+                          <span>{{ 'workspaceDashboard.dates.everyoneOrNobody' | t }}</span>
+                        }
+                      } @else {
+                        <span class="text-body-secondary">—</span>
+                      }
+                    </td>
+                    <td>
+                      @if (additionalInfoItems(entry); as items) {
+                        @if (items.length > 0) {
+                          <ul
+                            class="dashboard-extra mb-0 ps-3"
+                            [attr.data-testid]="'dashboard-extra-' + entry.id"
+                          >
+                            @for (item of items; track $index) {
+                              <li>{{ item }}</li>
+                            }
+                          </ul>
+                        } @else {
+                          <span class="text-body-secondary">—</span>
+                        }
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </ds-foldable-section>
+    </div>
+
+    <div
+      role="tabpanel"
+      [id]="tabPanelId('month-calendar')"
+      [attr.aria-labelledby]="tabId('month-calendar')"
+      [attr.data-testid]="'dashboard-tabpanel-month-calendar'"
+      [hidden]="activeTab() !== 'month-calendar'"
+    >
+      <app-month-calendar-widget />
+    </div>
+
+    <div
+      role="tabpanel"
+      [id]="tabPanelId('tools')"
+      [attr.aria-labelledby]="tabId('tools')"
+      [attr.data-testid]="'dashboard-tabpanel-tools'"
+      [hidden]="activeTab() !== 'tools'"
+    >
+      <app-tools-widget />
+    </div>
+  </div>
+</div>

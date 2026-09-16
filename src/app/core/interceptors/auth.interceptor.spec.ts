@@ -27,6 +27,17 @@ describe('authInterceptor', () => {
     return captured;
   }
 
+  it.each(['https://external.example/api/test', '//external.example/api/test', '/assets/icon.svg'])(
+    'does not disclose bearer credentials to %s',
+    (url) => {
+      expect(
+        runInterceptor(new HttpRequest('GET', url), 'secret').passedReq.headers.has(
+          'Authorization',
+        ),
+      ).toBe(false);
+    },
+  );
+
   it('skips requests when no token', () => {
     const req = new HttpRequest('GET', '/api/test');
     const result = runInterceptor(req, null);

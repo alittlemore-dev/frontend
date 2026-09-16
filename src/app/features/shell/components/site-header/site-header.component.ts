@@ -3,32 +3,36 @@ import {
   Component,
   DestroyRef,
   computed,
+  effect,
   inject,
   signal,
+  viewChild,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
-import { ThemeService } from '@alittlemore.dev/design-system';
+import {
+  DrawerComponent,
+  DropdownComponent,
+  NotificationService,
+  ThemeService,
+} from '@alittlemore.dev/design-system';
+import { finalize } from 'rxjs';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { AuthModalService } from '../../../../core/auth/auth-modal.service';
 import { I18nService } from '../../../../core/i18n/i18n.service';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
 import { LanguageCode } from '../../../../core/i18n/i18n.model';
 import { localizedPublicHomePath } from '../../../../core/routing/public-home';
-
-interface LanguageOption {
-  code: LanguageCode;
-  label: string;
-  shortLabel: string;
-  selected: boolean;
-}
+import { ServiceIdentityService } from '../../../../core/routing/service-identity.service';
+import { UnsavedChangesService } from '../../../../core/unsaved-changes/unsaved-changes.service';
 
 @Component({
   selector: 'app-site-header',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, TranslatePipe],
+  imports: [RouterLink, RouterLinkActive, TranslatePipe, DrawerComponent, DropdownComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './site-header.component.html',
+  styleUrl: './site-header.component.scss',
 })
 export class SiteHeaderComponent {
   private readonly themeService = inject(ThemeService);
@@ -37,79 +41,117 @@ export class SiteHeaderComponent {
   private readonly i18n = inject(I18nService);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
-
+  private readonly changes = inject(UnsavedChangesService);
+  private readonly notifications = inject(NotificationService);
+  private readonly accountMenu = viewChild(DropdownComponent);
+  readonly identity = inject(ServiceIdentityService);
+  readonly navigation = viewChild(DrawerComponent);
   readonly isNavOpen = signal(false);
+  readonly languageMenuOpen = signal(false);
+  readonly busy = signal(false);
   readonly restoringSession = this.authService.isRestoringSession;
   readonly homeLink = computed(() => localizedPublicHomePath(this.currentLanguage()));
   readonly matrixLink = computed(() => `/${this.currentLanguage()}/competency/matrix`);
   readonly articlesLink = computed(() => `/${this.currentLanguage()}/competency/articles`);
-  readonly adminPanelLink = computed(() => '/admin-panel');
   readonly toggleLabel = computed(() =>
     this.i18n.translate(
       this.themeService.theme() === 'light' ? 'shell.theme.dark' : 'shell.theme.light',
     ),
   );
   readonly isLoggedIn = computed(() => this.authService.isLoggedIn());
+  readonly username = computed(() => this.authService.currentUser()?.username ?? '');
   readonly canManageContent = computed(() => this.authService.canManageContent());
-  readonly username = computed(() => this.authService.currentUser()?.username ?? null);
-  readonly languageOptions = computed<LanguageOption[]>(() => {
-    const currentLanguage = this.i18n.language();
-    return this.i18n.languages().map((language) => ({
+  readonly canOpenWorkspace = computed(
+    () => !this.isLoggedIn() || this.authService.currentUser()?.role === 'owner',
+  );
+  readonly languageOptions = computed(() =>
+    this.i18n.languages().map((language) => ({
       code: language.code,
       label: language.label,
       shortLabel: language.code.toUpperCase(),
-      selected: language.code === currentLanguage,
-    }));
-  });
+      selected: language.code === this.i18n.language(),
+    })),
+  );
+
+  constructor() {
+    effect(() => {
+      if (this.authModal.isLoginOpen()) {
+        this.navigation()?.close();
+        this.accountMenu()?.close();
+      }
+    });
+  }
 
   toggleNav(): void {
-    this.isNavOpen.update((v) => !v);
+    this.navigation()?.open();
   }
-
   closeNav(): void {
-    this.isNavOpen.set(false);
+    this.navigation()?.close();
   }
-
   toggle(): void {
     this.themeService.toggleTheme();
   }
 
+  accountMenuChanged(open: boolean): void {
+    if (!open) this.languageMenuOpen.set(false);
+  }
+
   openLogin(): void {
     if (this.restoringSession()) return;
+    this.accountMenu()?.close();
     this.authService
       .ensureCurrentUserLoaded()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
-          if (!this.authService.isLoggedIn()) {
-            this.authModal.openLogin();
-          }
+          if (!this.authService.isLoggedIn()) this.authModal.openLogin();
         },
         error: () => this.authModal.openLogin(),
       });
   }
 
   logout(): void {
-    this.authService.logout().subscribe({
-      error: () => {
-        // Force local logout even if server endpoint fails
-        this.authService.clearLocalSession();
-      },
-    });
+    if (this.busy() || !this.changes.confirmDiscard()) return;
+    this.busy.set(true);
+    this.accountMenu()?.close();
+    this.authService
+      .logout()
+      .pipe(
+        finalize(() => this.busy.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: () => this.finishLogout(),
+        error: () => {
+          this.notifications.error(this.i18n.translate('shell.auth.logoutFailed'));
+          this.finishLogout();
+        },
+      });
   }
 
   switchLanguage(language: LanguageCode): void {
     const nextUrl = rewriteLanguagePrefixedUrl(this.router.url, language);
-    this.i18n.switchLanguage(language).subscribe({
-      next: () => this.router.navigateByUrl(nextUrl),
-    });
+    this.i18n
+      .switchLanguage(language)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          if (nextUrl !== this.router.url) void this.router.navigateByUrl(nextUrl);
+        },
+        error: () => this.notifications.error(this.i18n.translate('shell.language.failed')),
+      });
+  }
+
+  private finishLogout(): void {
+    this.changes.discardChanges();
+    if (this.identity.service() === 'workspace' || this.identity.service() === 'admin') {
+      void this.router.navigateByUrl(this.homeLink());
+    }
   }
 
   private currentLanguage(): LanguageCode {
     const language = this.i18n.language();
-    if (language === null) {
-      throw new Error('I18n language is not initialized');
-    }
+    if (language === null) throw new Error('I18n language is not initialized');
     return language;
   }
 }
@@ -117,26 +159,22 @@ export class SiteHeaderComponent {
 export function rewriteLanguagePrefixedUrl(currentUrl: string, language: LanguageCode): string {
   const url = new URL(currentUrl, 'http://localhost');
   const segments = url.pathname.split('/').filter((segment) => segment.length > 0);
-
-  if (segments[0] === 'ru' || segments[0] === 'en') {
-    segments[0] = language;
-  } else if (isPublicRouteSegment(segments[0])) {
-    segments.unshift(language);
-  } else {
-    return currentUrl;
-  }
-
+  if (segments[0] === 'ru' || segments[0] === 'en') segments[0] = language;
+  else if (isPublicRouteSegment(segments[0])) segments.unshift(language);
+  else return currentUrl;
   return `/${segments.join('/')}${url.search}${url.hash}`;
 }
 
 function isPublicRouteSegment(segment: string | undefined): boolean {
   return (
     segment === undefined ||
-    segment === 'competency' ||
-    segment === 'competency-matrix' ||
-    segment === 'how-this-site-is-built' ||
-    segment === 'articles' ||
-    segment === 'updates' ||
-    segment === 'sitemap'
+    [
+      'competency',
+      'competency-matrix',
+      'how-this-site-is-built',
+      'articles',
+      'updates',
+      'sitemap',
+    ].includes(segment)
   );
 }

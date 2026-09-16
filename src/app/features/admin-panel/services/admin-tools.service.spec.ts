@@ -80,7 +80,7 @@ describe('AdminToolsService', () => {
     });
 
     const req = httpMock.expectOne((request) =>
-      request.url.endsWith('/api/admin/tools/auth-sessions'),
+      request.url.endsWith('/api/auth/admin/tools/auth-sessions'),
     );
     expect(req.request.method).toBe('GET');
     req.flush(authSessionsStatusDto());
@@ -90,7 +90,7 @@ describe('AdminToolsService', () => {
     service.pruneAuthSessions().subscribe((result) => expect(result.deletedCount).toBe(12));
 
     const req = httpMock.expectOne((request) =>
-      request.url.endsWith('/api/admin/tools/auth-sessions/prune'),
+      request.url.endsWith('/api/auth/admin/tools/auth-sessions/prune'),
     );
     expect(req.request.method).toBe('POST');
     expect(req.request.body).toEqual({});
