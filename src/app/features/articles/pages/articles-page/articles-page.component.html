@@ -188,6 +188,7 @@
 
       @if (isDetailRoute()) {
         <app-article-detail
+          class="articles-detail-layout"
           [article]="selectedArticle()"
           [loading]="detailLoading()"
           [error]="detailError()"

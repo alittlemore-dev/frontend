@@ -35,6 +35,13 @@
   overflow-wrap: anywhere;
 }
 
+// Keep the footer outside the viewport while hydration reconciles article content.
+.articles-detail-layout {
+  display: block;
+  min-height: calc(100vh - 9rem);
+  min-height: calc(100dvh - 9rem);
+}
+
 .articles-filter-form {
   display: grid;
   grid-template-columns: minmax(14rem, 1fr) minmax(9rem, 11rem) minmax(9rem, 11rem) auto;
