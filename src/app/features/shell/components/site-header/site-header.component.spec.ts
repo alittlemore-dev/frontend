@@ -111,10 +111,10 @@ describe('Shared site header', () => {
     );
     await TestBed.inject(Router).navigateByUrl('/ru/competency/matrix');
     fixture.detectChanges();
-    expect(el.querySelector('.service-logo')!.getAttribute('src')).toBe('/logo-192x192.webp');
+    expect(el.querySelector('.service-logo')!.getAttribute('src')).toBe('/logo-64x64.webp');
     await TestBed.inject(Router).navigateByUrl('/en/competency/articles');
     fixture.detectChanges();
-    expect(el.querySelector('.service-logo')!.getAttribute('src')).toBe('/logo-192x192.webp');
+    expect(el.querySelector('.service-logo')!.getAttribute('src')).toBe('/logo-64x64.webp');
     await TestBed.inject(Router).navigateByUrl('/ru/how-this-site-is-built');
     fixture.detectChanges();
     expect(el.querySelector('.service-logo')).toBeNull();

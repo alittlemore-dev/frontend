@@ -7,10 +7,10 @@ import { filter, map } from 'rxjs';
 export type SiteService = 'site' | 'workspace' | 'matrix' | 'articles' | 'admin';
 
 const SERVICE_LOGOS: Record<SiteService, string> = {
-  site: '/logo-192x192.webp',
+  site: '/logo-64x64.webp',
   workspace: '/brand/archive-portal-64.png',
-  matrix: '/logo-192x192.webp',
-  articles: '/logo-192x192.webp',
+  matrix: '/logo-64x64.webp',
+  articles: '/logo-64x64.webp',
   admin: '/brand/admin-frame-64.png',
 };
 
