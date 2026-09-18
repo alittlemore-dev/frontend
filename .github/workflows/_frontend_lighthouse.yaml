@@ -24,6 +24,15 @@ jobs:
       - name: Run Lighthouse CI
         run: make lighthouse
 
+      - name: Report failed Lighthouse assertions
+        if: ${{ failure() && hashFiles('.lighthouseci/assertion-results.json') != '' }}
+        run: |
+          jq -r '
+            .[]
+            | select(.level == "error" and .passed == false)
+            | "::error title=Lighthouse \(.auditId)::\(.url): expected \(.operator) \(.expected), actual \(.actual)"
+          ' .lighthouseci/assertion-results.json
+
       - name: Upload Lighthouse reports
         if: ${{ !cancelled() && hashFiles('performance/reports/lighthouse/**') != '' }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
