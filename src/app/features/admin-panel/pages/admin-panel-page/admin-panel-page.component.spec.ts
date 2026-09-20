@@ -3,7 +3,8 @@ import { BehaviorSubject } from 'rxjs';
 import { Component, WritableSignal, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
-import { AccountInfo, AuthService } from '../../../../core/auth/auth.service';
+import { AccountInfo } from '../../../../core/auth/account.model';
+import { AuthService } from '../../../../core/auth/auth.service';
 import { provideI18nTesting } from '../../../../testing/i18n-testing';
 import { AdminPanelPageComponent } from './admin-panel-page.component';
 

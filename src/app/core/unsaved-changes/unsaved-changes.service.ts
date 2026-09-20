@@ -31,7 +31,7 @@ export class UnsavedChangesService {
   private confirm(): boolean {
     return (
       this.document.defaultView?.confirm(
-        this.i18n.translate('adminUnsavedChanges.confirmDiscard'),
+        this.i18n.translate('shared.unsavedChanges.confirmDiscard'),
       ) ?? false
     );
   }

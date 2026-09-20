@@ -17,6 +17,7 @@ import {
   ThemeService,
 } from '@alittlemore.dev/design-system';
 import { finalize } from 'rxjs';
+import { AccountAvatarService } from '../../../../core/auth/account-avatar.service';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { AuthModalService } from '../../../../core/auth/auth-modal.service';
 import { I18nService } from '../../../../core/i18n/i18n.service';
@@ -37,6 +38,7 @@ import { UnsavedChangesService } from '../../../../core/unsaved-changes/unsaved-
 export class SiteHeaderComponent {
   private readonly themeService = inject(ThemeService);
   private readonly authService = inject(AuthService);
+  private readonly accountAvatar = inject(AccountAvatarService);
   private readonly authModal = inject(AuthModalService);
   private readonly i18n = inject(I18nService);
   private readonly router = inject(Router);
@@ -59,7 +61,21 @@ export class SiteHeaderComponent {
     ),
   );
   readonly isLoggedIn = computed(() => this.authService.isLoggedIn());
-  readonly username = computed(() => this.authService.currentUser()?.username ?? '');
+  readonly accountTrigger = computed(() => {
+    const account = this.authService.currentUser();
+    if (account === null) return { username: '', avatarObjectUrl: null, initials: '' };
+    const nameInitials = [account.firstName, account.lastName]
+      .filter((part): part is string => typeof part === 'string' && part.trim() !== '')
+      .map((part) => Array.from(part.trim())[0])
+      .join('');
+    return {
+      username: account.username,
+      avatarObjectUrl: this.accountAvatar.objectUrl(),
+      initials: (
+        nameInitials || Array.from(account.username).slice(0, 2).join('')
+      ).toLocaleUpperCase(),
+    };
+  });
   readonly canManageContent = computed(() => this.authService.canManageContent());
   readonly canOpenWorkspace = computed(
     () => !this.isLoggedIn() || this.authService.currentUser()?.role === 'owner',
@@ -94,6 +110,10 @@ export class SiteHeaderComponent {
 
   accountMenuChanged(open: boolean): void {
     if (!open) this.languageMenuOpen.set(false);
+  }
+
+  closeAccountMenu(): void {
+    this.accountMenu()?.close();
   }
 
   openLogin(): void {

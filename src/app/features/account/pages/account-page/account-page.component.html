@@ -1,0 +1,51 @@
+<main class="account-main container py-4">
+  <div class="d-flex align-items-center gap-2 mb-3 d-lg-none">
+    <button
+      type="button"
+      class="btn btn-outline-secondary account-side-panel-toggle"
+      data-testid="account-side-panel-toggle"
+      [attr.aria-label]="sidePanelToggleLabel()"
+      [attr.aria-expanded]="sidePanelOpen()"
+      [title]="sidePanelToggleLabel()"
+      (click)="toggleSidePanel()"
+    >
+      <span aria-hidden="true">☰</span>
+    </button>
+    <h1 class="h5 mb-0">{{ 'account.title' | t }}</h1>
+  </div>
+
+  <div class="account-layout">
+    <aside
+      class="account-side-panel border-end pe-lg-3 d-none d-lg-block"
+      data-testid="account-side-panel"
+      [attr.aria-label]="'account.navigation' | t"
+    >
+      <h2 class="h6 mb-3">{{ 'account.navigation' | t }}</h2>
+      <ng-container [ngTemplateOutlet]="accountNavigation" />
+    </aside>
+
+    <section class="account-content">
+      <router-outlet />
+    </section>
+  </div>
+
+  <ds-drawer [label]="'account.navigation' | t" [closeLabel]="'shared.close' | t">
+    @if (sidePanelOpen()) {
+      <ng-container [ngTemplateOutlet]="accountNavigation" />
+    }
+  </ds-drawer>
+
+  <ng-template #accountNavigation>
+    <nav [attr.aria-label]="'account.navigation' | t">
+      <a
+        class="account-nav-link"
+        routerLink="/account/me"
+        routerLinkActive="account-nav-link-active"
+        ariaCurrentWhenActive="page"
+        (click)="closeSidePanel()"
+      >
+        {{ 'account.profile.title' | t }}
+      </a>
+    </nav>
+  </ng-template>
+</main>

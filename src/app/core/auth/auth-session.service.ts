@@ -1,5 +1,5 @@
 import { Injectable, computed, signal } from '@angular/core';
-import type { AccountInfo } from './auth.service';
+import type { AccountInfo } from './account.model';
 
 @Injectable({ providedIn: 'root' })
 export class AuthSessionService {

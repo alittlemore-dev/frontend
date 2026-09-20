@@ -14,6 +14,8 @@ import {
   throwError,
 } from 'rxjs';
 import { ApiClient } from '../http/api-client.service';
+import { AccountAvatarService } from './account-avatar.service';
+import { AccountInfo } from './account.model';
 import { AuthTokenService } from './auth-token.service';
 import { AuthSessionService } from './auth-session.service';
 import { SKIP_AUTH_HEADER, SKIP_AUTH_REFRESH } from './auth-http-context';
@@ -30,18 +32,12 @@ export interface LoginResponse {
   accessTokenExpiresInSeconds: number;
 }
 
-export type AccountRole = 'anon' | 'user' | 'moderator' | 'admin' | 'owner';
-
-export interface AccountInfo {
-  username: string;
-  role: AccountRole;
-}
-
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly apiClient = inject(ApiClient);
   private readonly tokenService = inject(AuthTokenService);
   private readonly session = inject(AuthSessionService);
+  private readonly avatar = inject(AccountAvatarService);
   private readonly platformId = inject(PLATFORM_ID);
   private readonly document = inject(DOCUMENT);
   private currentUserLoad$: Observable<void> | null = null;
@@ -146,6 +142,7 @@ export class AuthService {
   clearLocalSession(): void {
     this.tokenService.clearToken();
     this.session.clear();
+    this.avatar.clear();
     const storage = this.storage();
     if (storage === null) return;
     try {
@@ -197,13 +194,14 @@ export class AuthService {
   }
 
   loadCurrentUser(): Observable<void> {
-    return this.apiClient.get<AccountInfo>('/api/auth/account/base').pipe(
-      map((account) => {
+    return this.apiClient.get<AccountInfo>('/api/auth/account/me').pipe(
+      switchMap((account) => {
         if (account.role === 'anon') {
           this.clearLocalSession();
           throw new Error();
         }
         this.session.setCurrentUser(account);
+        return this.avatar.loadFor(account).pipe(catchError(() => of(void 0)));
       }),
     );
   }

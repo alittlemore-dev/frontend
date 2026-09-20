@@ -83,3 +83,19 @@ export const workspaceChildGuard: CanActivateChildFn = (route, state) =>
   workspaceGuard(route, state);
 
 export const authChildGuard: CanActivateChildFn = (route, state) => authGuard(route, state);
+
+export const accountGuard: CanActivateFn = (_route, state) => {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+  const login = () => router.createUrlTree(['/login'], { queryParams: { returnUrl: state.url } });
+
+  return auth.ensureCurrentUserLoaded().pipe(
+    map(() => auth.isLoggedIn() || login()),
+    catchError(() => {
+      auth.clearLocalSession();
+      return of(login());
+    }),
+  );
+};
+
+export const accountChildGuard: CanActivateChildFn = (route, state) => accountGuard(route, state);

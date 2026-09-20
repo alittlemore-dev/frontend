@@ -1,0 +1,167 @@
+<section class="profile-page" aria-labelledby="profile-title">
+  <header class="d-flex align-items-center justify-content-between gap-3 mb-4">
+    <h1 id="profile-title" class="h3 mb-0">{{ 'account.profile.title' | t }}</h1>
+    @if (account() && !editing()) {
+      <button type="button" class="btn btn-primary" (click)="startEditing()">
+        {{ 'shared.edit' | t }}
+      </button>
+    }
+  </header>
+
+  @if (loading()) {
+    <p role="status">{{ 'account.profile.loading' | t }}</p>
+  } @else if (loadFailed()) {
+    <div class="alert alert-danger" role="alert">
+      <p>{{ 'account.profile.loadFailed' | t }}</p>
+      <button
+        type="button"
+        class="btn btn-outline-danger"
+        data-testid="profile-retry"
+        (click)="loadProfile()"
+      >
+        {{ 'account.profile.retry' | t }}
+      </button>
+    </div>
+  } @else if (account(); as profile) {
+    <div class="profile-card card border-0 shadow-sm">
+      <div class="card-body p-4">
+        <div
+          class="profile-summary d-flex flex-column flex-sm-row align-items-sm-center gap-3 mb-4"
+        >
+          <div class="profile-avatar" data-testid="profile-avatar">
+            @if (avatarObjectUrl(); as url) {
+              <img
+                [src]="url"
+                [alt]="'account.profile.avatarAlt' | t: { username: profile.username }"
+              />
+            } @else {
+              <span data-testid="profile-initials" aria-hidden="true">{{ initials() }}</span>
+            }
+          </div>
+          <div>
+            <h2 class="h4 mb-1" data-testid="profile-display-name">{{ displayName() }}</h2>
+            <p class="text-body-secondary mb-0">@{{ profile.username }}</p>
+          </div>
+        </div>
+
+        <div class="d-flex flex-wrap gap-2 mb-4">
+          <label class="btn btn-outline-primary mb-0" [class.disabled]="avatarBusy()">
+            {{ (avatarBusy() ? 'shared.loading' : 'account.profile.changeAvatar') | t }}
+            <input
+              type="file"
+              class="visually-hidden"
+              accept="image/png,image/jpeg,image/webp"
+              [disabled]="avatarBusy()"
+              (change)="selectAvatar($event)"
+            />
+          </label>
+          @if (profile.hasAvatar) {
+            <button
+              type="button"
+              class="btn btn-outline-danger"
+              data-testid="profile-avatar-remove"
+              [disabled]="avatarBusy()"
+              (click)="removeAvatar()"
+            >
+              {{ (avatarBusy() ? 'shared.loading' : 'account.profile.removeAvatar') | t }}
+            </button>
+          }
+        </div>
+        @if (avatarErrorKey(); as errorKey) {
+          <p class="text-danger" role="alert">{{ errorKey | t }}</p>
+        }
+
+        @if (editing()) {
+          <dl class="profile-details row mb-4" data-testid="profile-username-readonly">
+            <dt class="col-sm-4">{{ 'account.profile.username' | t }}</dt>
+            <dd class="col-sm-8">{{ profile.username }}</dd>
+          </dl>
+          <form [formGroup]="profileForm" (ngSubmit)="saveProfile()" novalidate>
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label for="profile-first-name" class="form-label">
+                  {{ 'account.profile.firstName' | t }}
+                </label>
+                <input id="profile-first-name" class="form-control" formControlName="firstName" />
+                @if (
+                  profileForm.controls.firstName.touched &&
+                  profileForm.controls.firstName.hasError('maxlength')
+                ) {
+                  <p class="invalid-feedback d-block">
+                    {{ 'validation.maxLength' | t: { max: 100 } }}
+                  </p>
+                }
+              </div>
+              <div class="col-md-6">
+                <label for="profile-last-name" class="form-label">
+                  {{ 'account.profile.lastName' | t }}
+                </label>
+                <input id="profile-last-name" class="form-control" formControlName="lastName" />
+                @if (
+                  profileForm.controls.lastName.touched &&
+                  profileForm.controls.lastName.hasError('maxlength')
+                ) {
+                  <p class="invalid-feedback d-block">
+                    {{ 'validation.maxLength' | t: { max: 100 } }}
+                  </p>
+                }
+              </div>
+              <div class="col-md-6">
+                <label for="profile-middle-name" class="form-label">
+                  {{ 'account.profile.middleName' | t }}
+                </label>
+                <input id="profile-middle-name" class="form-control" formControlName="middleName" />
+                @if (
+                  profileForm.controls.middleName.touched &&
+                  profileForm.controls.middleName.hasError('maxlength')
+                ) {
+                  <p class="invalid-feedback d-block">
+                    {{ 'validation.maxLength' | t: { max: 100 } }}
+                  </p>
+                }
+              </div>
+              <div class="col-md-6">
+                <label for="profile-gender" class="form-label">
+                  {{ 'account.profile.gender' | t }}
+                </label>
+                <select id="profile-gender" class="form-select" formControlName="gender">
+                  <option [ngValue]="null">{{ 'shared.notSet' | t }}</option>
+                  <option value="male">{{ 'account.profile.gender.male' | t }}</option>
+                  <option value="female">{{ 'account.profile.gender.female' | t }}</option>
+                </select>
+              </div>
+            </div>
+            @if (saveFailed()) {
+              <p class="text-danger mt-3" role="alert">{{ 'account.profile.saveFailed' | t }}</p>
+            }
+            <div class="d-flex gap-2 mt-4">
+              <button
+                type="submit"
+                class="btn btn-primary"
+                data-testid="profile-save"
+                [disabled]="saving()"
+              >
+                {{ (saving() ? 'shared.loading' : 'shared.save') | t }}
+              </button>
+              <button
+                type="button"
+                class="btn btn-outline-secondary"
+                [disabled]="saving()"
+                (click)="cancelEditing()"
+              >
+                {{ 'shared.cancel' | t }}
+              </button>
+            </div>
+          </form>
+        } @else {
+          <dl class="profile-details row mb-0">
+            <dt class="col-sm-4">{{ 'account.profile.username' | t }}</dt>
+            <dd class="col-sm-8">{{ profile.username }}</dd>
+            <dt class="col-sm-4">{{ 'account.profile.gender' | t }}</dt>
+            <dd class="col-sm-8">{{ genderLabelKey() | t }}</dd>
+          </dl>
+        }
+      </div>
+    </div>
+  }
+</section>

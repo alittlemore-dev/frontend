@@ -1,7 +1,7 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { RedirectFunction, Router, UrlTree, provideRouter } from '@angular/router';
-import { authGuard } from './core/auth/auth.guard';
+import { accountChildGuard, accountGuard, authGuard } from './core/auth/auth.guard';
 import { I18nService } from './core/i18n/i18n.service';
 import { routes } from './app.routes';
 
@@ -108,5 +108,14 @@ describe('routes', () => {
     expect(adminRoute).toBeDefined();
     expect(adminRoute?.canActivate).toEqual([authGuard]);
     expect(adminRoute?.loadChildren).toBeDefined();
+  });
+
+  it('registers account as a protected lazy-loaded CSR route', () => {
+    const accountRoute = routes.find((route) => route.path === 'account');
+
+    expect(accountRoute).toBeDefined();
+    expect(accountRoute?.canActivate).toEqual([accountGuard]);
+    expect(accountRoute?.canActivateChild).toEqual([accountChildGuard]);
+    expect(accountRoute?.loadChildren).toBeDefined();
   });
 });

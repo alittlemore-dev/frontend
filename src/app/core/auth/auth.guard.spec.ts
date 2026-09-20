@@ -12,6 +12,8 @@ import {
 import { provideRouter } from '@angular/router';
 import { firstValueFrom, isObservable, of, throwError } from 'rxjs';
 import {
+  accountChildGuard,
+  accountGuard,
   authGuard,
   ownerGuard,
   teamGuard,
@@ -122,7 +124,7 @@ describe('authGuard', () => {
         ),
       ),
     );
-    const accountReq = httpMock.expectOne((req) => req.url.includes('/api/auth/account/base'));
+    const accountReq = httpMock.expectOne((req) => req.url.includes('/api/auth/account/me'));
     expect(accountReq.request.method).toBe('GET');
     accountReq.flush({ username: 'moderator', role: 'moderator' });
 
@@ -155,7 +157,7 @@ describe('authGuard', () => {
     expect(refreshReq.request.method).toBe('POST');
     refreshReq.flush({ accessToken: 'restored-token', accessTokenExpiresInSeconds: 900 });
 
-    const accountReq = httpMock.expectOne((req) => req.url.includes('/api/auth/account/base'));
+    const accountReq = httpMock.expectOne((req) => req.url.includes('/api/auth/account/me'));
     expect(accountReq.request.method).toBe('GET');
     accountReq.flush({ username: 'moderator', role: 'moderator' });
 
@@ -335,4 +337,43 @@ describe('workspace access', () => {
       permitted ? true : '/ru/how-this-site-is-built',
     );
   });
+});
+
+describe('account access', () => {
+  async function resolveAccountGuard(
+    guard: typeof accountGuard | typeof accountChildGuard,
+    loggedIn: boolean,
+  ): Promise<GuardResult> {
+    TestBed.configureTestingModule({
+      providers: [
+        provideRouter([]),
+        {
+          provide: AuthService,
+          useValue: {
+            ensureCurrentUserLoaded: () => of(void 0),
+            isLoggedIn: () => loggedIn,
+            clearLocalSession: jest.fn(),
+          },
+        },
+      ],
+    });
+    return firstValueFrom(
+      TestBed.runInInjectionContext(() =>
+        guard({} as ActivatedRouteSnapshot, { url: '/account/me' } as RouterStateSnapshot),
+      ) as import('rxjs').Observable<GuardResult>,
+    );
+  }
+
+  it.each([accountGuard, accountChildGuard])('allows every authenticated role', async (guard) => {
+    await expect(resolveAccountGuard(guard, true)).resolves.toBe(true);
+  });
+
+  it.each([accountGuard, accountChildGuard])(
+    'preserves an anonymous account deep link',
+    async (guard) => {
+      const result = await resolveAccountGuard(guard, false);
+
+      expect((result as UrlTree).toString()).toBe('/login?returnUrl=%2Faccount%2Fme');
+    },
+  );
 });

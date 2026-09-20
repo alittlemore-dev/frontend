@@ -19,6 +19,30 @@
   flex-shrink: 0;
   color: var(--text-primary);
 }
+.account-menu-trigger {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.5rem;
+}
+.account-menu-avatar {
+  display: grid;
+  width: 1.75rem;
+  height: 1.75rem;
+  flex: 0 0 1.75rem;
+  overflow: hidden;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--bs-primary-text-emphasis);
+  background: var(--bs-primary-bg-subtle);
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+.account-menu-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
 .account-menu-name {
   display: inline-block;
   max-width: min(14rem, 50vw);

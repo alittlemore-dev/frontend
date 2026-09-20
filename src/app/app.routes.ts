@@ -1,6 +1,8 @@
 import { inject } from '@angular/core';
 import { RedirectFunction, Router, Routes } from '@angular/router';
 import {
+  accountChildGuard,
+  accountGuard,
   authGuard,
   workspaceGuard,
   workspaceChildGuard,
@@ -37,6 +39,12 @@ export const routes: Routes = [
     resolve: { localization: () => inject(I18nService).ensureWorkspaceBundle() },
     loadChildren: () =>
       import('./features/workspace/workspace.routes').then((m) => m.workspaceRoutes),
+  },
+  {
+    path: 'account',
+    canActivate: [accountGuard],
+    canActivateChild: [accountChildGuard],
+    loadChildren: () => import('./features/account/account.routes').then((m) => m.accountRoutes),
   },
   {
     path: 'admin-panel',

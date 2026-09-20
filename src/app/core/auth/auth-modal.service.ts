@@ -1,4 +1,4 @@
-import type { AccountInfo } from './auth.service';
+import type { AccountInfo } from './account.model';
 import { Injectable, signal } from '@angular/core';
 
 export interface LoginOptions {

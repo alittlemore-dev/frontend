@@ -28,7 +28,7 @@ describe('BrowserApiBackend', () => {
 
   it.each([
     '/api/auth/login',
-    '/api/auth/account/base',
+    '/api/auth/account/me',
     '/api/personal-workspace/resumes',
     '/api/competency/articles',
   ])('preserves the explicit service namespace %s', (path) => {

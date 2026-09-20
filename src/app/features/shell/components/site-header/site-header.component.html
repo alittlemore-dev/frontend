@@ -39,9 +39,30 @@
       [label]="(isLoggedIn() ? 'shell.account' : 'shell.settings') | t"
       (openChange)="accountMenuChanged($event)"
     >
-      <span dsDropdownTrigger class="account-menu-name">{{
-        isLoggedIn() ? username() : ('shell.settings' | t)
-      }}</span>
+      <span dsDropdownTrigger class="account-menu-trigger" data-testid="account-menu-trigger">
+        @if (isLoggedIn()) {
+          <span class="account-menu-avatar" aria-hidden="true">
+            @if (accountTrigger().avatarObjectUrl; as avatarObjectUrl) {
+              <img [src]="avatarObjectUrl" alt="" />
+            } @else {
+              <span data-testid="account-menu-initials">{{ accountTrigger().initials }}</span>
+            }
+          </span>
+          <span class="account-menu-name">{{ accountTrigger().username }}</span>
+        } @else {
+          <span class="account-menu-name">{{ 'shell.settings' | t }}</span>
+        }
+      </span>
+      @if (isLoggedIn()) {
+        <a
+          class="dropdown-item"
+          routerLink="/account/me"
+          routerLinkActive="active"
+          (click)="closeAccountMenu()"
+        >
+          {{ 'shell.account.profile' | t }}
+        </a>
+      }
       <button
         type="button"
         class="dropdown-item d-flex justify-content-between gap-4"

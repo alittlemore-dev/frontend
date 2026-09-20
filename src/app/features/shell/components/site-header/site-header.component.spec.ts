@@ -1,10 +1,13 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Component, signal } from '@angular/core';
+import { By } from '@angular/platform-browser';
 import { Router, provideRouter } from '@angular/router';
 import { of, Subject } from 'rxjs';
 import { SiteHeaderComponent, rewriteLanguagePrefixedUrl } from './site-header.component';
-import { ThemeService } from '@alittlemore.dev/design-system';
-import { AuthService, AccountInfo } from '../../../../core/auth/auth.service';
+import { DropdownComponent, ThemeService } from '@alittlemore.dev/design-system';
+import { AccountAvatarService } from '../../../../core/auth/account-avatar.service';
+import { AccountInfo } from '../../../../core/auth/account.model';
+import { AuthService } from '../../../../core/auth/auth.service';
 import { AuthModalService } from '../../../../core/auth/auth-modal.service';
 import { I18nService } from '../../../../core/i18n/i18n.service';
 import { UnsavedChangesService } from '../../../../core/unsaved-changes/unsaved-changes.service';
@@ -18,6 +21,7 @@ describe('Shared site header', () => {
   let el: HTMLElement;
   const currentUser = signal<AccountInfo | null>(null);
   const restoring = signal(false);
+  const avatarObjectUrl = signal<string | null>(null);
   const theme = { theme: signal('light'), toggleTheme: jest.fn() };
   const modal = { openLogin: jest.fn(), isLoginOpen: signal(false) };
   const auth = {
@@ -35,6 +39,7 @@ describe('Shared site header', () => {
     jest.clearAllMocks();
     modal.isLoginOpen.set(false);
     currentUser.set(null);
+    avatarObjectUrl.set(null);
     restoring.set(false);
     auth.ensureCurrentUserLoaded.mockReturnValue(of(void 0));
     auth.logout.mockReturnValue(of(void 0));
@@ -45,6 +50,7 @@ describe('Shared site header', () => {
       providers: [
         provideRouter([{ path: '**', component: EmptyRouteComponent }]),
         { provide: AuthService, useValue: auth },
+        { provide: AccountAvatarService, useValue: { objectUrl: avatarObjectUrl } },
         { provide: AuthModalService, useValue: modal },
         { provide: ThemeService, useValue: theme },
         { provide: I18nService, useValue: i18n },
@@ -133,6 +139,81 @@ describe('Shared site header', () => {
     fixture.componentInstance.accountMenuChanged(false);
     fixture.detectChanges();
     expect(el.querySelector('#site-language-options')).toBeNull();
+  });
+
+  it('shows the private avatar and username in the logged-in trigger', () => {
+    currentUser.set({
+      username: 'd.lunev',
+      role: 'user',
+      firstName: 'Dmitriy',
+      lastName: 'Lunev',
+      middleName: null,
+      gender: 'male',
+      hasAvatar: true,
+    });
+    avatarObjectUrl.set('blob:private-avatar');
+    fixture.detectChanges();
+
+    const trigger = el.querySelector('[data-testid="account-menu-trigger"]') as HTMLElement;
+    expect(trigger.textContent).toContain('d.lunev');
+    expect(trigger.querySelector('img')?.getAttribute('src')).toBe('blob:private-avatar');
+  });
+
+  it('falls back to name initials and then username initials', () => {
+    currentUser.set({
+      username: 'd.lunev',
+      role: 'user',
+      firstName: 'Dmitriy',
+      lastName: 'Lunev',
+      middleName: null,
+      gender: null,
+      hasAvatar: false,
+    });
+    fixture.detectChanges();
+    expect(el.querySelector('[data-testid="account-menu-initials"]')?.textContent?.trim()).toBe(
+      'DL',
+    );
+
+    currentUser.set({
+      username: 'd.lunev',
+      role: 'user',
+      firstName: null,
+      lastName: null,
+      middleName: null,
+      gender: null,
+      hasAvatar: false,
+    });
+    fixture.detectChanges();
+    expect(el.querySelector('[data-testid="account-menu-initials"]')?.textContent?.trim()).toBe(
+      'D.',
+    );
+  });
+
+  it('shows Profile first only for authenticated users and closes the right dropdown', () => {
+    expect(el.querySelector('a[href="/account/me"]')).toBeNull();
+    currentUser.set({
+      username: 'reader',
+      role: 'user',
+      firstName: null,
+      lastName: null,
+      middleName: null,
+      gender: null,
+      hasAvatar: false,
+    });
+    fixture.detectChanges();
+
+    const dropdownItems = Array.from(el.querySelectorAll('ds-dropdown .dropdown-item'));
+    const profile = el.querySelector('ds-dropdown a[href="/account/me"]') as HTMLAnchorElement;
+    expect(dropdownItems[0]).toBe(profile);
+    expect(profile.textContent?.trim()).toBe('Профиль');
+    expect(el.querySelector('ds-drawer a[href="/account/me"]')).toBeNull();
+
+    const dropdown = fixture.debugElement.query(By.directive(DropdownComponent))
+      .componentInstance as DropdownComponent;
+    const close = jest.spyOn(dropdown, 'close');
+    profile.click();
+    fixture.detectChanges();
+    expect(close).toHaveBeenCalledTimes(1);
   });
 
   it('restores a session before opening the shared login modal', () => {
