@@ -14,7 +14,7 @@
   },
   "private": true,
   "dependencies": {
-    "@alittlemore.dev/design-system": "0.3.1",
+    "@alittlemore.dev/design-system": "0.3.2",
     "@angular/cdk": "^22.1.6",
     "@angular/common": "^22.1.6",
     "@angular/compiler": "^22.1.6",
