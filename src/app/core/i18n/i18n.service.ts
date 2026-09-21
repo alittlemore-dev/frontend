@@ -8,9 +8,10 @@ import {
   makeStateKey,
   signal,
 } from '@angular/core';
-import { Observable, catchError, map, of, switchMap, tap, throwError } from 'rxjs';
+import { Observable, catchError, forkJoin, map, of, switchMap, tap, throwError } from 'rxjs';
 import { ApiClient } from '../http/api-client.service';
 import {
+  I18nBundle,
   I18nBundleDto,
   I18nLanguage,
   I18nLanguagesDto,
@@ -32,11 +33,9 @@ export class I18nService {
   private readonly injector = inject(Injector);
   private readonly document = inject(DOCUMENT);
   private readonly transferState = inject(TransferState);
-  private readonly bundleCache = new Map<LanguageCode, Record<string, string>>();
+  private readonly bundleCache = new Map<string, Record<string, string>>();
   private readonly messages = signal<Record<string, string> | null>(null);
-  private readonly workspaceBundles = signal<Partial<Record<LanguageCode, Record<string, string>>>>(
-    {},
-  );
+  private readonly activeBundle = signal<I18nBundle | null>(null);
 
   readonly language = signal<LanguageCode | null>(null);
   readonly languages = signal<I18nLanguage[]>([]);
@@ -45,51 +44,17 @@ export class I18nService {
   initialize(): Observable<void> {
     this.startupError.set(false);
     const transferredLanguages = this.consumeTransferredLanguages();
-    if (transferredLanguages) {
-      this.languages.set(transferredLanguages.languages);
-      return this.loadLanguage(this.resolveInitialLanguage(transferredLanguages), true);
-    }
+    const languages$ = transferredLanguages
+      ? of(transferredLanguages)
+      : this.api()
+          .get<I18nLanguagesDto>('/api/i18n/languages')
+          .pipe(tap((response) => this.transferState.set(I18N_LANGUAGES_STATE_KEY, response)));
 
-    return this.api()
-      .get<I18nLanguagesDto>('/api/i18n/languages')
-      .pipe(
-        switchMap((response) => {
-          this.transferState.set(I18N_LANGUAGES_STATE_KEY, response);
-          this.languages.set(response.languages);
-          return this.loadLanguage(this.resolveInitialLanguage(response), true);
-        }),
-        catchError(() => {
-          this.startupError.set(true);
-          return of(void 0);
-        }),
-      );
-  }
-
-  retryStartup(): Observable<void> {
-    return this.initialize().pipe(
-      switchMap(() =>
-        !this.startupError() && this.document.location.pathname.startsWith('/personal-workspace')
-          ? this.ensureWorkspaceBundle()
-          : of(void 0),
-      ),
-    );
-  }
-
-  switchLanguage(language: LanguageCode, persist = true): Observable<void> {
-    if (!this.isAvailableLanguage(language)) {
-      return throwError(() => new Error(`Unsupported language: ${language}`));
-    }
-    return this.document.location.pathname.startsWith('/personal-workspace')
-      ? this.fetchWorkspaceBundle(language).pipe(
-          switchMap(() => this.loadLanguage(language, persist)),
-        )
-      : this.loadLanguage(language, persist);
-  }
-
-  ensureWorkspaceBundle(): Observable<void> {
-    const language = this.language();
-    if (language === null) return throwError(() => new Error('I18n language is not initialized'));
-    return this.fetchWorkspaceBundle(language).pipe(
+    return languages$.pipe(
+      switchMap((response) => {
+        this.languages.set(response.languages);
+        return this.loadLanguage(this.resolveInitialLanguage(response), true, false);
+      }),
       catchError(() => {
         this.startupError.set(true);
         return of(void 0);
@@ -97,53 +62,68 @@ export class I18nService {
     );
   }
 
-  private fetchWorkspaceBundle(language: LanguageCode): Observable<void> {
-    if (this.workspaceBundles()[language]) return of(void 0);
-    return this.api()
-      .get<I18nBundleDto>(`/api/i18n/personal-workspace/bundles/${language}`)
-      .pipe(
-        tap((bundle) => {
-          if (bundle.language !== language)
-            throw new Error('Workspace localization language mismatch');
-          const messages = Object.fromEntries(
-            Object.entries(bundle.messages).map(([key, value]) => [
-              key.startsWith('dashboard.')
-                ? key.replace(/^dashboard\./u, 'workspaceDashboard.')
-                : key,
-              value,
-            ]),
-          );
-          this.workspaceBundles.update((bundles) => ({ ...bundles, [language]: messages }));
-        }),
-        map(() => void 0),
-      );
+  retryStartup(): Observable<void> {
+    const language = this.language();
+    if (language !== null) return this.activateBundle(this.activeBundle());
+
+    return this.initialize().pipe(
+      switchMap(() => {
+        if (this.startupError() || this.language() === null || this.activeBundle() === null) {
+          return of(void 0);
+        }
+        return this.activateBundle(this.activeBundle());
+      }),
+    );
+  }
+
+  activateBundle(bundle: I18nBundle | null): Observable<void> {
+    this.activeBundle.set(bundle);
+    const language = this.language();
+    if (language === null) return of(void 0);
+
+    if (bundle === null) {
+      this.applyCachedBundles(language, false);
+      this.startupError.set(false);
+      return of(void 0);
+    }
+
+    return this.fetchBundle(bundle, language).pipe(
+      tap(() => {
+        this.applyCachedBundles(language, false);
+        this.startupError.set(false);
+      }),
+      map(() => void 0),
+      catchError(() => {
+        this.applyCachedBundles(language, false, true);
+        this.startupError.set(true);
+        return of(void 0);
+      }),
+    );
+  }
+
+  switchLanguage(language: LanguageCode, persist = true): Observable<void> {
+    if (!this.isAvailableLanguage(language)) {
+      return throwError(() => new Error(`Unsupported language: ${language}`));
+    }
+    return this.loadLanguage(language, persist, true);
   }
 
   ensureLanguageBundle(language: LanguageCode): Observable<void> {
     if (!this.isAvailableLanguage(language)) {
       return throwError(() => new Error(`Unsupported language: ${language}`));
     }
-    if (this.bundleCache.has(language)) {
-      return of(void 0);
-    }
-    return this.fetchLanguageBundle(language);
+    return this.fetchRequiredBundles(language).pipe(map(() => void 0));
   }
 
   translate(key: string, params?: I18nParams): string {
-    const language = this.language();
-    const template =
-      this.messages()?.[key] ??
-      (language === null ? undefined : this.workspaceBundles()[language]?.[key]) ??
-      STARTUP_ERROR_MESSAGES[key] ??
-      key;
+    const template = this.messages()?.[key] ?? STARTUP_ERROR_MESSAGES[key] ?? key;
     return interpolate(template, params);
   }
 
   translateForLanguage(language: LanguageCode, key: string, params?: I18nParams): string {
     const template =
-      this.bundleCache.get(language)?.[key] ??
+      this.combinedMessages(language, this.activeBundle())?.[key] ??
       (language === this.language() ? this.messages()?.[key] : undefined) ??
-      this.workspaceBundles()[language]?.[key] ??
       STARTUP_ERROR_MESSAGES[key] ??
       key;
     return interpolate(template, params);
@@ -162,72 +142,6 @@ export class I18nService {
     return this.language() === 'en' ? 'en-US' : 'ru-RU';
   }
 
-  private fetchLanguageBundle(language: LanguageCode): Observable<void> {
-    const transferredBundle = this.consumeTransferredBundle(language);
-    if (transferredBundle) {
-      this.bundleCache.set(transferredBundle.language, transferredBundle.messages);
-      return of(void 0);
-    }
-
-    return this.api()
-      .get<I18nBundleDto>(`/api/i18n/bundles/${language}`)
-      .pipe(
-        tap((bundle) => {
-          this.transferState.set(i18nBundleStateKey(bundle.language), bundle);
-          this.bundleCache.set(bundle.language, bundle.messages);
-        }),
-        map(() => void 0),
-      );
-  }
-
-  private consumeTransferredLanguages(): I18nLanguagesDto | null {
-    if (!this.transferState.hasKey(I18N_LANGUAGES_STATE_KEY)) return null;
-    const languages = this.transferState.get(I18N_LANGUAGES_STATE_KEY, null);
-    this.transferState.remove(I18N_LANGUAGES_STATE_KEY);
-    return languages;
-  }
-
-  private consumeTransferredBundle(language: LanguageCode): I18nBundleDto | null {
-    const stateKey = i18nBundleStateKey(language);
-    if (!this.transferState.hasKey(stateKey)) return null;
-    const bundle = this.transferState.get(stateKey, null);
-    this.transferState.remove(stateKey);
-    return bundle;
-  }
-
-  private resolveInitialLanguage(response: I18nLanguagesDto): LanguageCode {
-    const urlLanguage = this.resolveUrlLanguage();
-    if (urlLanguage && this.includesLanguage(response.languages, urlLanguage)) {
-      return urlLanguage;
-    }
-
-    const stored = this.storage()?.getItem(STORAGE_KEY) ?? null;
-    if (isLanguageCode(stored) && this.includesLanguage(response.languages, stored)) {
-      return stored;
-    }
-    if (this.includesLanguage(response.languages, response.defaultLanguage)) {
-      return response.defaultLanguage;
-    }
-    throw new Error(`Unsupported default language: ${response.defaultLanguage}`);
-  }
-
-  private loadLanguage(language: LanguageCode, persist: boolean): Observable<void> {
-    const cached = this.bundleCache.get(language);
-    if (cached) {
-      this.applyBundle(language, cached, persist);
-      return of(void 0);
-    }
-    return this.fetchLanguageBundle(language).pipe(
-      tap(() => {
-        const messages = this.bundleCache.get(language);
-        if (!messages) {
-          throw new Error(`Missing language bundle: ${language}`);
-        }
-        this.applyBundle(language, messages, persist);
-      }),
-    );
-  }
-
   persistLanguage(language: LanguageCode): void {
     if (!this.isAvailableLanguage(language)) return;
     try {
@@ -237,18 +151,107 @@ export class I18nService {
     }
   }
 
-  private applyBundle(
+  private loadLanguage(
     language: LanguageCode,
-    messages: Record<string, string>,
     persist: boolean,
-  ): void {
-    if (persist) {
-      this.persistLanguage(language);
+    includeActiveBundle: boolean,
+  ): Observable<void> {
+    const bundles$ = includeActiveBundle
+      ? this.fetchRequiredBundles(language)
+      : this.fetchBundle(I18nBundle.Shared, language).pipe(map(() => void 0));
+    return bundles$.pipe(
+      tap(() => this.applyCachedBundles(language, persist, !includeActiveBundle)),
+    );
+  }
+
+  private fetchRequiredBundles(language: LanguageCode): Observable<void> {
+    const activeBundle = this.activeBundle();
+    const requests: Observable<I18nBundleDto>[] = [this.fetchBundle(I18nBundle.Shared, language)];
+    if (activeBundle !== null) requests.push(this.fetchBundle(activeBundle, language));
+    return forkJoin(requests).pipe(map(() => void 0));
+  }
+
+  private fetchBundle(bundle: I18nBundle, language: LanguageCode): Observable<I18nBundleDto> {
+    const cached = this.bundleCache.get(bundleCacheKey(bundle, language));
+    if (cached) return of({ bundle, language, messages: cached });
+
+    const transferredBundle = this.consumeTransferredBundle(bundle, language);
+    if (transferredBundle) {
+      this.validateBundle(transferredBundle, bundle, language);
+      this.bundleCache.set(bundleCacheKey(bundle, language), transferredBundle.messages);
+      return of(transferredBundle);
     }
+
+    return this.api()
+      .get<I18nBundleDto>(`/api/i18n/bundles/${bundle}/${language}`)
+      .pipe(
+        tap((response) => {
+          this.validateBundle(response, bundle, language);
+          this.transferState.set(i18nBundleStateKey(bundle, language), response);
+          this.bundleCache.set(bundleCacheKey(bundle, language), response.messages);
+        }),
+      );
+  }
+
+  private validateBundle(
+    response: I18nBundleDto,
+    bundle: I18nBundle,
+    language: LanguageCode,
+  ): void {
+    if (response.bundle !== bundle || response.language !== language) {
+      throw new Error(`Localization bundle identity mismatch: expected ${bundle}/${language}`);
+    }
+  }
+
+  private applyCachedBundles(language: LanguageCode, persist: boolean, sharedOnly = false): void {
+    const messages = this.combinedMessages(language, sharedOnly ? null : this.activeBundle());
+    if (messages === null) throw new Error(`Missing language bundle: ${language}`);
+    if (persist) this.persistLanguage(language);
     this.messages.set(messages);
     this.language.set(language);
     this.startupError.set(false);
     this.document.documentElement.lang = language;
+  }
+
+  private combinedMessages(
+    language: LanguageCode,
+    featureBundle: I18nBundle | null,
+  ): Record<string, string> | null {
+    const shared = this.bundleCache.get(bundleCacheKey(I18nBundle.Shared, language));
+    if (!shared) return null;
+    if (featureBundle === null) return shared;
+    const feature = this.bundleCache.get(bundleCacheKey(featureBundle, language));
+    return feature ? { ...shared, ...feature } : null;
+  }
+
+  private consumeTransferredLanguages(): I18nLanguagesDto | null {
+    if (!this.transferState.hasKey(I18N_LANGUAGES_STATE_KEY)) return null;
+    const languages = this.transferState.get(I18N_LANGUAGES_STATE_KEY, null);
+    this.transferState.remove(I18N_LANGUAGES_STATE_KEY);
+    return languages;
+  }
+
+  private consumeTransferredBundle(
+    bundle: I18nBundle,
+    language: LanguageCode,
+  ): I18nBundleDto | null {
+    const stateKey = i18nBundleStateKey(bundle, language);
+    if (!this.transferState.hasKey(stateKey)) return null;
+    const response = this.transferState.get(stateKey, null);
+    this.transferState.remove(stateKey);
+    return response;
+  }
+
+  private resolveInitialLanguage(response: I18nLanguagesDto): LanguageCode {
+    const urlLanguage = this.resolveUrlLanguage();
+    if (urlLanguage && this.includesLanguage(response.languages, urlLanguage)) return urlLanguage;
+
+    const stored = this.storage()?.getItem(STORAGE_KEY) ?? null;
+    if (isLanguageCode(stored) && this.includesLanguage(response.languages, stored)) return stored;
+    if (this.includesLanguage(response.languages, response.defaultLanguage)) {
+      return response.defaultLanguage;
+    }
+    throw new Error(`Unsupported default language: ${response.defaultLanguage}`);
   }
 
   private resolveUrlLanguage(): LanguageCode | null {
@@ -274,14 +277,21 @@ export class I18nService {
   }
 }
 
+function bundleCacheKey(bundle: I18nBundle, language: LanguageCode): string {
+  return `${bundle}.${language}`;
+}
+
+function i18nBundleStateKey(
+  bundle: I18nBundle,
+  language: LanguageCode,
+): StateKey<I18nBundleDto | null> {
+  return makeStateKey<I18nBundleDto | null>(`i18n.bundle.${bundle}.${language}`);
+}
+
 function interpolate(template: string, params?: I18nParams): string {
   if (!params) return template;
   return Object.entries(params).reduce(
     (text, [name, value]) => text.replaceAll(`{${name}}`, String(value)),
     template,
   );
-}
-
-function i18nBundleStateKey(language: LanguageCode): StateKey<I18nBundleDto | null> {
-  return makeStateKey<I18nBundleDto | null>(`i18n.bundle.${language}`);
 }

@@ -21,10 +21,10 @@ describe('SSR API origins', () => {
 
   it.each([
     ['/api/i18n/languages', 'http://i18n.internal/api/i18n/languages'],
-    ['/api/i18n/bundles/en', 'http://i18n.internal/api/i18n/bundles/en'],
+    ['/api/i18n/bundles/shared/en', 'http://i18n.internal/api/i18n/bundles/shared/en'],
     [
-      '/api/i18n/personal-workspace/bundles/ru',
-      'http://i18n.internal/api/i18n/personal-workspace/bundles/ru',
+      '/api/i18n/bundles/personal-workspace/ru',
+      'http://i18n.internal/api/i18n/bundles/personal-workspace/ru',
     ],
     ['/api/articles?language=en', 'http://competency.internal/api/articles?language=en'],
     ['/assets/logo.svg', '/assets/logo.svg'],

@@ -32,8 +32,8 @@ describe('BrowserApiBackend', () => {
     '/api/personal-workspace/resumes',
     '/api/competency/articles',
     '/api/i18n/languages',
-    '/api/i18n/bundles/ru',
-    '/api/i18n/personal-workspace/bundles/en',
+    '/api/i18n/bundles/shared/ru',
+    '/api/i18n/bundles/personal-workspace/en',
   ])('preserves the explicit service namespace %s', (path) => {
     const { http, transport } = configure('browser');
     http.get(path).subscribe();

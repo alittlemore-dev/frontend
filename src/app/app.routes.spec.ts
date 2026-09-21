@@ -1,7 +1,16 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { RedirectFunction, Router, UrlTree, provideRouter } from '@angular/router';
+import {
+  RedirectFunction,
+  ResolveFn,
+  Router,
+  Routes,
+  UrlTree,
+  provideRouter,
+} from '@angular/router';
+import { of } from 'rxjs';
 import { accountChildGuard, accountGuard, authGuard } from './core/auth/auth.guard';
+import { I18nBundle } from './core/i18n/i18n.model';
 import { I18nService } from './core/i18n/i18n.service';
 import { routes } from './app.routes';
 
@@ -117,5 +126,37 @@ describe('routes', () => {
     expect(accountRoute?.canActivate).toEqual([accountGuard]);
     expect(accountRoute?.canActivateChild).toEqual([accountChildGuard]);
     expect(accountRoute?.loadChildren).toBeDefined();
+  });
+
+  it('activates the bundle owned by every routed feature', () => {
+    const activateBundle = jest.fn(() => of(void 0));
+    TestBed.configureTestingModule({
+      providers: [{ provide: I18nService, useValue: { activateBundle } }],
+    });
+    const russianRoutes = routes.find((route) => route.path === 'ru')?.children ?? [];
+    const competencyRoutes =
+      russianRoutes.find((route) => route.path === 'competency')?.children ?? [];
+    const cases: readonly [Routes[number] | undefined, I18nBundle | null][] = [
+      [competencyRoutes.find((route) => route.path === 'matrix'), I18nBundle.CompetencyMatrix],
+      [competencyRoutes.find((route) => route.path === 'articles'), I18nBundle.Articles],
+      [russianRoutes.find((route) => route.path === 'sitemap'), I18nBundle.Sitemap],
+      [russianRoutes.find((route) => route.path === 'updates'), I18nBundle.Updates],
+      [
+        russianRoutes.find((route) => route.path === 'how-this-site-is-built'),
+        I18nBundle.HowThisSiteIsBuilt,
+      ],
+      [routes.find((route) => route.path === 'personal-workspace'), I18nBundle.PersonalWorkspace],
+      [routes.find((route) => route.path === 'account'), I18nBundle.Account],
+      [routes.find((route) => route.path === 'admin-panel'), I18nBundle.AdminPanel],
+      [routes.find((route) => route.path === 'login'), null],
+      [routes.find((route) => route.path === '404'), null],
+    ];
+
+    for (const [route, bundle] of cases) {
+      const resolver = route?.resolve?.['localization'] as ResolveFn<void> | undefined;
+      expect(resolver).toBeDefined();
+      TestBed.runInInjectionContext(() => resolver?.({} as never, {} as never));
+      expect(activateBundle).toHaveBeenLastCalledWith(bundle);
+    }
   });
 });

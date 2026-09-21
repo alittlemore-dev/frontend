@@ -33,7 +33,9 @@ describe('appConfig HTTP transfer cache filter', () => {
 
   it('excludes auth, private, analytics, and reaction requests', () => {
     expect(shouldTransferCacheRequest(new HttpRequest('GET', '/api/i18n/languages'))).toBe(false);
-    expect(shouldTransferCacheRequest(new HttpRequest('GET', '/api/i18n/bundles/ru'))).toBe(false);
+    expect(shouldTransferCacheRequest(new HttpRequest('GET', '/api/i18n/bundles/shared/ru'))).toBe(
+      false,
+    );
     expect(shouldTransferCacheRequest(new HttpRequest('GET', '/api/auth/me'))).toBe(false);
     expect(shouldTransferCacheRequest(new HttpRequest('GET', '/api/admin/articles/stats'))).toBe(
       false,

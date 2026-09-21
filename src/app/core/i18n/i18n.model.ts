@@ -10,7 +10,20 @@ export interface I18nLanguagesDto {
   languages: I18nLanguage[];
 }
 
+export enum I18nBundle {
+  Shared = 'shared',
+  HowThisSiteIsBuilt = 'how-this-site-is-built',
+  Articles = 'articles',
+  CompetencyMatrix = 'competency-matrix',
+  Updates = 'updates',
+  Sitemap = 'sitemap',
+  Account = 'account',
+  AdminPanel = 'admin-panel',
+  PersonalWorkspace = 'personal-workspace',
+}
+
 export interface I18nBundleDto {
+  bundle: I18nBundle;
   language: LanguageCode;
   messages: Record<string, string>;
 }

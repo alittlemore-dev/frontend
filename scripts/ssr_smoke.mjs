@@ -18,8 +18,26 @@ try {
   await assertPublishedMatrixQuestionHtml(frontendPort, requests);
   await assertMissingMatrixQuestionNoindex(frontendPort, requests);
   assertExpected([
-    ['SSR Russian bundle uses i18n service', i18nRequests.includes('/api/i18n/bundles/ru')],
-    ['SSR English bundle uses i18n service', i18nRequests.includes('/api/i18n/bundles/en')],
+    [
+      'SSR Russian shared bundle uses i18n service',
+      i18nRequests.includes('/api/i18n/bundles/shared/ru'),
+    ],
+    [
+      'SSR English shared bundle uses i18n service',
+      i18nRequests.includes('/api/i18n/bundles/shared/en'),
+    ],
+    [
+      'SSR site-build route loads its own bundle',
+      i18nRequests.includes('/api/i18n/bundles/how-this-site-is-built/ru'),
+    ],
+    [
+      'SSR articles route loads its own bundle',
+      i18nRequests.includes('/api/i18n/bundles/articles/ru'),
+    ],
+    [
+      'SSR matrix route loads its own bundle',
+      i18nRequests.includes('/api/i18n/bundles/competency-matrix/ru'),
+    ],
   ], i18nRequests.join('\n'), 'dedicated i18n SSR origin');
   console.log(`SSR smoke passed with ${requests.length} backend requests.`);
   console.log(requests.join('\n'));

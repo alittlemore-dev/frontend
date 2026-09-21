@@ -391,9 +391,13 @@ function createMockBackendHandler(requests) {
       return;
     }
 
-    if (url.pathname === '/api/i18n/bundles/ru' || url.pathname === '/api/i18n/bundles/en') {
+    const i18nBundleMatch = url.pathname.match(
+      /^\/api\/i18n\/bundles\/([^/]+)\/(ru|en)$/u,
+    );
+    if (i18nBundleMatch) {
       writeJson(res, {
-        language: url.pathname.endsWith('/en') ? 'en' : 'ru',
+        bundle: i18nBundleMatch[1],
+        language: i18nBundleMatch[2],
         messages: buildMessages(),
       });
       return;

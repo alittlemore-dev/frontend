@@ -132,6 +132,7 @@ describe('I18nService bundle loading', () => {
     expect(error).toHaveBeenCalled();
     expect(service.language()).toBe('ru');
     expect(service.translate('articles.title')).toBe('Статьи');
+    expect(service.startupError()).toBe(false);
   });
 
   it('loads shared and active feature bundles for alternate-language preview', () => {
