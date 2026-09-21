@@ -31,6 +31,9 @@ describe('BrowserApiBackend', () => {
     '/api/auth/account/me',
     '/api/personal-workspace/resumes',
     '/api/competency/articles',
+    '/api/i18n/languages',
+    '/api/i18n/bundles/ru',
+    '/api/i18n/personal-workspace/bundles/en',
   ])('preserves the explicit service namespace %s', (path) => {
     const { http, transport } = configure('browser');
     http.get(path).subscribe();

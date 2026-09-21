@@ -1,3 +1,4 @@
+import { AccountSettingsService } from '../../../../core/auth/account-settings.service';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Component, signal } from '@angular/core';
 import { By } from '@angular/platform-browser';
@@ -22,6 +23,12 @@ describe('Shared site header', () => {
   const currentUser = signal<AccountInfo | null>(null);
   const restoring = signal(false);
   const avatarObjectUrl = signal<string | null>(null);
+  const preferences = {
+    saving: signal(false),
+    applicationFailed: signal(false),
+    settings: signal<AccountInfo['settings'] | null>(null),
+    update: jest.fn(() => of({})),
+  };
   const theme = { theme: signal('light'), toggleTheme: jest.fn() };
   const modal = { openLogin: jest.fn(), isLoginOpen: signal(false) };
   const auth = {
@@ -44,6 +51,9 @@ describe('Shared site header', () => {
     auth.ensureCurrentUserLoaded.mockReturnValue(of(void 0));
     auth.logout.mockReturnValue(of(void 0));
     changes.confirmDiscard.mockReturnValue(true);
+    preferences.settings.set(null);
+    preferences.saving.set(false);
+    preferences.update.mockClear();
     i18n = createI18nTestingValue();
     await TestBed.configureTestingModule({
       imports: [SiteHeaderComponent],
@@ -53,6 +63,7 @@ describe('Shared site header', () => {
         { provide: AccountAvatarService, useValue: { objectUrl: avatarObjectUrl } },
         { provide: AuthModalService, useValue: modal },
         { provide: ThemeService, useValue: theme },
+        { provide: AccountSettingsService, useValue: preferences },
         { provide: I18nService, useValue: i18n },
         { provide: UnsavedChangesService, useValue: changes },
       ],
@@ -78,6 +89,26 @@ describe('Shared site header', () => {
     if (!match) throw new Error(`Missing button: ${label}`);
     return match;
   }
+
+  it('keeps settings, theme and language in the authenticated dropdown and persists changes', () => {
+    currentUser.set({
+      username: 'reader',
+      role: 'user',
+      firstName: null,
+      lastName: null,
+      middleName: null,
+      gender: null,
+      hasAvatar: false,
+      settings: { language: 'en', theme: 'light' },
+    });
+    preferences.settings.set({ language: 'en', theme: 'light' });
+    fixture.detectChanges();
+    expect(el.querySelector('a[href="/account/settings"]')).not.toBeNull();
+    fixture.componentInstance.toggle();
+    expect(preferences.update).toHaveBeenCalledWith({ language: 'en', theme: 'dark' });
+    fixture.componentInstance.switchLanguage('ru');
+    expect(preferences.update).toHaveBeenCalledWith({ language: 'ru', theme: 'light' });
+  });
 
   it('provides guest service entry paths without the admin panel', () => {
     button('shell.nav.toggleNavigation').click();

@@ -9,6 +9,14 @@ export const accountRoutes: Routes = [
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'me' },
       {
+        path: 'settings',
+        title: 'account.settings.title',
+        loadComponent: () =>
+          import('./pages/settings-page/settings-page.component').then(
+            (m) => m.SettingsPageComponent,
+          ),
+      },
+      {
         path: 'me',
         title: 'account.profile.title',
         canDeactivate: [accountUnsavedChangesGuard],

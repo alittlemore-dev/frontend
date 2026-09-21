@@ -2,7 +2,7 @@ import { startSsrFixture } from './ssr_mock_app.mjs';
 
 let failure = null;
 const fixture = await startSsrFixture();
-const { frontendPort, requests } = fixture;
+const { frontendPort, requests, i18nRequests } = fixture;
 
 try {
   await assertDiscoveryEndpoints(frontendPort);
@@ -17,6 +17,10 @@ try {
   await assertMissingArticleNoindex(frontendPort, requests);
   await assertPublishedMatrixQuestionHtml(frontendPort, requests);
   await assertMissingMatrixQuestionNoindex(frontendPort, requests);
+  assertExpected([
+    ['SSR Russian bundle uses i18n service', i18nRequests.includes('/api/i18n/bundles/ru')],
+    ['SSR English bundle uses i18n service', i18nRequests.includes('/api/i18n/bundles/en')],
+  ], i18nRequests.join('\n'), 'dedicated i18n SSR origin');
   console.log(`SSR smoke passed with ${requests.length} backend requests.`);
   console.log(requests.join('\n'));
 } catch (error) {
@@ -108,7 +112,7 @@ async function assertLegacyCompetencyRedirects(frontendPort) {
 
 async function assertBrowserApiProxy(frontendPort) {
   const response = await fetch(
-    `http://127.0.0.1:${frontendPort}/api/competency/i18n/languages`,
+    `http://127.0.0.1:${frontendPort}/api/i18n/languages`,
   );
   const contentType = response.headers.get('content-type') ?? '';
   const body = await response.text();
@@ -121,7 +125,7 @@ async function assertBrowserApiProxy(frontendPort) {
 }
 
 async function assertUnnamespacedApiIsRejected(frontendPort) {
-  const response = await fetch(`http://127.0.0.1:${frontendPort}/api/i18n/languages`);
+  const response = await fetch(`http://127.0.0.1:${frontendPort}/api/articles`);
   const expected = [['status 404', response.status === 404]];
   assertExpected(expected, await response.text(), 'unnamespaced browser API rejection');
 }

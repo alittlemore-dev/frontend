@@ -75,13 +75,15 @@ export class I18nService {
     );
   }
 
-  switchLanguage(language: LanguageCode): Observable<void> {
+  switchLanguage(language: LanguageCode, persist = true): Observable<void> {
     if (!this.isAvailableLanguage(language)) {
       return throwError(() => new Error(`Unsupported language: ${language}`));
     }
     return this.document.location.pathname.startsWith('/personal-workspace')
-      ? this.fetchWorkspaceBundle(language).pipe(switchMap(() => this.loadLanguage(language, true)))
-      : this.loadLanguage(language, true);
+      ? this.fetchWorkspaceBundle(language).pipe(
+          switchMap(() => this.loadLanguage(language, persist)),
+        )
+      : this.loadLanguage(language, persist);
   }
 
   ensureWorkspaceBundle(): Observable<void> {
@@ -98,7 +100,7 @@ export class I18nService {
   private fetchWorkspaceBundle(language: LanguageCode): Observable<void> {
     if (this.workspaceBundles()[language]) return of(void 0);
     return this.api()
-      .get<I18nBundleDto>(`/api/personal-workspace/i18n/bundles/${language}`)
+      .get<I18nBundleDto>(`/api/i18n/personal-workspace/bundles/${language}`)
       .pipe(
         tap((bundle) => {
           if (bundle.language !== language)
@@ -226,13 +228,22 @@ export class I18nService {
     );
   }
 
+  persistLanguage(language: LanguageCode): void {
+    if (!this.isAvailableLanguage(language)) return;
+    try {
+      this.storage()?.setItem(STORAGE_KEY, language);
+    } catch {
+      // Browser storage can be unavailable even when the page is usable.
+    }
+  }
+
   private applyBundle(
     language: LanguageCode,
     messages: Record<string, string>,
     persist: boolean,
   ): void {
     if (persist) {
-      this.storage()?.setItem(STORAGE_KEY, language);
+      this.persistLanguage(language);
     }
     this.messages.set(messages);
     this.language.set(language);

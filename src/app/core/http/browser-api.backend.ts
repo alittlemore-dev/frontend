@@ -14,7 +14,7 @@ export class BrowserApiBackend implements HttpBackend {
       return this.transport.handle(request);
     }
 
-    const explicitService = /^\/api\/(auth|personal-workspace|competency)(?:\/|\?|$)/.test(
+    const explicitService = /^\/api\/(auth|personal-workspace|competency|i18n)(?:\/|\?|$)/.test(
       request.url,
     );
     const publicApiUrl = explicitService

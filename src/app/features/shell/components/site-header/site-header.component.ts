@@ -16,7 +16,8 @@ import {
   NotificationService,
   ThemeService,
 } from '@alittlemore.dev/design-system';
-import { finalize } from 'rxjs';
+import { finalize, map } from 'rxjs';
+import { AccountSettingsService } from '../../../../core/auth/account-settings.service';
 import { AccountAvatarService } from '../../../../core/auth/account-avatar.service';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { AuthModalService } from '../../../../core/auth/auth-modal.service';
@@ -36,6 +37,7 @@ import { UnsavedChangesService } from '../../../../core/unsaved-changes/unsaved-
   styleUrl: './site-header.component.scss',
 })
 export class SiteHeaderComponent {
+  readonly settingsService = inject(AccountSettingsService);
   private readonly themeService = inject(ThemeService);
   private readonly authService = inject(AuthService);
   private readonly accountAvatar = inject(AccountAvatarService);
@@ -105,7 +107,19 @@ export class SiteHeaderComponent {
     this.navigation()?.close();
   }
   toggle(): void {
-    this.themeService.toggleTheme();
+    if (!this.isLoggedIn()) {
+      this.themeService.toggleTheme();
+      return;
+    }
+    const settings = this.settingsService.settings();
+    if (!settings || this.settingsService.saving()) return;
+    this.settingsService
+      .update({ ...settings, theme: settings.theme === 'light' ? 'dark' : 'light' })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => this.notifications.success(this.i18n.translate('account.settings.saved')),
+        error: () => this.notifications.error(this.i18n.translate('account.settings.saveFailed')),
+      });
   }
 
   accountMenuChanged(open: boolean): void {
@@ -151,15 +165,20 @@ export class SiteHeaderComponent {
 
   switchLanguage(language: LanguageCode): void {
     const nextUrl = rewriteLanguagePrefixedUrl(this.router.url, language);
-    this.i18n
-      .switchLanguage(language)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: () => {
-          if (nextUrl !== this.router.url) void this.router.navigateByUrl(nextUrl);
-        },
-        error: () => this.notifications.error(this.i18n.translate('shell.language.failed')),
-      });
+    const settings = this.settingsService.settings();
+    if (this.isLoggedIn() && (!settings || this.settingsService.saving())) return;
+    const save =
+      this.isLoggedIn() && settings
+        ? this.settingsService.update({ ...settings, language }).pipe(map(() => void 0))
+        : this.i18n.switchLanguage(language);
+    save.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: () => {
+        if (this.isLoggedIn())
+          this.notifications.success(this.i18n.translate('account.settings.saved'));
+        if (nextUrl !== this.router.url) void this.router.navigateByUrl(nextUrl);
+      },
+      error: () => this.notifications.error(this.i18n.translate('shell.language.failed')),
+    });
   }
 
   private finishLogout(): void {

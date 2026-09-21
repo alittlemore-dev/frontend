@@ -62,11 +62,20 @@
         >
           {{ 'shell.account.profile' | t }}
         </a>
+        <a
+          class="dropdown-item"
+          routerLink="/account/settings"
+          routerLinkActive="active"
+          (click)="closeAccountMenu()"
+        >
+          {{ 'account.settings.title' | t }}
+        </a>
       }
       <button
         type="button"
         class="dropdown-item d-flex justify-content-between gap-4"
         (click)="toggle()"
+        [disabled]="settingsService.saving()"
         [attr.aria-label]="'shell.theme.toggle' | t"
       >
         <span>{{ 'shell.theme.toggle' | t }}</span
@@ -95,6 +104,7 @@
               type="button"
               class="dropdown-item d-flex justify-content-between gap-4"
               (click)="switchLanguage(language.code)"
+              [disabled]="settingsService.saving()"
               [attr.aria-pressed]="language.selected"
               [title]="language.label"
             >
@@ -241,3 +251,16 @@
     }
   </nav>
 </ds-drawer>
+
+@if (settingsService.applicationFailed()) {
+  <div class="alert alert-danger container mt-3" role="alert">
+    {{ 'account.settings.applyFailed' | t }}
+    <button
+      type="button"
+      class="btn btn-outline-secondary btn-sm ms-2"
+      (click)="settingsService.retryApplication()"
+    >
+      {{ 'shared.retry' | t }}
+    </button>
+  </div>
+}

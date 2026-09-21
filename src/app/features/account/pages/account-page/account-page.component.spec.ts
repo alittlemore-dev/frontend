@@ -37,18 +37,19 @@ describe('AccountPageComponent', () => {
     fixture.detectChanges();
   });
 
-  it('renders a desktop side panel with one selected Profile page', () => {
+  it('renders a desktop side panel with Profile and Settings pages', () => {
     const aside = fixture.nativeElement.querySelector('[data-testid="account-side-panel"]');
     const links = aside.querySelectorAll('a');
 
     expect(aside).not.toBeNull();
-    expect(links).toHaveLength(1);
+    expect(links).toHaveLength(2);
     expect(links[0].textContent?.trim()).toBe('Профиль');
     expect(links[0].getAttribute('href')).toBe('/account/me');
+    expect(links[1].getAttribute('href')).toBe('/account/settings');
     expect(links[0].getAttribute('aria-current')).toBe('page');
   });
 
-  it('opens the same one-page navigation in a mobile drawer', () => {
+  it('opens the same account navigation in a mobile drawer', () => {
     const dialog = fixture.nativeElement.querySelector('ds-drawer dialog') as HTMLDialogElement;
     dialog.showModal = () => dialog.setAttribute('open', '');
     dialog.close = () => dialog.removeAttribute('open');
@@ -61,6 +62,6 @@ describe('AccountPageComponent', () => {
     fixture.detectChanges();
 
     expect(dialog.open).toBe(true);
-    expect(fixture.nativeElement.querySelectorAll('ds-drawer a')).toHaveLength(1);
+    expect(fixture.nativeElement.querySelectorAll('ds-drawer a')).toHaveLength(2);
   });
 });

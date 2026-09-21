@@ -1,0 +1,86 @@
+<h1 class="h4 mb-3">{{ 'account.settings.title' | t }}</h1>
+<ul
+  class="nav nav-tabs flex-wrap gap-1 mb-3"
+  role="tablist"
+  [attr.aria-label]="'account.settings.title' | t"
+>
+  @for (tab of ['general', 'appearance']; track tab) {
+    <li class="nav-item" role="presentation">
+      <button
+        type="button"
+        class="nav-link"
+        role="tab"
+        [id]="'settings-tab-' + tab"
+        [class.active]="activeTab() === tab"
+        [attr.aria-selected]="activeTab() === tab"
+        [attr.aria-controls]="'settings-panel-' + tab"
+        (click)="activeTab.set(tab === 'general' ? 'general' : 'appearance')"
+      >
+        {{ 'account.settings.' + tab | t }}
+      </button>
+    </li>
+  }
+</ul>
+@if (loading()) {
+  <p role="status">{{ 'shared.loading' | t }}</p>
+} @else if (failed()) {
+  <div class="alert alert-danger" role="alert">
+    {{ 'account.settings.loadFailed' | t }}
+    <button type="button" class="btn btn-outline-secondary btn-sm ms-2" (click)="load()">
+      {{ 'shared.retry' | t }}
+    </button>
+  </div>
+} @else if (preferences.settings(); as settings) {
+  <div
+    role="tabpanel"
+    id="settings-panel-general"
+    aria-labelledby="settings-tab-general"
+    [hidden]="activeTab() !== 'general'"
+  >
+    <div class="row">
+      <div class="col-12 col-md-6">
+        <label for="settings-language" class="form-label">{{ 'shell.language.label' | t }}</label>
+        <ds-site-select
+          inputId="settings-language"
+          [options]="languageOptions()"
+          controlSize="default"
+          appearance="default"
+          [required]="false"
+          [invalid]="false"
+          [controlDisabled]="preferences.saving()"
+          [value]="settings.language"
+          (valueChange)="changeLanguage($event)"
+        />
+      </div>
+    </div>
+  </div>
+  <div
+    role="tabpanel"
+    id="settings-panel-appearance"
+    aria-labelledby="settings-tab-appearance"
+    [hidden]="activeTab() !== 'appearance'"
+  >
+    <div class="row">
+      <div class="col-12 col-md-6">
+        <label for="settings-theme" class="form-label">{{ 'account.settings.theme' | t }}</label>
+        <ds-site-select
+          inputId="settings-theme"
+          [options]="themeOptions()"
+          controlSize="default"
+          appearance="default"
+          [required]="false"
+          [invalid]="false"
+          [controlDisabled]="preferences.saving()"
+          [value]="settings.theme"
+          (valueChange)="changeTheme($event)"
+        />
+      </div>
+    </div>
+  </div>
+  <p class="small text-body-secondary mt-3" role="status">
+    {{ (preferences.saving() ? 'account.settings.saving' : 'account.settings.autosave') | t }}
+  </p>
+  @if (saveFailed()) {
+    <p class="alert alert-danger" role="alert">{{ 'account.settings.saveFailed' | t }}</p>
+  }
+}

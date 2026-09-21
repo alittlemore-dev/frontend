@@ -46,6 +46,15 @@
       >
         {{ 'account.profile.title' | t }}
       </a>
+      <a
+        class="account-nav-link"
+        routerLink="/account/settings"
+        routerLinkActive="account-nav-link-active"
+        ariaCurrentWhenActive="page"
+        (click)="closeSidePanel()"
+      >
+        {{ 'account.settings.title' | t }}
+      </a>
     </nav>
   </ng-template>
 </main>

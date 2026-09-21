@@ -105,7 +105,22 @@ export async function startSsrFixture(options = {}) {
   const frontendPortOption = options.frontendPort ?? 0;
   const requests = [];
   const backendHandler = createMockBackendHandler(requests);
-  const backend = http.createServer(backendHandler);
+  const i18nRequests = [];
+  const i18nHandler = (req, res) => {
+    i18nRequests.push(req.url);
+    backendHandler(req, res);
+  };
+  const i18nBackend = http.createServer(i18nHandler);
+  await listen(i18nBackend, 0);
+  process.env.SSR_I18N_ORIGIN = `http://127.0.0.1:${i18nBackend.address().port}`;
+  const backend = http.createServer((req, res) => {
+    if (req.url?.startsWith('/api/i18n/')) {
+      res.statusCode = 404;
+      res.end('Translations are owned by i18n');
+      return;
+    }
+    backendHandler(req, res);
+  });
 
   await listen(backend, options.backendPort ?? 0);
   const backendPort = backend.address().port;
@@ -115,7 +130,7 @@ export async function startSsrFixture(options = {}) {
   process.env.NG_ALLOWED_HOSTS = '127.0.0.1';
 
   const serverHandler = import(options.serverEntry ?? defaultServerEntry);
-  const frontend = createFrontendServer(serverHandler, backendHandler);
+  const frontend = createFrontendServer(serverHandler, backendHandler, i18nHandler);
   await listen(frontend, frontendPortOption);
   const frontendPort = frontend.address().port;
   process.env.SSR_PUBLIC_ORIGIN = `http://127.0.0.1:${frontendPort}`;
@@ -126,13 +141,14 @@ export async function startSsrFixture(options = {}) {
     backendPort,
     frontendPort,
     requests,
+    i18nRequests,
     async close() {
-      await Promise.all([closeServer(frontend), closeServer(backend)]);
+      await Promise.all([closeServer(frontend), closeServer(backend), closeServer(i18nBackend)]);
     },
   };
 }
 
-function createFrontendServer(serverHandler, backendHandler) {
+function createFrontendServer(serverHandler, backendHandler, i18nHandler) {
   return http.createServer(async (req, res) => {
     installGzipForTextResponses(req, res);
 
@@ -145,6 +161,11 @@ function createFrontendServer(serverHandler, backendHandler) {
 
       if ((req.method === 'GET' || req.method === 'HEAD') && url.pathname === '/sitemap.xml') {
         writeText(res, 'application/xml; charset=utf-8', buildSitemapXml(readFixtureOrigin(req)));
+        return;
+      }
+
+      if (url.pathname.startsWith('/api/i18n/')) {
+        i18nHandler(req, res);
         return;
       }
 

@@ -1,6 +1,5 @@
 import {
   HTTP_TRANSFER_CACHE_ORIGIN_MAP,
-  HttpInterceptorFn,
   provideHttpClient,
   withInterceptors,
 } from '@angular/common/http';
@@ -8,18 +7,13 @@ import { ApplicationConfig, InjectionToken, mergeApplicationConfig, inject } fro
 import { IS_DISCOVERING_ROUTES, provideServerRendering, withRoutes } from '@angular/ssr';
 import { SKIP_I18N_STARTUP, appConfig } from './app.config';
 import { serverRoutes } from './app.routes.server';
+import {
+  SSR_API_ORIGIN,
+  SSR_I18N_ORIGIN,
+  serverApiOriginInterceptor,
+} from './core/http/server-api-origin.interceptor';
 
-const SSR_API_ORIGIN = new InjectionToken<string>('SSR_API_ORIGIN');
 const SSR_PUBLIC_ORIGIN = new InjectionToken<string>('SSR_PUBLIC_ORIGIN');
-
-const serverApiOriginInterceptor: HttpInterceptorFn = (req, next) => {
-  if (!req.url.startsWith('/api/')) {
-    return next(req);
-  }
-
-  const apiOrigin = inject(SSR_API_ORIGIN);
-  return next(req.clone({ url: `${apiOrigin}${req.url}` }));
-};
 
 const serverConfig: ApplicationConfig = {
   providers: [
@@ -34,15 +28,20 @@ const serverConfig: ApplicationConfig = {
       useFactory: () => readRequiredOrigin('SSR_API_ORIGIN'),
     },
     {
+      provide: SSR_I18N_ORIGIN,
+      useFactory: () => readRequiredOrigin('SSR_I18N_ORIGIN'),
+    },
+    {
       provide: SSR_PUBLIC_ORIGIN,
       useFactory: readPublicOrigin,
     },
     {
       provide: HTTP_TRANSFER_CACHE_ORIGIN_MAP,
-      useFactory: (apiOrigin: string, publicOrigin: string) => ({
+      useFactory: (apiOrigin: string, i18nOrigin: string, publicOrigin: string) => ({
         [apiOrigin]: publicOrigin,
+        [i18nOrigin]: publicOrigin,
       }),
-      deps: [SSR_API_ORIGIN, SSR_PUBLIC_ORIGIN],
+      deps: [SSR_API_ORIGIN, SSR_I18N_ORIGIN, SSR_PUBLIC_ORIGIN],
     },
   ],
 };

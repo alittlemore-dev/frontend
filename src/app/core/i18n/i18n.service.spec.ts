@@ -1,4 +1,5 @@
-import { DOCUMENT, TransferState, makeStateKey } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
+import { TransferState, makeStateKey } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 
 import { provideHttpClient } from '@angular/common/http';
@@ -258,7 +259,7 @@ describe('Workspace localization integration', () => {
     http.expectNone((req) => req.url.includes('/personal-workspace/'));
     service.ensureWorkspaceBundle().subscribe();
     http
-      .expectOne((req) => req.url.endsWith('/api/personal-workspace/i18n/bundles/ru'))
+      .expectOne((req) => req.url.endsWith('/api/i18n/personal-workspace/bundles/ru'))
       .flush({
         language: 'ru',
         messages: {
@@ -280,7 +281,7 @@ describe('Workspace localization integration', () => {
     service.switchLanguage('en').subscribe();
     expect(service.language()).toBe('ru');
     http
-      .expectOne((req) => req.url.endsWith('/api/personal-workspace/i18n/bundles/en'))
+      .expectOne((req) => req.url.endsWith('/api/i18n/personal-workspace/bundles/en'))
       .flush({ language: 'en', messages: { 'resumeWorkspace.title': 'Resumes' } });
     http
       .expectOne((req) => req.url.endsWith('/api/i18n/bundles/en'))
@@ -295,7 +296,7 @@ describe('Workspace localization integration', () => {
     const error = jest.fn();
     service.switchLanguage('en').subscribe({ error });
     http
-      .expectOne((req) => req.url.endsWith('/api/personal-workspace/i18n/bundles/en'))
+      .expectOne((req) => req.url.endsWith('/api/i18n/personal-workspace/bundles/en'))
       .flush({}, { status: 503, statusText: 'Unavailable' });
     expect(service.language()).toBe('ru');
     expect(error).toHaveBeenCalled();
@@ -305,13 +306,54 @@ describe('Workspace localization integration', () => {
   it('shows a retryable startup error when a workspace bundle is unavailable', () => {
     service.ensureWorkspaceBundle().subscribe();
     http
-      .expectOne((req) => req.url.endsWith('/api/personal-workspace/i18n/bundles/ru'))
+      .expectOne((req) => req.url.endsWith('/api/i18n/personal-workspace/bundles/ru'))
       .flush({}, { status: 503, statusText: 'Unavailable' });
     expect(service.startupError()).toBe(true);
     service.ensureWorkspaceBundle().subscribe();
     http
-      .expectOne((req) => req.url.endsWith('/api/personal-workspace/i18n/bundles/ru'))
+      .expectOne((req) => req.url.endsWith('/api/i18n/personal-workspace/bundles/ru'))
       .flush({ language: 'ru', messages: { 'knowledgePeople.title': 'Люди' } });
     expect(service.translate('knowledgePeople.title')).toBe('Люди');
+  });
+});
+
+describe('Account language persistence', () => {
+  afterEach(() => localStorage.clear());
+
+  it('can apply a URL language without overwriting the saved preference', () => {
+    TestBed.configureTestingModule({
+      providers: [provideHttpClient(), provideHttpClientTesting()],
+    });
+    const service = TestBed.inject(I18nService);
+    const http = TestBed.inject(HttpTestingController);
+    service.languages.set([
+      { code: 'en', label: 'English' },
+      { code: 'ru', label: 'Русский' },
+    ]);
+    service.persistLanguage('en');
+    service.switchLanguage('ru', false).subscribe();
+    http
+      .expectOne((req) => req.url.endsWith('/api/i18n/bundles/ru'))
+      .flush({ language: 'ru', messages: {} });
+    expect(service.language()).toBe('ru');
+    expect(localStorage.getItem('chosenLanguage')).toBe('en');
+    http.verify();
+  });
+
+  it('does not access browser storage with a server document', () => {
+    TestBed.configureTestingModule({
+      providers: [
+        {
+          provide: DOCUMENT,
+          useValue: document.implementation.createHTMLDocument('server'),
+        },
+      ],
+    });
+    const service = TestBed.inject(I18nService);
+    service.languages.set([{ code: 'en', label: 'English' }]);
+    const write = jest.spyOn(Storage.prototype, 'setItem');
+    expect(() => service.persistLanguage('en')).not.toThrow();
+    expect(write).not.toHaveBeenCalled();
+    write.mockRestore();
   });
 });
