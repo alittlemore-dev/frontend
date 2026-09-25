@@ -523,7 +523,7 @@
 
             @case ('skills') {
               <div class="resume-entry-list" formArrayName="skills">
-                @for (skillGroup of skills.controls; track $index; let index = $index) {
+                @for (skillGroup of skills.controls; track skillGroup; let index = $index) {
                   <section class="resume-entry" [formGroupName]="index">
                     <header class="resume-entry-header">
                       <h3 class="resume-entry-title">
@@ -563,7 +563,7 @@
                         >
                           @for (
                             itemControl of skillItems(index).controls;
-                            track $index;
+                            track itemControl;
                             let itemIndex = $index
                           ) {
                             <div class="resume-inline-list-item mw-100 position-relative">
@@ -632,7 +632,11 @@
 
             @case ('experience') {
               <div class="resume-entry-list" formArrayName="experience">
-                @for (experienceItem of experience.controls; track $index; let index = $index) {
+                @for (
+                  experienceItem of experience.controls;
+                  track experienceItem;
+                  let index = $index
+                ) {
                   <section class="resume-entry resume-entry-accent" [formGroupName]="index">
                     <header class="resume-entry-header">
                       <h3 class="resume-entry-title">
@@ -770,7 +774,7 @@
                         <div class="resume-list-inputs" formArrayName="highlights">
                           @for (
                             highlightControl of experienceHighlights(index).controls;
-                            track $index;
+                            track highlightControl;
                             let itemIndex = $index
                           ) {
                             <div class="resume-list-input-row">
@@ -838,7 +842,7 @@
                         >
                           @for (
                             technologyControl of experienceTechnologies(index).controls;
-                            track $index;
+                            track technologyControl;
                             let itemIndex = $index
                           ) {
                             <div class="resume-inline-list-item mw-100 position-relative">
@@ -902,7 +906,7 @@
                           >
                             @for (
                               project of experienceProjects(index).controls;
-                              track $index;
+                              track project;
                               let projectIndex = $index
                             ) {
                               <section
@@ -1028,7 +1032,7 @@
                                       @for (
                                         highlightControl of projectHighlights(index, projectIndex)
                                           .controls;
-                                        track $index;
+                                        track highlightControl;
                                         let itemIndex = $index
                                       ) {
                                         <div class="resume-list-input-row">
@@ -1137,7 +1141,7 @@
                                           index,
                                           projectIndex
                                         ).controls;
-                                        track $index;
+                                        track technologyControl;
                                         let itemIndex = $index
                                       ) {
                                         <div
@@ -1304,7 +1308,11 @@
 
             @case ('education') {
               <div class="resume-entry-list" formArrayName="education">
-                @for (educationItem of education.controls; track $index; let index = $index) {
+                @for (
+                  educationItem of education.controls;
+                  track educationItem;
+                  let index = $index
+                ) {
                   <section class="resume-entry" [formGroupName]="index">
                     <header class="resume-entry-header">
                       <h3 class="resume-entry-title">
@@ -1448,7 +1456,7 @@
 
             @case ('languages') {
               <div class="resume-entry-list" formArrayName="languages">
-                @for (language of languages.controls; track $index; let index = $index) {
+                @for (language of languages.controls; track language; let index = $index) {
                   <section class="resume-entry" [formGroupName]="index">
                     <header class="resume-entry-header">
                       <h3 class="resume-entry-title">
@@ -1512,7 +1520,11 @@
 
             @case ('certifications') {
               <div class="resume-entry-list" formArrayName="certifications">
-                @for (certification of certifications.controls; track $index; let index = $index) {
+                @for (
+                  certification of certifications.controls;
+                  track certification;
+                  let index = $index
+                ) {
                   <section class="resume-entry" [formGroupName]="index">
                     <header class="resume-entry-header">
                       <h3 class="resume-entry-title">
@@ -1633,7 +1645,7 @@
               <div class="resume-entry-list" formArrayName="additionalSections">
                 @for (
                   section of additionalSections.controls;
-                  track $index;
+                  track section;
                   let sectionIndex = $index
                 ) {
                   <section class="resume-entry" [formGroupName]="sectionIndex">
@@ -1674,7 +1686,7 @@
                           <div class="resume-subitem-list" formArrayName="items">
                             @for (
                               additionalItem of additionalItems(sectionIndex).controls;
-                              track $index;
+                              track additionalItem;
                               let itemIndex = $index
                             ) {
                               <section class="resume-subitem" [formGroupName]="itemIndex">

@@ -1257,6 +1257,68 @@ describe('ResumeDetailPageComponent', () => {
     );
   });
 
+  it('keeps the remaining skill input visible and editable after removing the first item', () => {
+    fixture.componentInstance.setActiveTab('skills');
+    fixture.detectChanges();
+
+    elementByTestId<HTMLButtonElement>('resume-skill-0-remove-item-0').click();
+    fixture.detectChanges();
+
+    expect(inputValue('resume-skill-0-item-0')).toBe('SQLAlchemy');
+    expect(fixture.nativeElement.querySelector('[data-testid="resume-skill-0-item-1"]')).toBeNull();
+
+    setInputValue('resume-skill-0-item-0', 'PostgreSQL');
+    fixture.componentInstance.saveResume();
+
+    const payload = service.updateResume.mock.calls[0][1] as ResumePayload;
+    expect(payload.content.skills[0].items).toEqual(['PostgreSQL']);
+  });
+
+  it('keeps the remaining skill group visible and editable after removing the first group', () => {
+    fixture.componentInstance.setActiveTab('skills');
+    fixture.componentInstance.addSkillGroup();
+    fixture.componentInstance.addSkillItem(1);
+    fixture.detectChanges();
+    setInputValue('resume-skill-1-category', 'Platform');
+    setInputValue('resume-skill-1-item-0', 'Kubernetes');
+
+    buttonByLabel('Удалить группу навыков').click();
+    fixture.detectChanges();
+
+    expect(inputValue('resume-skill-0-category')).toBe('Platform');
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="resume-skill-1-category"]'),
+    ).toBeNull();
+
+    setInputValue('resume-skill-0-category', 'Infrastructure');
+    fixture.componentInstance.saveResume();
+
+    const payload = service.updateResume.mock.calls[0][1] as ResumePayload;
+    expect(payload.content.skills).toEqual([{ category: 'Infrastructure', items: ['Kubernetes'] }]);
+  });
+
+  it('keeps the remaining experience technology visible and editable after removing the first', () => {
+    fixture.componentInstance.setActiveTab('experience');
+    fixture.detectChanges();
+    elementByTestId<HTMLButtonElement>('resume-experience-0-add-technology').click();
+    fixture.detectChanges();
+    setInputValue('resume-experience-0-technology-1', 'Angular');
+
+    elementByTestId<HTMLButtonElement>('resume-experience-0-remove-technology-0').click();
+    fixture.detectChanges();
+
+    expect(inputValue('resume-experience-0-technology-0')).toBe('Angular');
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="resume-experience-0-technology-1"]'),
+    ).toBeNull();
+
+    setInputValue('resume-experience-0-technology-0', 'TypeScript');
+    fixture.componentInstance.saveResume();
+
+    const payload = service.updateResume.mock.calls[0][1] as ResumePayload;
+    expect(payload.content.experience[0].technologies).toEqual(['TypeScript']);
+  });
+
   it('blocks blank inline list items before saving', () => {
     fixture.componentInstance.setActiveTab('skills');
     fixture.detectChanges();
