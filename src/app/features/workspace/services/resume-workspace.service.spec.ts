@@ -102,7 +102,7 @@ describe('ResumeWorkspaceService', () => {
     const payload = resumePayload();
     let exportedBlob: Blob | null = null;
 
-    service.exportResume(RESUME_ID, 'pdf', payload).subscribe((blob) => {
+    service.exportResume(RESUME_ID, 'pdf', 'accent', payload).subscribe((blob) => {
       exportedBlob = blob;
     });
 
@@ -113,6 +113,7 @@ describe('ResumeWorkspaceService', () => {
     expect(exportReq.request.responseType).toBe('blob');
     expect(exportReq.request.body).toEqual({
       format: 'pdf',
+      theme: 'accent',
       ...payload,
     });
     exportReq.flush(new Blob(['resume'], { type: 'application/pdf' }));

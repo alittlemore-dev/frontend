@@ -5,6 +5,7 @@ import {
   Resume,
   ResumeDto,
   ResumeExportFormat,
+  ResumeTheme,
   ResumeListParams,
   ResumePayload,
   Resumes,
@@ -48,10 +49,15 @@ export class ResumeWorkspaceService {
     return this.api.delete<void>(`/api/personal-workspace/resumes/${id}`);
   }
 
-  exportResume(id: string, format: ResumeExportFormat, payload: ResumePayload): Observable<Blob> {
+  exportResume(
+    id: string,
+    format: ResumeExportFormat,
+    theme: ResumeTheme,
+    payload: ResumePayload,
+  ): Observable<Blob> {
     return this.api.postBlob(
       `/api/personal-workspace/resumes/${id}/export`,
-      toResumeExportPayloadDto(payload, format),
+      toResumeExportPayloadDto(payload, format, theme),
     );
   }
 }

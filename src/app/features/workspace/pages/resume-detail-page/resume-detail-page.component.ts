@@ -47,6 +47,7 @@ import {
   ResumeCurrentStatus,
   ResumeEducationItem,
   ResumeExportFormat,
+  ResumeTheme,
   ResumeExperienceItem,
   ResumeLanguage,
   ResumeLanguageItem,
@@ -103,6 +104,11 @@ interface ResumeLanguageOption {
 
 interface ResumeExportFormatOption {
   value: ResumeExportFormat;
+  labelKey: string;
+}
+
+interface ResumeThemeOption {
+  value: ResumeTheme;
   labelKey: string;
 }
 
@@ -228,6 +234,11 @@ const RESUME_EXPORT_FORMAT_OPTIONS: readonly ResumeExportFormatOption[] = [
   { value: 'docx', labelKey: 'resumeWorkspace.exportFormatDocx' },
 ];
 
+const RESUME_THEME_OPTIONS: readonly ResumeThemeOption[] = [
+  { value: 'simple', labelKey: 'resumeWorkspace.exportThemeSimple' },
+  { value: 'accent', labelKey: 'resumeWorkspace.exportThemeAccent' },
+];
+
 @Component({
   selector: 'app-resume-detail-page',
   standalone: true,
@@ -262,6 +273,7 @@ export class ResumeDetailPageComponent implements OnInit {
   readonly currentStatusOptions = RESUME_CURRENT_STATUS_OPTIONS;
   readonly languageOptions = RESUME_LANGUAGE_OPTIONS;
   readonly exportFormats = RESUME_EXPORT_FORMAT_OPTIONS;
+  readonly exportThemes = RESUME_THEME_OPTIONS;
   readonly currentStatusSelectOptions = computed<readonly SiteSelectOption[]>(() => {
     this.i18n.language();
     return RESUME_CURRENT_STATUS_OPTIONS.map((option) => ({
@@ -292,10 +304,18 @@ export class ResumeDetailPageComponent implements OnInit {
       })),
     ];
   });
+  readonly exportThemeSelectOptions = computed<readonly SiteSelectOption[]>(() => {
+    this.i18n.language();
+    return RESUME_THEME_OPTIONS.map((option) => ({
+      value: option.value,
+      label: this.i18n.translate(option.labelKey),
+    }));
+  });
   readonly activeTab = signal<ResumeEditorTab>('profile');
   readonly mode = signal<ResumeEditorMode>('edit');
   readonly exportModalOpen = signal(false);
   readonly selectedExportFormat = signal<ResumeExportFormatSelection>('');
+  readonly selectedExportTheme = signal<ResumeTheme>('simple');
   readonly previewLanguage = computed<ResumeLanguage>(() =>
     toResumeLanguage(this.resumeForm.controls.language.getRawValue()),
   );
@@ -514,6 +534,7 @@ export class ResumeDetailPageComponent implements OnInit {
   openExportModal(): void {
     this.exportError.set(null);
     this.selectedExportFormat.set('');
+    this.selectedExportTheme.set('simple');
     this.exportModalOpen.set(true);
   }
 
@@ -527,8 +548,13 @@ export class ResumeDetailPageComponent implements OnInit {
     this.selectedExportFormat.set(isResumeExportFormat(format) ? format : '');
   }
 
+  selectExportTheme(theme: string): void {
+    if (isResumeTheme(theme)) this.selectedExportTheme.set(theme);
+  }
+
   exportResume(): void {
     const format = this.selectedExportFormat();
+    const theme = this.selectedExportTheme();
     if (!isResumeExportFormat(format)) return;
     if (this.resumeForm.invalid) {
       this.exportModalOpen.set(false);
@@ -540,11 +566,11 @@ export class ResumeDetailPageComponent implements OnInit {
     this.validationSubmitted.set(false);
     this.exportError.set(null);
     this.resumeWorkspace
-      .exportResume(this.resumeId, format, payload)
+      .exportResume(this.resumeId, format, theme, payload)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (blob) => {
-          this.downloadExport(blob, format);
+          this.downloadExport(blob, format, theme);
           this.exporting.set(false);
           this.exportModalOpen.set(false);
           this.notifications.success(this.i18n.translate('resumeWorkspace.exported'));
@@ -1556,13 +1582,13 @@ export class ResumeDetailPageComponent implements OnInit {
     return this.route.snapshot.paramMap.get('id') ?? '';
   }
 
-  private downloadExport(blob: Blob, format: ResumeExportFormat): void {
+  private downloadExport(blob: Blob, format: ResumeExportFormat, theme: ResumeTheme): void {
     const browserWindow = this.document.defaultView;
     if (!browserWindow) return;
     const objectUrl = browserWindow.URL.createObjectURL(blob);
     const anchor = this.document.createElement('a');
     anchor.href = objectUrl;
-    anchor.download = `resume-${this.resumeId}.${format}`;
+    anchor.download = `resume-${this.resumeId}-${theme}.${format}`;
     anchor.rel = 'noopener';
     try {
       this.document.body.append(anchor);
@@ -1602,6 +1628,10 @@ function isResumeLanguage(value: string): value is ResumeLanguage {
 
 function isResumeExportFormat(value: string): value is ResumeExportFormat {
   return value === 'pdf' || value === 'docx';
+}
+
+function isResumeTheme(value: string): value is ResumeTheme {
+  return value === 'simple' || value === 'accent';
 }
 
 function toResumeLanguage(value: string): ResumeLanguage {

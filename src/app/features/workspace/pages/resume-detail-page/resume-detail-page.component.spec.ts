@@ -484,12 +484,14 @@ describe('ResumeDetailPageComponent', () => {
     buttonByLabel('Экспорт').click();
     fixture.detectChanges();
     setInputValue('resume-export-format', 'docx');
+    setInputValue('resume-export-theme', 'accent');
     elementByTestId<HTMLButtonElement>('resume-export-submit').click();
     fixture.detectChanges();
 
     expect(service.exportResume).toHaveBeenCalledWith(
       RESUME_ID,
       'docx',
+      'accent',
       expect.objectContaining({
         content: expect.objectContaining({
           summary: {

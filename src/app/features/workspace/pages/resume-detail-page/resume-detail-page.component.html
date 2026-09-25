@@ -174,6 +174,24 @@
             />
           </div>
 
+          <div class="mb-3">
+            <label class="form-label" for="resume-export-theme">
+              {{ 'resumeWorkspace.exportTheme' | t }}
+            </label>
+            <ds-site-select
+              inputId="resume-export-theme"
+              [options]="exportThemeSelectOptions()"
+              controlSize="small"
+              appearance="default"
+              [required]="true"
+              [invalid]="false"
+              [controlDisabled]="exporting()"
+              [value]="selectedExportTheme()"
+              testId="resume-export-theme"
+              (valueChange)="selectExportTheme($event)"
+            />
+          </div>
+
           @if (exportError()) {
             <p class="text-danger small mb-3">{{ 'resumeWorkspace.exportError' | t }}</p>
           }
