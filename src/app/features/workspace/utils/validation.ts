@@ -5,7 +5,29 @@ export const VALIDATION_LIMITS = {
   shortText: 255,
   url: 2048,
   email: 254,
-  resumeLongText: 10000,
+  summary: 1200,
+  experienceSummary: 800,
+  projectDescription: 600,
+  educationDescription: 500,
+  additionalDescription: 500,
+  highlight: 300,
+  visibleText: 50000,
+  skillGroups: 12,
+  skillsPerGroup: 30,
+  skillsTotal: 200,
+  experience: 20,
+  projectsPerExperience: 15,
+  projectsTotal: 100,
+  experienceHighlights: 15,
+  projectHighlights: 12,
+  experienceTechnologies: 30,
+  projectTechnologies: 25,
+  education: 8,
+  languages: 9,
+  certifications: 15,
+  additionalSections: 6,
+  additionalItemsPerSection: 12,
+  additionalItemsTotal: 30,
 } as const;
 
 export function trimRequired(control: AbstractControl<string>): ValidationErrors | null {
@@ -23,6 +45,16 @@ export function emailValidator(control: AbstractControl<string>): ValidationErro
   if (value === '') return null;
   const emailControl = new FormControl(value, { nonNullable: true });
   return Validators.email(emailControl) === null ? null : { email: true };
+}
+
+export function resumePhoneValidator(control: AbstractControl<string>): ValidationErrors | null {
+  const value = control.value.trim();
+  if (value === '') return null;
+  if (!/^\+?[0-9 ()/.-]+(?:\s*(?:ext\.?|x)\s*\d{1,6})?$/i.test(value)) {
+    return { phone: true };
+  }
+  const digitCount = [...value].filter((character) => /\d/.test(character)).length;
+  return digitCount >= 7 && digitCount <= 20 ? null : { phone: true };
 }
 
 export function controlInvalid(control: AbstractControl<unknown>, submitted: boolean): boolean {
@@ -48,6 +80,7 @@ export function validationMessage(
   }
   if (errors['url'] !== undefined) return i18n.translate('validation.url');
   if (errors['email'] !== undefined) return i18n.translate('validation.email');
+  if (errors['phone'] !== undefined) return i18n.translate('resumeWorkspace.validation.phone');
   return null;
 }
 

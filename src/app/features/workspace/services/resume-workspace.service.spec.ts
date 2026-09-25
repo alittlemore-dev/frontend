@@ -101,9 +101,11 @@ describe('ResumeWorkspaceService', () => {
   it('exports current resume payload as a blob through the protected endpoint', () => {
     const payload = resumePayload();
     let exportedBlob: Blob | null = null;
+    let pageCount: number | null = null;
 
-    service.exportResume(RESUME_ID, 'pdf', 'accent', payload).subscribe((blob) => {
-      exportedBlob = blob;
+    service.exportResume(RESUME_ID, 'pdf', 'accent', payload).subscribe((download) => {
+      exportedBlob = download.blob;
+      pageCount = download.pageCount;
     });
 
     const exportReq = httpMock.expectOne((request) =>
@@ -116,9 +118,12 @@ describe('ResumeWorkspaceService', () => {
       theme: 'accent',
       ...payload,
     });
-    exportReq.flush(new Blob(['resume'], { type: 'application/pdf' }));
+    exportReq.flush(new Blob(['resume'], { type: 'application/pdf' }), {
+      headers: { 'X-Resume-Page-Count': '3' },
+    });
 
     expect(exportedBlob?.type).toBe('application/pdf');
+    expect(pageCount).toBe(3);
   });
 
   it('maps nested resume content without sharing mutable DTO arrays', () => {

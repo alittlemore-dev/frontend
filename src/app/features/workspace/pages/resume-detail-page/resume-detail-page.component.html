@@ -507,7 +507,7 @@
                     [class.is-invalid]="fieldInvalid(resumeForm.controls.summary.controls.text)"
                     rows="8"
                     data-testid="resume-summary"
-                    [attr.maxlength]="validationLimits.resumeLongText"
+                    [attr.maxlength]="validationLimits.summary"
                     formControlName="text"
                   ></textarea>
                   @if (
@@ -603,6 +603,10 @@
                             [attr.title]="'resumeWorkspace.action.addListItem' | t"
                             [attr.data-testid]="'resume-skill-' + index + '-add-item'"
                             (click)="addSkillItem(index)"
+                            [disabled]="
+                              skillItems(index).length >= validationLimits.skillsPerGroup ||
+                              totalSkills() >= validationLimits.skillsTotal
+                            "
                           >
                             +
                           </button>
@@ -619,6 +623,7 @@
                   [attr.aria-label]="'resumeWorkspace.action.addSkillGroup' | t"
                   [attr.title]="'resumeWorkspace.action.addSkillGroup' | t"
                   (click)="addSkillGroup()"
+                  [disabled]="skills.length >= validationLimits.skillGroups"
                 >
                   +
                 </button>
@@ -777,7 +782,7 @@
                                   [attr.data-testid]="
                                     'resume-experience-' + index + '-highlight-' + itemIndex
                                   "
-                                  [attr.maxlength]="validationLimits.shortText"
+                                  [attr.maxlength]="validationLimits.highlight"
                                   required
                                   [formControlName]="itemIndex"
                                 />
@@ -811,6 +816,10 @@
                             [attr.title]="'resumeWorkspace.action.addListItem' | t"
                             [attr.data-testid]="'resume-experience-' + index + '-add-highlight'"
                             (click)="addExperienceHighlight(index)"
+                            [disabled]="
+                              experienceHighlights(index).length >=
+                              validationLimits.experienceHighlights
+                            "
                           >
                             +
                           </button>
@@ -871,6 +880,10 @@
                             [attr.title]="'resumeWorkspace.action.addListItem' | t"
                             [attr.data-testid]="'resume-experience-' + index + '-add-technology'"
                             (click)="addExperienceTechnology(index)"
+                            [disabled]="
+                              experienceTechnologies(index).length >=
+                              validationLimits.experienceTechnologies
+                            "
                           >
                             +
                           </button>
@@ -1039,7 +1052,7 @@
                                                 '-highlight-' +
                                                 itemIndex
                                               "
-                                              [attr.maxlength]="validationLimits.shortText"
+                                              [attr.maxlength]="validationLimits.highlight"
                                               required
                                               [formControlName]="itemIndex"
                                             />
@@ -1093,6 +1106,10 @@
                                           '-add-highlight'
                                         "
                                         (click)="addProjectHighlight(index, projectIndex)"
+                                        [disabled]="
+                                          projectHighlights(index, projectIndex).length >=
+                                          validationLimits.projectHighlights
+                                        "
                                       >
                                         +
                                       </button>
@@ -1200,6 +1217,10 @@
                                           '-add-technology'
                                         "
                                         (click)="addProjectTechnology(index, projectIndex)"
+                                        [disabled]="
+                                          projectTechnologies(index, projectIndex).length >=
+                                          validationLimits.projectTechnologies
+                                        "
                                       >
                                         +
                                       </button>
@@ -1252,6 +1273,11 @@
                               [attr.aria-label]="'resumeWorkspace.action.addProject' | t"
                               [attr.title]="'resumeWorkspace.action.addProject' | t"
                               (click)="addExperienceProject(index)"
+                              [disabled]="
+                                experienceProjects(index).length >=
+                                  validationLimits.projectsPerExperience ||
+                                totalProjects() >= validationLimits.projectsTotal
+                              "
                             >
                               +
                             </button>
@@ -1269,6 +1295,7 @@
                   [attr.aria-label]="'resumeWorkspace.action.addCompany' | t"
                   [attr.title]="'resumeWorkspace.action.addCompany' | t"
                   (click)="addExperienceItem()"
+                  [disabled]="experience.length >= validationLimits.experience"
                 >
                   +
                 </button>
@@ -1371,7 +1398,6 @@
                       <div class="col-md-6">
                         <label class="form-label" [for]="'resume-education-' + index + '-end-date'">
                           {{ 'resumeWorkspace.field.endDate' | t }}
-                          <span class="required-marker text-danger" aria-hidden="true">*</span>
                         </label>
                         <ds-localized-date-picker
                           [inputId]="'resume-education-' + index + '-end-date'"
@@ -1379,7 +1405,7 @@
                           controlSize="default"
                           [dateLocale]="dateLocale()"
                           [labels]="datePickerLabels()"
-                          [required]="true"
+                          [required]="false"
                           [invalid]="
                             educationItem.controls.endDate.invalid &&
                             educationItem.controls.endDate.touched
@@ -1413,6 +1439,7 @@
                   [attr.aria-label]="'resumeWorkspace.action.addEducation' | t"
                   [attr.title]="'resumeWorkspace.action.addEducation' | t"
                   (click)="addEducationItem()"
+                  [disabled]="education.length >= validationLimits.education"
                 >
                   +
                 </button>
@@ -1476,6 +1503,7 @@
                   [attr.aria-label]="'resumeWorkspace.action.addLanguage' | t"
                   [attr.title]="'resumeWorkspace.action.addLanguage' | t"
                   (click)="addLanguageItem()"
+                  [disabled]="languages.length >= validationLimits.languages"
                 >
                   +
                 </button>
@@ -1594,6 +1622,7 @@
                   [attr.aria-label]="'resumeWorkspace.action.addCertification' | t"
                   [attr.title]="'resumeWorkspace.action.addCertification' | t"
                   (click)="addCertificationItem()"
+                  [disabled]="certifications.length >= validationLimits.certifications"
                 >
                   +
                 </button>
@@ -1771,6 +1800,11 @@
                               [attr.aria-label]="'resumeWorkspace.action.addAdditionalItem' | t"
                               [attr.title]="'resumeWorkspace.action.addAdditionalItem' | t"
                               (click)="addAdditionalItem(sectionIndex)"
+                              [disabled]="
+                                additionalItems(sectionIndex).length >=
+                                  validationLimits.additionalItemsPerSection ||
+                                totalAdditionalItems() >= validationLimits.additionalItemsTotal
+                              "
                             >
                               +
                             </button>
@@ -1788,6 +1822,7 @@
                   [attr.aria-label]="'resumeWorkspace.action.addAdditionalSection' | t"
                   [attr.title]="'resumeWorkspace.action.addAdditionalSection' | t"
                   (click)="addAdditionalSection()"
+                  [disabled]="additionalSections.length >= validationLimits.additionalSections"
                 >
                   +
                 </button>

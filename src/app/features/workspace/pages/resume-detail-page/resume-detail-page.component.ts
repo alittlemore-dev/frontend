@@ -67,6 +67,7 @@ import {
   controlInvalid,
   emailValidator,
   httpUrlValidator,
+  resumePhoneValidator,
   trimRequired,
   validationMessage,
 } from '../../utils/validation';
@@ -417,6 +418,21 @@ export class ResumeDetailPageComponent implements OnInit {
     return this.resumeForm.controls.additionalSections;
   }
 
+  totalSkills(): number {
+    return this.skills.controls.reduce((sum, group) => sum + group.controls.items.length, 0);
+  }
+
+  totalProjects(): number {
+    return this.experience.controls.reduce((sum, item) => sum + item.controls.projects.length, 0);
+  }
+
+  totalAdditionalItems(): number {
+    return this.additionalSections.controls.reduce(
+      (sum, section) => sum + section.controls.items.length,
+      0,
+    );
+  }
+
   ngOnInit(): void {
     this.resumeForm.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       this.resumeFormSnapshot.set(this.resumeForm.getRawValue());
@@ -478,7 +494,7 @@ export class ResumeDetailPageComponent implements OnInit {
   }
 
   saveResume(): void {
-    if (this.resumeForm.invalid) {
+    if (this.collectValidationIssues().length > 0) {
       this.handleInvalidResumeForm();
       return;
     }
@@ -556,12 +572,17 @@ export class ResumeDetailPageComponent implements OnInit {
     const format = this.selectedExportFormat();
     const theme = this.selectedExportTheme();
     if (!isResumeExportFormat(format)) return;
-    if (this.resumeForm.invalid) {
+    if (this.collectValidationIssues().length > 0) {
       this.exportModalOpen.set(false);
       this.handleInvalidResumeForm();
       return;
     }
     const payload = this.buildPayload();
+    const exportWarnings = this.exportWarnings(payload);
+    if (exportWarnings.length > 0) {
+      const browserWindow = this.document.defaultView;
+      if (!browserWindow?.confirm(exportWarnings.join('\n\n'))) return;
+    }
     this.exporting.set(true);
     this.validationSubmitted.set(false);
     this.exportError.set(null);
@@ -569,11 +590,15 @@ export class ResumeDetailPageComponent implements OnInit {
       .exportResume(this.resumeId, format, theme, payload)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (blob) => {
-          this.downloadExport(blob, format, theme);
+        next: (download) => {
+          this.downloadExport(download.blob, format, theme);
           this.exporting.set(false);
           this.exportModalOpen.set(false);
-          this.notifications.success(this.i18n.translate('resumeWorkspace.exported'));
+          const message =
+            download.pageCount !== null && download.pageCount > 2
+              ? this.i18n.translate('resumeWorkspace.exportedLong', { pages: download.pageCount })
+              : this.i18n.translate('resumeWorkspace.exported');
+          this.notifications.success(message);
         },
         error: (err: ApiError) => {
           this.exportError.set(err);
@@ -608,7 +633,7 @@ export class ResumeDetailPageComponent implements OnInit {
   }
 
   addExperienceHighlight(experienceIndex: number): void {
-    this.addTextListItem(this.experienceHighlights(experienceIndex));
+    this.addTextListItem(this.experienceHighlights(experienceIndex), VALIDATION_LIMITS.highlight);
   }
 
   removeExperienceHighlight(experienceIndex: number, itemIndex: number): void {
@@ -634,7 +659,10 @@ export class ResumeDetailPageComponent implements OnInit {
   }
 
   addProjectHighlight(experienceIndex: number, projectIndex: number): void {
-    this.addTextListItem(this.projectHighlights(experienceIndex, projectIndex));
+    this.addTextListItem(
+      this.projectHighlights(experienceIndex, projectIndex),
+      VALIDATION_LIMITS.highlight,
+    );
   }
 
   removeProjectHighlight(experienceIndex: number, projectIndex: number, itemIndex: number): void {
@@ -853,6 +881,56 @@ export class ResumeDetailPageComponent implements OnInit {
     });
   }
 
+  private exportWarnings(payload: ResumePayload): string[] {
+    const warnings: string[] = [];
+    const {
+      profile,
+      summary,
+      skills,
+      experience,
+      education,
+      languages,
+      certifications,
+      additionalSections,
+    } = payload.content;
+    if (
+      ![
+        profile.email,
+        profile.phone,
+        profile.telegram,
+        profile.websiteUrl,
+        profile.linkedinUrl,
+        profile.githubUrl,
+      ].some((value) => value.trim())
+    ) {
+      warnings.push(this.i18n.translate('resumeWorkspace.exportMissingContact'));
+    }
+    if (
+      !summary.text &&
+      ![skills, experience, education, languages, certifications, additionalSections].some(
+        (section) => section.length > 0,
+      )
+    ) {
+      warnings.push(this.i18n.translate('resumeWorkspace.exportSparse'));
+    }
+    if (visibleResumeTextLength(payload.content) > 6000) {
+      warnings.push(this.i18n.translate('resumeWorkspace.exportLong'));
+    }
+    const experienceKeys = experience.map((item) =>
+      `${item.company}|${item.position}|${item.startDate}`.toLocaleLowerCase(),
+    );
+    const certificationKeys = certifications.map((item) =>
+      `${item.name}|${item.issuer}|${item.issuedOn}`.toLocaleLowerCase(),
+    );
+    if (
+      new Set(experienceKeys).size !== experienceKeys.length ||
+      new Set(certificationKeys).size !== certificationKeys.length
+    ) {
+      warnings.push(this.i18n.translate('resumeWorkspace.exportPossibleDuplicates'));
+    }
+    return warnings;
+  }
+
   private collectValidationIssues(): ResumeValidationIssue[] {
     const issues: ResumeValidationIssue[] = [];
     this.addControlValidationIssue(
@@ -875,7 +953,159 @@ export class ResumeDetailPageComponent implements OnInit {
     this.collectLanguagesValidationIssues(issues);
     this.collectCertificationsValidationIssues(issues);
     this.collectAdditionalSectionsValidationIssues(issues);
+    this.collectResumeRuleIssues(issues);
     return issues;
+  }
+
+  private collectResumeRuleIssues(issues: ResumeValidationIssue[]): void {
+    const value = this.resumeForm.getRawValue();
+    const limits = VALIDATION_LIMITS;
+    const count = (tab: ResumeEditorTab, path: string[], actual: number, max: number): void => {
+      if (actual > max) this.addRuleIssue(issues, tab, path, 'maxItems', { max });
+    };
+    const unique = (tab: ResumeEditorTab, path: string[], values: string[]): void => {
+      const normalized = values.map((item) => item.trim().replace(/\s+/g, ' ').toLocaleLowerCase());
+      if (new Set(normalized).size !== normalized.length) {
+        this.addRuleIssue(issues, tab, path, 'duplicate');
+      }
+    };
+    count('skills', [this.tabLabel('skills')], value.skills.length, limits.skillGroups);
+    count('experience', [this.tabLabel('experience')], value.experience.length, limits.experience);
+    count('education', [this.tabLabel('education')], value.education.length, limits.education);
+    count('languages', [this.tabLabel('languages')], value.languages.length, limits.languages);
+    count(
+      'certifications',
+      [this.tabLabel('certifications')],
+      value.certifications.length,
+      limits.certifications,
+    );
+    count(
+      'additional',
+      [this.tabLabel('additional')],
+      value.additionalSections.length,
+      limits.additionalSections,
+    );
+
+    unique(
+      'skills',
+      [this.tabLabel('skills')],
+      value.skills.map((item) => item.category),
+    );
+    unique(
+      'languages',
+      [this.tabLabel('languages')],
+      value.languages.map((item) => item.name),
+    );
+    unique(
+      'additional',
+      [this.tabLabel('additional')],
+      value.additionalSections.map((item) => item.title),
+    );
+    count(
+      'skills',
+      [this.tabLabel('skills')],
+      value.skills.reduce((sum, item) => sum + item.items.length, 0),
+      limits.skillsTotal,
+    );
+    value.skills.forEach((item, index) => {
+      const path = [this.tabLabel('skills'), this.entryLabel('skillGroup', index)];
+      if (item.items.length === 0)
+        this.addRuleIssue(issues, 'skills', path, 'minItems', { min: 1 });
+      count('skills', path, item.items.length, limits.skillsPerGroup);
+      unique('skills', path, item.items);
+    });
+
+    count(
+      'experience',
+      [this.tabLabel('experience')],
+      value.experience.reduce((sum, item) => sum + item.projects.length, 0),
+      limits.projectsTotal,
+    );
+    value.experience.forEach((item, index) => {
+      const path = [this.tabLabel('experience'), this.entryLabel('company', index)];
+      count('experience', path, item.highlights.length, limits.experienceHighlights);
+      count('experience', path, item.technologies.length, limits.experienceTechnologies);
+      count('experience', path, item.projects.length, limits.projectsPerExperience);
+      unique('experience', path, item.technologies);
+      if (!item.summary.trim() && !item.highlights.length && !item.projects.length) {
+        this.addRuleIssue(issues, 'experience', path, 'contentRequired');
+      }
+      if (item.startDate && item.endDate && item.endDate < item.startDate) {
+        this.addRuleIssue(issues, 'experience', path, 'dateOrder');
+      }
+      if (item.currentStatus === 'current' && item.endDate) {
+        this.addRuleIssue(issues, 'experience', path, 'currentEnd');
+      }
+      item.projects.forEach((project, projectIndex) => {
+        const projectPath = [...path, this.entryLabel('project', projectIndex)];
+        count('experience', projectPath, project.highlights.length, limits.projectHighlights);
+        count('experience', projectPath, project.technologies.length, limits.projectTechnologies);
+        unique('experience', projectPath, project.technologies);
+        if (!project.description.trim() && !project.highlights.length) {
+          this.addRuleIssue(issues, 'experience', projectPath, 'contentRequired');
+        }
+      });
+    });
+    value.education.forEach((item, index) => {
+      if (item.startDate && item.endDate && item.endDate < item.startDate) {
+        this.addRuleIssue(
+          issues,
+          'education',
+          [this.tabLabel('education'), this.entryLabel('education', index)],
+          'dateOrder',
+        );
+      }
+    });
+    value.certifications.forEach((item, index) => {
+      if (item.issuedOn && item.expiresOn && item.expiresOn < item.issuedOn) {
+        this.addRuleIssue(
+          issues,
+          'certifications',
+          [this.tabLabel('certifications'), this.entryLabel('certification', index)],
+          'dateOrder',
+        );
+      }
+    });
+    count(
+      'additional',
+      [this.tabLabel('additional')],
+      value.additionalSections.reduce((sum, section) => sum + section.items.length, 0),
+      limits.additionalItemsTotal,
+    );
+    value.additionalSections.forEach((section, index) => {
+      count(
+        'additional',
+        [this.tabLabel('additional'), this.entryLabel('additionalSection', index)],
+        section.items.length,
+        limits.additionalItemsPerSection,
+      );
+    });
+    const contentTextLength =
+      visibleResumeTextLength(value) -
+      visibleResumeTextLength(value.title) -
+      visibleResumeTextLength(value.language);
+    if (contentTextLength > limits.visibleText) {
+      this.addRuleIssue(issues, 'summary', [this.tabLabel('summary')], 'textTotal', {
+        max: limits.visibleText,
+      });
+    }
+  }
+
+  private addRuleIssue(
+    issues: ResumeValidationIssue[],
+    tab: ResumeEditorTab,
+    path: string[],
+    key: string,
+    params: Record<string, string | number> = {},
+  ): void {
+    const message = this.i18n.translate(`resumeWorkspace.validation.${key}`, params);
+    issues.push({
+      tab,
+      message: this.i18n.translate('resumeWorkspace.validationIssue', {
+        field: path.join(this.i18n.translate('resumeWorkspace.validationPathSeparator')),
+        message,
+      }),
+    });
   }
 
   private collectProfileValidationIssues(issues: ResumeValidationIssue[]): void {
@@ -1284,7 +1514,7 @@ export class ResumeDetailPageComponent implements OnInit {
       role: this.requiredText(profile.role, VALIDATION_LIMITS.shortText),
       location: this.text(profile.location, VALIDATION_LIMITS.shortText),
       email: this.textWithValidators(profile.email, VALIDATION_LIMITS.email, [emailValidator]),
-      phone: this.text(profile.phone, 255),
+      phone: this.textWithValidators(profile.phone, 64, [resumePhoneValidator]),
       websiteUrl: this.urlText(profile.websiteUrl),
       linkedinUrl: this.urlText(profile.linkedinUrl),
       githubUrl: this.urlText(profile.githubUrl),
@@ -1294,7 +1524,7 @@ export class ResumeDetailPageComponent implements OnInit {
 
   private createSummaryForm(summary: ResumeSummary): FormGroup<ResumeSummaryForm> {
     return new FormGroup<ResumeSummaryForm>({
-      text: this.text(summary.text, VALIDATION_LIMITS.resumeLongText),
+      text: this.text(summary.text, VALIDATION_LIMITS.summary),
     });
   }
 
@@ -1315,8 +1545,8 @@ export class ResumeDetailPageComponent implements OnInit {
       startDate: this.requiredNullableText(item.startDate, 32),
       endDate: this.nullableText(item.endDate, 32),
       currentStatus: this.currentStatus(item.currentStatus),
-      summary: this.text(item.summary, VALIDATION_LIMITS.resumeLongText),
-      highlights: this.createTextListForm(item.highlights),
+      summary: this.text(item.summary, VALIDATION_LIMITS.experienceSummary),
+      highlights: this.createTextListForm(item.highlights, VALIDATION_LIMITS.highlight),
       technologies: this.createTextListForm(item.technologies),
       projects: new FormArray<FormGroup<ResumeProjectItemForm>>(
         item.projects.map((project) => this.createProjectItemForm(project)),
@@ -1328,8 +1558,8 @@ export class ResumeDetailPageComponent implements OnInit {
     return new FormGroup<ResumeProjectItemForm>({
       name: this.requiredText(item.name, VALIDATION_LIMITS.shortText),
       role: this.requiredText(item.role, VALIDATION_LIMITS.shortText),
-      description: this.text(item.description, VALIDATION_LIMITS.resumeLongText),
-      highlights: this.createTextListForm(item.highlights),
+      description: this.text(item.description, VALIDATION_LIMITS.projectDescription),
+      highlights: this.createTextListForm(item.highlights, VALIDATION_LIMITS.highlight),
       technologies: this.createTextListForm(item.technologies),
       url: this.urlText(item.url),
     });
@@ -1342,8 +1572,8 @@ export class ResumeDetailPageComponent implements OnInit {
       field: this.requiredText(item.field, VALIDATION_LIMITS.shortText),
       location: this.requiredText(item.location, VALIDATION_LIMITS.shortText),
       startDate: this.requiredNullableText(item.startDate, 32),
-      endDate: this.requiredNullableText(item.endDate, 32),
-      description: this.text(item.description, VALIDATION_LIMITS.resumeLongText),
+      endDate: this.nullableText(item.endDate, 32),
+      description: this.text(item.description, VALIDATION_LIMITS.educationDescription),
     });
   }
 
@@ -1383,7 +1613,7 @@ export class ResumeDetailPageComponent implements OnInit {
   ): FormGroup<ResumeAdditionalSectionItemForm> {
     return new FormGroup<ResumeAdditionalSectionItemForm>({
       title: this.requiredText(item.title, VALIDATION_LIMITS.shortText),
-      description: this.text(item.description, VALIDATION_LIMITS.resumeLongText),
+      description: this.text(item.description, VALIDATION_LIMITS.additionalDescription),
       url: this.urlText(item.url),
     });
   }
@@ -1426,16 +1656,22 @@ export class ResumeDetailPageComponent implements OnInit {
     return this.formBuilder.control(value);
   }
 
-  private createTextListForm(values: string[]): FormArray<TextControl> {
-    return new FormArray<TextControl>(values.map((value) => this.listText(value)));
+  private createTextListForm(
+    values: string[],
+    maxLength: number = VALIDATION_LIMITS.shortText,
+  ): FormArray<TextControl> {
+    return new FormArray<TextControl>(values.map((value) => this.listText(value, maxLength)));
   }
 
-  private listText(value: string): TextControl {
-    return this.requiredText(value, VALIDATION_LIMITS.shortText);
+  private listText(value: string, maxLength: number): TextControl {
+    return this.requiredText(value, maxLength);
   }
 
-  private addTextListItem(list: FormArray<TextControl>): void {
-    list.push(this.listText(''));
+  private addTextListItem(
+    list: FormArray<TextControl>,
+    maxLength: number = VALIDATION_LIMITS.shortText,
+  ): void {
+    list.push(this.listText('', maxLength));
   }
 
   private removeTextListItem(list: FormArray<TextControl>, index: number): void {
@@ -1602,6 +1838,20 @@ export class ResumeDetailPageComponent implements OnInit {
 
 function cleanText(value: string): string {
   return value.trim();
+}
+
+function visibleResumeTextLength(value: unknown): number {
+  if (typeof value === 'string') return value.trim().length;
+  if (Array.isArray(value)) {
+    return value.reduce<number>((sum, item: unknown) => sum + visibleResumeTextLength(item), 0);
+  }
+  if (typeof value !== 'object' || value === null) return 0;
+  return Object.entries(value).reduce((sum, [key, item]) => {
+    if (/(?:Url|Date)$/.test(key) || ['issuedOn', 'expiresOn', 'currentStatus'].includes(key)) {
+      return sum;
+    }
+    return sum + visibleResumeTextLength(item);
+  }, 0);
 }
 
 function cleanPreviewText(value: string): string | null {

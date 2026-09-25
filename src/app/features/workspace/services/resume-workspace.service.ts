@@ -16,6 +16,11 @@ import {
   toResumePayloadDto,
 } from '../models/resume-workspace.model';
 
+export interface ResumeExportDownload {
+  blob: Blob;
+  pageCount: number | null;
+}
+
 @Injectable({ providedIn: 'root' })
 export class ResumeWorkspaceService {
   private readonly api = inject(ApiClient);
@@ -54,10 +59,27 @@ export class ResumeWorkspaceService {
     format: ResumeExportFormat,
     theme: ResumeTheme,
     payload: ResumePayload,
-  ): Observable<Blob> {
-    return this.api.postBlob(
-      `/api/personal-workspace/resumes/${id}/export`,
-      toResumeExportPayloadDto(payload, format, theme),
-    );
+  ): Observable<ResumeExportDownload> {
+    return this.api
+      .postBlobResponse(
+        `/api/personal-workspace/resumes/${id}/export`,
+        toResumeExportPayloadDto(payload, format, theme),
+      )
+      .pipe(
+        map((response) => {
+          if (response.body === null) throw new Error('Empty resume export response');
+          const rawPageCount = response.headers.get('X-Resume-Page-Count');
+          const parsedPageCount = rawPageCount === null ? null : Number(rawPageCount);
+          return {
+            blob: response.body,
+            pageCount:
+              parsedPageCount !== null &&
+              Number.isSafeInteger(parsedPageCount) &&
+              parsedPageCount > 0
+                ? parsedPageCount
+                : null,
+          };
+        }),
+      );
   }
 }

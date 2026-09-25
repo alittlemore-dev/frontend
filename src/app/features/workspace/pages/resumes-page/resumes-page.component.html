@@ -223,7 +223,7 @@
                   [class.is-invalid]="createFieldInvalid('summary')"
                   rows="4"
                   data-testid="resume-create-summary"
-                  [attr.maxlength]="validationLimits.resumeLongText"
+                  [attr.maxlength]="validationLimits.summary"
                   formControlName="summary"
                 ></textarea>
                 @if (createFieldInvalid('summary') && createFieldMessage('summary'); as message) {

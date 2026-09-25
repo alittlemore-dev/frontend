@@ -125,7 +125,7 @@ export class ResumesPageComponent implements OnInit {
     language: ['', trimRequired],
     fullName: ['', [trimRequired, Validators.maxLength(VALIDATION_LIMITS.shortText)]],
     role: ['', [trimRequired, Validators.maxLength(VALIDATION_LIMITS.shortText)]],
-    summary: ['', [trimRequired, Validators.maxLength(VALIDATION_LIMITS.resumeLongText)]],
+    summary: ['', [Validators.maxLength(VALIDATION_LIMITS.summary)]],
   });
 
   constructor() {

@@ -62,7 +62,9 @@ describe('ResumeDetailPageComponent', () => {
       deleteResume: jest.fn().mockReturnValue(of(undefined)),
       exportResume: jest
         .fn()
-        .mockReturnValue(of(new Blob(['resume'], { type: 'application/pdf' }))),
+        .mockReturnValue(
+          of({ blob: new Blob(['resume'], { type: 'application/pdf' }), pageCount: null }),
+        ),
     };
     notifications = {
       success: jest.fn(),
@@ -143,6 +145,61 @@ describe('ResumeDetailPageComponent', () => {
       }) satisfies ResumePayload,
     );
     expect(notifications.success).toHaveBeenCalledWith('Резюме сохранено.');
+  });
+
+  it('saves experience and project highlights at the new length limit', () => {
+    fixture.componentInstance.setActiveTab('experience');
+    fixture.detectChanges();
+    setElementValueById('resume-experience-0-highlight-0', 'x'.repeat(300));
+    setElementValueById('resume-experience-0-project-0-highlight-0', 'y'.repeat(300));
+
+    fixture.componentInstance.saveResume();
+
+    const payload = service.updateResume.mock.calls[0][1] as ResumePayload;
+    expect(payload.content.experience[0].highlights).toEqual(['x'.repeat(300)]);
+    expect(payload.content.experience[0].projects[0].highlights).toEqual(['y'.repeat(300)]);
+  });
+
+  it('stops adding skill groups at the limit and explains an oversized loaded draft', () => {
+    fixture.componentInstance.setActiveTab('skills');
+    for (let index = 0; index < 12; index += 1) fixture.componentInstance.addSkillGroup();
+    fixture.detectChanges();
+
+    expect(buttonByLabel('Добавить группу навыков').disabled).toBe(true);
+    fixture.componentInstance.addSkillGroup();
+    fixture.componentInstance.saveResume();
+    fixture.detectChanges();
+
+    expect(service.updateResume).not.toHaveBeenCalled();
+    expect(elementByTestId<HTMLElement>('resume-validation-summary').textContent).toContain(
+      'Навыки — Максимум 12 элементов.',
+    );
+  });
+
+  it('warns before exporting a resume without contact details', () => {
+    const confirm = jest.spyOn(window, 'confirm').mockReturnValue(false);
+    setElementValueById('resume-profile-email', '');
+    fixture.componentInstance.openExportModal();
+    fixture.componentInstance.selectExportFormat('pdf');
+
+    fixture.componentInstance.exportResume();
+
+    expect(confirm).toHaveBeenCalledWith(expect.stringContaining('В резюме нет контактов'));
+    expect(service.exportResume).not.toHaveBeenCalled();
+  });
+
+  it('reports the actual PDF page count when an export exceeds two pages', () => {
+    service.exportResume.mockReturnValueOnce(
+      of({ blob: new Blob(['resume'], { type: 'application/pdf' }), pageCount: 3 }),
+    );
+    fixture.componentInstance.openExportModal();
+    fixture.componentInstance.selectExportFormat('pdf');
+
+    fixture.componentInstance.exportResume();
+
+    expect(notifications.success).toHaveBeenCalledWith(
+      'Резюме экспортировано (3 стр.). Рекомендуем сократить его до 1–2 страниц.',
+    );
   });
 
   it('tracks the complete editor against the loaded and saved resume', () => {
@@ -578,7 +635,15 @@ describe('ResumeDetailPageComponent', () => {
       tab: 'profile',
       elementId: 'resume-profile-phone',
       invalidValue: INVALID_SHORT_TEXT,
-      expectedIssue: 'Профиль / Телефон — Максимум 255 символов.',
+      expectedIssue: 'Профиль / Телефон — Максимум 64 символов.',
+    },
+    {
+      description: 'profile phone format',
+      tab: 'profile',
+      elementId: 'resume-profile-phone',
+      invalidValue: 'not-a-phone',
+      expectedIssue:
+        'Профиль / Телефон — Укажите номер с 7–20 цифрами; допустимы +, пробелы, скобки и дефисы.',
     },
     {
       description: 'profile website URL',
@@ -613,7 +678,7 @@ describe('ResumeDetailPageComponent', () => {
       tab: 'summary',
       elementId: 'resume-summary',
       invalidValue: INVALID_LONG_TEXT,
-      expectedIssue: 'Саммари / Саммари — Максимум 10000 символов.',
+      expectedIssue: 'Саммари / Саммари — Максимум 1200 символов.',
     },
     {
       description: 'skill category',
@@ -704,14 +769,14 @@ describe('ResumeDetailPageComponent', () => {
       tab: 'experience',
       elementId: 'resume-experience-0-summary',
       invalidValue: INVALID_LONG_TEXT,
-      expectedIssue: 'Опыт / Компания 1 / Саммари — Максимум 10000 символов.',
+      expectedIssue: 'Опыт / Компания 1 / Саммари — Максимум 800 символов.',
     },
     {
       description: 'experience highlight',
       tab: 'experience',
       elementId: 'resume-experience-0-highlight-0',
-      invalidValue: INVALID_SHORT_TEXT,
-      expectedIssue: 'Опыт / Компания 1 / Достижения / Пункт 1 — Максимум 255 символов.',
+      invalidValue: INVALID_LONG_TEXT,
+      expectedIssue: 'Опыт / Компания 1 / Достижения / Пункт 1 — Максимум 300 символов.',
     },
     {
       description: 'experience technology',
@@ -753,14 +818,14 @@ describe('ResumeDetailPageComponent', () => {
       tab: 'experience',
       elementId: 'resume-experience-0-project-0-description',
       invalidValue: INVALID_LONG_TEXT,
-      expectedIssue: 'Опыт / Компания 1 / Проект 1 / Описание — Максимум 10000 символов.',
+      expectedIssue: 'Опыт / Компания 1 / Проект 1 / Описание — Максимум 600 символов.',
     },
     {
       description: 'project highlight',
       tab: 'experience',
       elementId: 'resume-experience-0-project-0-highlight-0',
-      invalidValue: INVALID_SHORT_TEXT,
-      expectedIssue: 'Опыт / Компания 1 / Проект 1 / Достижения / Пункт 1 — Максимум 255 символов.',
+      invalidValue: INVALID_LONG_TEXT,
+      expectedIssue: 'Опыт / Компания 1 / Проект 1 / Достижения / Пункт 1 — Максимум 300 символов.',
     },
     {
       description: 'project technology',
@@ -857,14 +922,6 @@ describe('ResumeDetailPageComponent', () => {
       expectedIssue: 'Образование / Образование 1 / Начало — Максимум 32 символов.',
     },
     {
-      description: 'education end date',
-      tab: 'education',
-      setup: 'education',
-      elementId: 'resume-education-0-end-date',
-      invalidValue: '',
-      expectedIssue: 'Образование / Образование 1 / Окончание — Заполните поле.',
-    },
-    {
       description: 'education end date length',
       tab: 'education',
       setup: 'education',
@@ -878,7 +935,7 @@ describe('ResumeDetailPageComponent', () => {
       setup: 'education',
       elementId: 'resume-education-0-description',
       invalidValue: INVALID_LONG_TEXT,
-      expectedIssue: 'Образование / Образование 1 / Описание — Максимум 10000 символов.',
+      expectedIssue: 'Образование / Образование 1 / Описание — Максимум 500 символов.',
     },
     {
       description: 'language name',
@@ -1009,7 +1066,7 @@ describe('ResumeDetailPageComponent', () => {
       setup: 'additionalItem',
       elementId: 'resume-additional-section-0-item-0-description',
       invalidValue: INVALID_LONG_TEXT,
-      expectedIssue: 'Дополнительно / Раздел 1 / Пункт 1 / Описание — Максимум 10000 символов.',
+      expectedIssue: 'Дополнительно / Раздел 1 / Пункт 1 / Описание — Максимум 500 символов.',
     },
   ])('highlights and summarizes invalid resume field: $description', (field) => {
     fixture.componentInstance.setActiveTab(field.tab);
@@ -1301,6 +1358,7 @@ describe('ResumeDetailPageComponent', () => {
 
     setElementValueById('resume-experience-0-start-date', '31.01.2024');
     setElementValueById('resume-experience-0-end-date', '01.02.2024');
+    setElementValueById('resume-experience-current-0', 'notCurrent');
 
     fixture.componentInstance.saveResume();
 

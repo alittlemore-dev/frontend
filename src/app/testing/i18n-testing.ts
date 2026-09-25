@@ -1072,6 +1072,24 @@ const I18N_TEST_MESSAGES: Record<string, string> = {
   'resumeWorkspace.validationIssue': '{field} — {message}',
   'resumeWorkspace.validationPathSeparator': ' / ',
   'resumeWorkspace.validationListItem': 'Пункт {index}',
+  'resumeWorkspace.validation.maxItems': 'Максимум {max} элементов.',
+  'resumeWorkspace.validation.minItems': 'Минимум {min} элемент.',
+  'resumeWorkspace.validation.duplicate': 'Есть повторяющиеся значения.',
+  'resumeWorkspace.validation.phone':
+    'Укажите номер с 7–20 цифрами; допустимы +, пробелы, скобки и дефисы.',
+  'resumeWorkspace.validation.contentRequired': 'Добавьте описание или достижение.',
+  'resumeWorkspace.validation.dateOrder': 'Дата окончания раньше даты начала.',
+  'resumeWorkspace.validation.currentEnd': 'У текущей работы не должно быть даты окончания.',
+  'resumeWorkspace.validation.textTotal': 'Общий текст превышает {max} символов.',
+  'resumeWorkspace.exportMissingContact': 'В резюме нет контактов. Экспортировать всё равно?',
+  'resumeWorkspace.exportSparse':
+    'В резюме пока нет содержательных разделов. Экспортировать всё равно?',
+  'resumeWorkspace.exportLong':
+    'Резюме может оказаться длиннее двух страниц. Экспортировать всё равно?',
+  'resumeWorkspace.exportPossibleDuplicates':
+    'Проверьте возможные дубли опыта или сертификатов. Экспортировать всё равно?',
+  'resumeWorkspace.exportedLong':
+    'Резюме экспортировано ({pages} стр.). Рекомендуем сократить его до 1–2 страниц.',
   'resumeWorkspace.delete': 'Удалить',
   'resumeWorkspace.deleted': 'Резюме удалено.',
   'resumeWorkspace.deleteError': 'Не удалось удалить резюме.',

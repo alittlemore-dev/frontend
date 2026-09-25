@@ -1,5 +1,11 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpContext, HttpHeaders, HttpParams } from '@angular/common/http';
+import {
+  HttpClient,
+  HttpContext,
+  HttpHeaders,
+  HttpParams,
+  HttpResponse,
+} from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
@@ -39,6 +45,18 @@ export class ApiClient {
     return this.http.post(`${this.baseUrl}${path}`, body, {
       ...this.toHttpOptions(paramsOrOptions),
       responseType: 'blob',
+    });
+  }
+
+  postBlobResponse(
+    path: string,
+    body: unknown,
+    paramsOrOptions?: ParamsOrOptions,
+  ): Observable<HttpResponse<Blob>> {
+    return this.http.post(`${this.baseUrl}${path}`, body, {
+      ...this.toHttpOptions(paramsOrOptions),
+      responseType: 'blob',
+      observe: 'response',
     });
   }
 
