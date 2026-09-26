@@ -1,0 +1,210 @@
+<h2 class="h5 mb-3">{{ 'account.telegram.title' | t }}</h2>
+@if (loading()) {
+  <p role="status">{{ 'shared.loading' | t }}</p>
+}
+@if (error()) {
+  <div class="alert alert-danger" role="alert">
+    {{ error() | t }}
+    @if (!settings()) {
+      <button type="button" class="btn btn-outline-secondary btn-sm ms-2" (click)="load()">
+        {{ 'shared.retry' | t }}
+      </button>
+    }
+  </div>
+}
+@if (settings(); as data) {
+  @if (!data.available) {
+    <p class="alert alert-info">{{ 'account.telegram.unavailable' | t }}</p>
+  } @else {
+    <div class="form-check form-switch mb-3">
+      <input
+        #telegramToggle
+        id="telegram-enabled"
+        type="checkbox"
+        class="form-check-input"
+        [checked]="data.enabled"
+        [disabled]="busy()"
+        (change)="setEnabled(telegramToggle.checked)"
+      />
+      <label class="form-check-label" for="telegram-enabled">{{
+        'account.telegram.enabled' | t
+      }}</label>
+    </div>
+    @if (data.enabled) {
+      <p class="text-body-secondary">{{ 'account.telegram.inviteHint' | t }}</p>
+      <div class="row g-2 align-items-end mb-3">
+        <div class="col-12 col-md-5">
+          <label class="form-label" for="telegram-invite-label"
+            >{{ 'account.telegram.label' | t }}
+            <span class="required-marker text-danger" aria-hidden="true">*</span></label
+          >
+          <input
+            id="telegram-invite-label"
+            class="form-control"
+            type="text"
+            maxlength="100"
+            required
+            [formControl]="inviteLabel"
+          />
+        </div>
+        <div class="col-auto">
+          <button
+            id="telegram-create-invite"
+            class="btn btn-primary"
+            type="button"
+            [disabled]="busy()"
+            (click)="createInvitation()"
+          >
+            {{ 'account.telegram.createInvite' | t }}
+          </button>
+        </div>
+      </div>
+      @if (issued(); as invite) {
+        <div class="alert alert-success" role="status">
+          <p class="mb-1">{{ 'account.telegram.linkOnce' | t }}</p>
+          <a
+            id="telegram-invite-link"
+            [href]="invite.url"
+            target="_blank"
+            rel="noopener noreferrer"
+            >{{ invite.url }}</a
+          >
+          <p class="small mb-0">
+            {{ 'account.telegram.expires' | t }}: {{ invite.expiresAt | date: 'medium' }}
+          </p>
+        </div>
+      }
+      @for (invite of data.invitations; track invite.id) {
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <span
+            >{{ invite.label }} · {{ 'account.telegram.expires' | t }}
+            {{ invite.expiresAt | date: 'medium' }}</span
+          >
+          <button
+            class="btn btn-outline-danger btn-sm"
+            type="button"
+            [disabled]="busy()"
+            (click)="cancelInvitation(invite.id)"
+          >
+            {{ 'account.telegram.cancelInvite' | t }}
+          </button>
+        </div>
+      }
+    }
+    <h3 class="h6 mt-4">{{ 'account.telegram.connections' | t }}</h3>
+    @if (data.connections.length === 0) {
+      <p class="text-body-secondary">{{ 'account.telegram.noConnections' | t }}</p>
+    } @else {
+      <div class="table-responsive">
+        <table class="table align-middle">
+          <thead>
+            <tr>
+              <th scope="col">{{ 'account.telegram.label' | t }}</th>
+              <th scope="col">Telegram ID</th>
+              <th scope="col">{{ 'account.telegram.state' | t }}</th>
+              <th scope="col">{{ 'shared.actions' | t }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (connection of data.connections; track connection.id) {
+              <tr>
+                <td>
+                  @if (editingId() === connection.id) {
+                    <label class="visually-hidden" [for]="'telegram-rename-' + connection.id">{{
+                      'account.telegram.label' | t
+                    }}</label>
+                    <input
+                      [id]="'telegram-rename-' + connection.id"
+                      class="form-control form-control-sm"
+                      type="text"
+                      maxlength="100"
+                      required
+                      [formControl]="editLabel"
+                    />
+                    <button
+                      type="button"
+                      class="btn btn-primary btn-sm mt-1"
+                      [disabled]="busy()"
+                      (click)="rename(connection.id)"
+                    >
+                      {{ 'account.telegram.saveLabel' | t }}
+                    </button>
+                  } @else {
+                    <span>{{ connection.label }}</span>
+                    <button
+                      type="button"
+                      class="btn btn-link btn-sm"
+                      (click)="beginRename(connection.id, connection.label)"
+                    >
+                      {{ 'account.telegram.rename' | t }}
+                    </button>
+                  }
+                  <div class="small text-body-secondary">
+                    {{ connection.firstName }}
+                    @if (connection.username) {
+                      · {{ '@' + connection.username }}
+                    }
+                  </div>
+                </td>
+                <td>{{ connection.telegramUserId }}</td>
+                <td>{{ 'account.telegram.state.' + connection.state | t }}</td>
+                <td>
+                  <div class="d-flex flex-wrap gap-1">
+                    @if (connection.state === 'pending') {
+                      <button
+                        [id]="'telegram-approve-' + connection.id"
+                        type="button"
+                        class="btn btn-outline-success btn-sm"
+                        [disabled]="busy()"
+                        (click)="changeState(connection.id, 'approve')"
+                      >
+                        {{ 'account.telegram.approve' | t }}
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn-outline-secondary btn-sm"
+                        [disabled]="busy()"
+                        (click)="changeState(connection.id, 'revoke')"
+                      >
+                        {{ 'account.telegram.reject' | t }}
+                      </button>
+                    }
+                    @if (connection.state === 'active') {
+                      <button
+                        type="button"
+                        class="btn btn-outline-secondary btn-sm"
+                        [disabled]="busy()"
+                        (click)="changeState(connection.id, 'revoke')"
+                      >
+                        {{ 'account.telegram.revoke' | t }}
+                      </button>
+                    }
+                    @if (connection.state !== 'blocked') {
+                      <button
+                        type="button"
+                        class="btn btn-outline-danger btn-sm"
+                        [disabled]="busy()"
+                        (click)="changeState(connection.id, 'block')"
+                      >
+                        {{ 'account.telegram.block' | t }}
+                      </button>
+                    } @else {
+                      <button
+                        type="button"
+                        class="btn btn-outline-secondary btn-sm"
+                        [disabled]="busy()"
+                        (click)="changeState(connection.id, 'unblock')"
+                      >
+                        {{ 'account.telegram.unblock' | t }}
+                      </button>
+                    }
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  }
+}

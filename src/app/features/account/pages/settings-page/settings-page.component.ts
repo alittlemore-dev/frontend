@@ -17,11 +17,12 @@ import { AccountSettingsService } from '../../../../core/auth/account-settings.s
 import { AccountSettings } from '../../../../core/auth/account.model';
 import { I18nService } from '../../../../core/i18n/i18n.service';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
+import { TelegramSettingsComponent } from './telegram-settings.component';
 
 @Component({
   selector: 'app-settings-page',
   standalone: true,
-  imports: [TranslatePipe, SiteSelectComponent],
+  imports: [TranslatePipe, SiteSelectComponent, TelegramSettingsComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './settings-page.component.html',
 })
@@ -30,7 +31,8 @@ export class SettingsPageComponent {
   readonly i18n = inject(I18nService);
   private readonly notifications = inject(NotificationService);
   private readonly destroyRef = inject(DestroyRef);
-  readonly activeTab = signal<'general' | 'appearance'>('general');
+  readonly tabs = ['general', 'appearance', 'telegram'] as const;
+  readonly activeTab = signal<(typeof this.tabs)[number]>('general');
   readonly loading = signal(false);
   readonly failed = signal(false);
   readonly saveFailed = signal(false);

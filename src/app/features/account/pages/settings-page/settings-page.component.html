@@ -4,7 +4,7 @@
   role="tablist"
   [attr.aria-label]="'account.settings.title' | t"
 >
-  @for (tab of ['general', 'appearance']; track tab) {
+  @for (tab of tabs; track tab) {
     <li class="nav-item" role="presentation">
       <button
         type="button"
@@ -14,7 +14,7 @@
         [class.active]="activeTab() === tab"
         [attr.aria-selected]="activeTab() === tab"
         [attr.aria-controls]="'settings-panel-' + tab"
-        (click)="activeTab.set(tab === 'general' ? 'general' : 'appearance')"
+        (click)="activeTab.set(tab)"
       >
         {{ 'account.settings.' + tab | t }}
       </button>
@@ -77,6 +77,11 @@
       </div>
     </div>
   </div>
+  @if (activeTab() === 'telegram') {
+    <div role="tabpanel" id="settings-panel-telegram" aria-labelledby="settings-tab-telegram">
+      <app-telegram-settings />
+    </div>
+  }
   <p class="small text-body-secondary mt-3" role="status">
     {{ (preferences.saving() ? 'account.settings.saving' : 'account.settings.autosave') | t }}
   </p>

@@ -20,7 +20,11 @@ const account: AccountInfo = {
   middleName: null,
   gender: null,
   hasAvatar: false,
-  settings: { language: 'en', theme: 'light' },
+  settings: {
+    language: 'en',
+    theme: 'light',
+    telegramBots: { 'personal-workspace': { enabled: true } },
+  },
 };
 
 describe('AccountSettingsService', () => {
@@ -57,14 +61,28 @@ describe('AccountSettingsService', () => {
     session.setCurrentUser(account);
     const result = new Subject<AccountInfo>();
     api.put.mockReturnValue(result);
-    const saved = firstValueFrom(service.update({ language: 'ru', theme: 'dark' }));
+    const saved = firstValueFrom(
+      service.update({
+        language: 'ru',
+        theme: 'dark',
+        telegramBots: { 'personal-workspace': { enabled: true } },
+      }),
+    );
     expect(service.saving()).toBe(true);
     expect(session.currentUser()).toEqual(account);
     expect(api.put).toHaveBeenCalledWith('/api/auth/account/me/settings', {
       language: 'ru',
       theme: 'dark',
+      telegramBots: { 'personal-workspace': { enabled: true } },
     });
-    result.next({ ...account, settings: { language: 'ru', theme: 'dark' } });
+    result.next({
+      ...account,
+      settings: {
+        language: 'ru',
+        theme: 'dark',
+        telegramBots: { 'personal-workspace': { enabled: true } },
+      },
+    });
     result.complete();
     await saved;
     TestBed.tick();
@@ -75,9 +93,15 @@ describe('AccountSettingsService', () => {
   it('preserves confirmed values when PUT fails', async () => {
     session.setCurrentUser(account);
     api.put.mockReturnValue(throwError(() => new Error('offline')));
-    await expect(firstValueFrom(service.update({ language: 'ru', theme: 'dark' }))).rejects.toThrow(
-      'offline',
-    );
+    await expect(
+      firstValueFrom(
+        service.update({
+          language: 'ru',
+          theme: 'dark',
+          telegramBots: { 'personal-workspace': { enabled: true } },
+        }),
+      ),
+    ).rejects.toThrow('offline');
     expect(session.currentUser()).toEqual(account);
     expect(service.saving()).toBe(false);
   });
@@ -114,7 +138,14 @@ describe('AccountSettingsService', () => {
 
   it('refreshes the account whenever settings are opened', async () => {
     session.setCurrentUser(account);
-    const updated = { ...account, settings: { language: 'ru', theme: 'dark' } };
+    const updated = {
+      ...account,
+      settings: {
+        language: 'ru',
+        theme: 'dark',
+        telegramBots: { 'personal-workspace': { enabled: true } },
+      },
+    };
     api.get.mockReturnValue(of(updated));
     await firstValueFrom(service.load());
     expect(api.get).toHaveBeenCalledWith('/api/auth/account/me');
@@ -125,7 +156,14 @@ describe('AccountSettingsService', () => {
     const loadResponse = new Subject<AccountInfo>();
     api.get.mockReturnValue(loadResponse);
     const loading = firstValueFrom(service.load());
-    const updated: AccountInfo = { ...account, settings: { language: 'ru', theme: 'dark' } };
+    const updated: AccountInfo = {
+      ...account,
+      settings: {
+        language: 'ru',
+        theme: 'dark',
+        telegramBots: { 'personal-workspace': { enabled: true } },
+      },
+    };
     api.put.mockReturnValue(of(updated));
     await firstValueFrom(service.update(updated.settings));
     loadResponse.next(account);
@@ -138,10 +176,23 @@ describe('AccountSettingsService', () => {
     const response = new Subject<AccountInfo>();
     api.put.mockReturnValue(response);
     const next = jest.fn();
-    service.update({ language: 'ru', theme: 'dark' }).subscribe(next);
+    service
+      .update({
+        language: 'ru',
+        theme: 'dark',
+        telegramBots: { 'personal-workspace': { enabled: true } },
+      })
+      .subscribe(next);
     session.clear();
     session.setCurrentUser(account);
-    response.next({ ...account, settings: { language: 'ru', theme: 'dark' } });
+    response.next({
+      ...account,
+      settings: {
+        language: 'ru',
+        theme: 'dark',
+        telegramBots: { 'personal-workspace': { enabled: true } },
+      },
+    });
     response.complete();
     expect(session.currentUser()).toEqual(account);
     expect(next).not.toHaveBeenCalled();

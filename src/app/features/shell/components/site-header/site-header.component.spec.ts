@@ -99,15 +99,31 @@ describe('Shared site header', () => {
       middleName: null,
       gender: null,
       hasAvatar: false,
-      settings: { language: 'en', theme: 'light' },
+      settings: {
+        language: 'en',
+        theme: 'light',
+        telegramBots: { 'personal-workspace': { enabled: true } },
+      },
     });
-    preferences.settings.set({ language: 'en', theme: 'light' });
+    preferences.settings.set({
+      language: 'en',
+      theme: 'light',
+      telegramBots: { 'personal-workspace': { enabled: true } },
+    });
     fixture.detectChanges();
     expect(el.querySelector('a[href="/account/settings"]')).not.toBeNull();
     fixture.componentInstance.toggle();
-    expect(preferences.update).toHaveBeenCalledWith({ language: 'en', theme: 'dark' });
+    expect(preferences.update).toHaveBeenCalledWith({
+      language: 'en',
+      theme: 'dark',
+      telegramBots: { 'personal-workspace': { enabled: true } },
+    });
     fixture.componentInstance.switchLanguage('ru');
-    expect(preferences.update).toHaveBeenCalledWith({ language: 'ru', theme: 'light' });
+    expect(preferences.update).toHaveBeenCalledWith({
+      language: 'ru',
+      theme: 'light',
+      telegramBots: { 'personal-workspace': { enabled: true } },
+    });
   });
 
   it('provides guest service entry paths without the admin panel', () => {

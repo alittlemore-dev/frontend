@@ -3,21 +3,39 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { of, Subject, throwError } from 'rxjs';
 import { AccountSettingsService } from '../../../../core/auth/account-settings.service';
 import { AccountSettings } from '../../../../core/auth/account.model';
+import { TelegramSettingsService } from '../../services/telegram-settings.service';
 import { provideI18nTesting } from '../../../../testing/i18n-testing';
 import { SettingsPageComponent } from './settings-page.component';
 
 describe('SettingsPageComponent', () => {
   let fixture: ComponentFixture<SettingsPageComponent>;
-  const settings = signal<AccountSettings>({ language: 'en', theme: 'light' });
+  const settings = signal<AccountSettings>({
+    language: 'en',
+    theme: 'light',
+    telegramBots: { 'personal-workspace': { enabled: true } },
+  });
   const preferences = { settings, saving: signal(false), load: jest.fn(), update: jest.fn() };
   beforeEach(async () => {
-    settings.set({ language: 'en', theme: 'light' });
+    settings.set({
+      language: 'en',
+      theme: 'light',
+      telegramBots: { 'personal-workspace': { enabled: true } },
+    });
     preferences.saving.set(false);
     preferences.load.mockReset().mockReturnValue(of({}));
     preferences.update.mockReset().mockReturnValue(of({}));
     await TestBed.configureTestingModule({
       imports: [SettingsPageComponent],
-      providers: [provideI18nTesting(), { provide: AccountSettingsService, useValue: preferences }],
+      providers: [
+        provideI18nTesting(),
+        { provide: AccountSettingsService, useValue: preferences },
+        {
+          provide: TelegramSettingsService,
+          useValue: {
+            load: () => of({ available: false, enabled: false, invitations: [], connections: [] }),
+          },
+        },
+      ],
     }).compileComponents();
   });
   function create(): HTMLElement {
@@ -39,7 +57,11 @@ describe('SettingsPageComponent', () => {
     const el = create();
     selectOption(el, 'settings-language', 'Русский');
     expect(preferences.load).toHaveBeenCalledTimes(1);
-    expect(preferences.update).toHaveBeenCalledWith({ language: 'ru', theme: 'light' });
+    expect(preferences.update).toHaveBeenCalledWith({
+      language: 'ru',
+      theme: 'light',
+      telegramBots: { 'personal-workspace': { enabled: true } },
+    });
   });
   it('switches tabs and saves a dark theme', () => {
     const el = create();
@@ -49,7 +71,19 @@ describe('SettingsPageComponent', () => {
       'true',
     );
     selectOption(el, 'settings-theme', 'Dark');
-    expect(preferences.update).toHaveBeenCalledWith({ language: 'en', theme: 'dark' });
+    expect(preferences.update).toHaveBeenCalledWith({
+      language: 'en',
+      theme: 'dark',
+      telegramBots: { 'personal-workspace': { enabled: true } },
+    });
+  });
+  it('offers a Telegram integration tab in account settings', () => {
+    const el = create();
+    const tab = el.querySelector<HTMLButtonElement>('#settings-tab-telegram');
+    expect(tab).not.toBeNull();
+    tab!.click();
+    fixture.detectChanges();
+    expect(tab!.getAttribute('aria-selected')).toBe('true');
   });
   it('restores the confirmed selection and reports a failed save', () => {
     preferences.update.mockReturnValue(throwError(() => new Error('offline')));

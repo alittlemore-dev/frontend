@@ -4,9 +4,16 @@ export type AccountRole = 'anon' | 'user' | 'moderator' | 'admin' | 'owner';
 
 export type AccountGender = 'male' | 'female';
 
+export type TelegramBotId = 'personal-workspace';
+
+export interface TelegramBotSettings {
+  enabled: boolean;
+}
+
 export interface AccountSettings {
   language: LanguageCode;
   theme: 'light' | 'dark';
+  telegramBots: Partial<Record<TelegramBotId, TelegramBotSettings>>;
 }
 
 export interface AccountInfo {
