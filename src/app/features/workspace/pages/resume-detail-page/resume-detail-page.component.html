@@ -51,7 +51,7 @@
         class="btn btn-success btn-sm resume-action-button"
         [attr.aria-label]="'resumeWorkspace.save' | t"
         [attr.title]="'resumeWorkspace.save' | t"
-        [disabled]="saving() || deleting() || loading() || exporting()"
+        [disabled]="saving() || deleting() || loading() || exporting() || photoProcessing()"
         (click)="saveResume()"
       >
         <svg
@@ -78,7 +78,7 @@
         class="btn btn-warning btn-sm resume-action-button"
         [attr.aria-label]="'resumeWorkspace.export' | t"
         [attr.title]="'resumeWorkspace.export' | t"
-        [disabled]="saving() || deleting() || loading() || exporting()"
+        [disabled]="saving() || deleting() || loading() || exporting() || photoProcessing()"
         (click)="openExportModal()"
       >
         <svg
@@ -257,8 +257,8 @@
               class="form-control"
               [class.is-invalid]="fieldInvalid(resumeForm.controls.title)"
               data-testid="resume-title"
-              [attr.maxlength]="validationLimits.shortText"
               required
+              [appResumeTextLimit]="validationLimits.shortText"
               formControlName="title"
             />
             @if (
@@ -314,6 +314,22 @@
               </button>
             </li>
           }
+          <li class="nav-item ms-auto align-self-center small text-nowrap px-2" role="status">
+            <span
+              [class.text-danger]="visibleTextCount() > validationLimits.visibleText"
+              [class.text-body-secondary]="visibleTextCount() <= validationLimits.visibleText"
+              [attr.title]="
+                (visibleTextCount() > validationLimits.visibleText
+                  ? 'resumeWorkspace.limit.textTotalExceeded'
+                  : 'resumeWorkspace.limit.textTotal'
+                ) | t: { actual: visibleTextCount(), max: validationLimits.visibleText }
+              "
+            >
+              {{ 'resumeWorkspace.limit.resumeTextLabel' | t }}: {{ visibleTextCount() }}/{{
+                validationLimits.visibleText
+              }}
+            </span>
+          </li>
         </ul>
 
         @if (validationIssues().length > 0) {
@@ -337,6 +353,46 @@
           @switch (activeTab()) {
             @case ('profile') {
               <div class="row g-3" formGroupName="profile">
+                <div class="col-12">
+                  <label class="form-label" for="resume-profile-photo">
+                    {{ 'resumeWorkspace.field.photo' | t }}
+                    <span class="small text-body-secondary ms-2">
+                      {{ 'resumeWorkspace.limit.photoHint' | t }}
+                    </span>
+                  </label>
+                  <div class="d-flex flex-wrap align-items-center gap-3">
+                    @if (resumeForm.controls.profile.controls.photoDataUrl.value; as photo) {
+                      <img
+                        class="rounded object-fit-cover"
+                        width="112"
+                        height="112"
+                        [src]="photo"
+                        [alt]="'resumeWorkspace.field.photo' | t"
+                      />
+                    }
+                    <input
+                      id="resume-profile-photo"
+                      type="file"
+                      class="form-control w-auto"
+                      accept="image/jpeg,image/png,image/webp"
+                      [disabled]="photoProcessing()"
+                      (change)="selectPhoto($event)"
+                    />
+                    @if (photoProcessing()) {
+                      <span role="status">{{ 'resumeWorkspace.photoProcessing' | t }}</span>
+                    }
+                    @if (resumeForm.controls.profile.controls.photoDataUrl.value) {
+                      <button
+                        type="button"
+                        class="btn btn-outline-danger btn-sm"
+                        [disabled]="photoProcessing()"
+                        (click)="removePhoto()"
+                      >
+                        {{ 'resumeWorkspace.action.removePhoto' | t }}
+                      </button>
+                    }
+                  </div>
+                </div>
                 <div class="col-12 col-md-6">
                   <label class="form-label" for="resume-profile-full-name">
                     {{ 'resumeWorkspace.field.fullName' | t }}
@@ -347,8 +403,8 @@
                     class="form-control"
                     [class.is-invalid]="fieldInvalid(resumeForm.controls.profile.controls.fullName)"
                     data-testid="resume-profile-full-name"
-                    [attr.maxlength]="validationLimits.shortText"
                     required
+                    [appResumeTextLimit]="validationLimits.shortText"
                     formControlName="fullName"
                   />
                   @if (
@@ -368,7 +424,7 @@
                     type="email"
                     class="form-control"
                     [class.is-invalid]="fieldInvalid(resumeForm.controls.profile.controls.email)"
-                    [attr.maxlength]="validationLimits.email"
+                    [appResumeTextLimit]="validationLimits.email"
                     formControlName="email"
                   />
                   @if (
@@ -388,8 +444,8 @@
                     id="resume-profile-role"
                     class="form-control"
                     [class.is-invalid]="fieldInvalid(resumeForm.controls.profile.controls.role)"
-                    [attr.maxlength]="validationLimits.shortText"
                     required
+                    [appResumeTextLimit]="validationLimits.shortText"
                     formControlName="role"
                   />
                 </div>
@@ -400,18 +456,21 @@
                   <input
                     id="resume-profile-location"
                     class="form-control"
-                    [attr.maxlength]="validationLimits.shortText"
+                    [appResumeTextLimit]="validationLimits.shortText"
                     formControlName="location"
                   />
                 </div>
                 <div class="col-12 col-md-4">
                   <label class="form-label" for="resume-profile-phone">
                     {{ 'resumeWorkspace.field.phone' | t }}
+                    <span class="small text-body-secondary ms-2">
+                      {{ 'resumeWorkspace.limit.phoneDigits' | t }}
+                    </span>
                   </label>
                   <input
                     id="resume-profile-phone"
                     class="form-control"
-                    [attr.maxlength]="validationLimits.shortText"
+                    [appResumeTextLimit]="64"
                     formControlName="phone"
                   />
                 </div>
@@ -426,7 +485,7 @@
                     [class.is-invalid]="
                       fieldInvalid(resumeForm.controls.profile.controls.websiteUrl)
                     "
-                    [attr.maxlength]="validationLimits.url"
+                    [appResumeTextLimit]="validationLimits.url"
                     formControlName="websiteUrl"
                   />
                   @if (
@@ -444,7 +503,7 @@
                   <input
                     id="resume-profile-telegram"
                     class="form-control"
-                    [attr.maxlength]="validationLimits.shortText"
+                    [appResumeTextLimit]="validationLimits.shortText"
                     formControlName="telegram"
                   />
                 </div>
@@ -459,7 +518,7 @@
                     [class.is-invalid]="
                       fieldInvalid(resumeForm.controls.profile.controls.linkedinUrl)
                     "
-                    [attr.maxlength]="validationLimits.url"
+                    [appResumeTextLimit]="validationLimits.url"
                     formControlName="linkedinUrl"
                   />
                   @if (
@@ -481,7 +540,7 @@
                     [class.is-invalid]="
                       fieldInvalid(resumeForm.controls.profile.controls.githubUrl)
                     "
-                    [attr.maxlength]="validationLimits.url"
+                    [appResumeTextLimit]="validationLimits.url"
                     formControlName="githubUrl"
                   />
                   @if (
@@ -505,10 +564,11 @@
                     id="resume-summary"
                     class="form-control"
                     [class.is-invalid]="fieldInvalid(resumeForm.controls.summary.controls.text)"
-                    rows="8"
                     data-testid="resume-summary"
-                    [attr.maxlength]="validationLimits.summary"
+                    [appResumeTextLimit]="validationLimits.summary"
                     formControlName="text"
+                    cdkTextareaAutosize
+                    cdkAutosizeMinRows="1"
                   ></textarea>
                   @if (
                     fieldInvalid(resumeForm.controls.summary.controls.text) &&
@@ -550,6 +610,7 @@
                           [id]="'resume-skill-' + index + '-category'"
                           [attr.data-testid]="'resume-skill-' + index + '-category'"
                           required
+                          [appResumeTextLimit]="validationLimits.shortText"
                           formControlName="category"
                         />
                       </div>
@@ -572,8 +633,8 @@
                                 [class.is-invalid]="fieldInvalid(itemControl)"
                                 [id]="'resume-skill-' + index + '-item-' + itemIndex"
                                 [attr.data-testid]="'resume-skill-' + index + '-item-' + itemIndex"
-                                [attr.maxlength]="validationLimits.shortText"
                                 required
+                                [appResumeTextLimit]="validationLimits.shortText"
                                 [formControlName]="itemIndex"
                               />
                               <button
@@ -596,6 +657,12 @@
                               }
                             </div>
                           }
+                          <app-resume-list-limit
+                            [count]="skillItems(index).length"
+                            [max]="validationLimits.skillsPerGroup"
+                            [totalCount]="totalSkills()"
+                            [totalMax]="validationLimits.skillsTotal"
+                          />
                           <button
                             type="button"
                             class="btn btn-outline-success btn-sm resume-icon-action resume-inline-list-add flex-shrink-0"
@@ -617,6 +684,10 @@
                 }
               </div>
               <div class="resume-section-toolbar">
+                <app-resume-list-limit
+                  [count]="skills.length"
+                  [max]="validationLimits.skillGroups"
+                />
                 <button
                   type="button"
                   class="btn btn-outline-success btn-sm resume-icon-action"
@@ -662,6 +733,7 @@
                           class="form-control"
                           [id]="'resume-experience-' + index + '-company'"
                           required
+                          [appResumeTextLimit]="validationLimits.shortText"
                           formControlName="company"
                         />
                       </div>
@@ -677,8 +749,34 @@
                           class="form-control"
                           [id]="'resume-experience-' + index + '-position'"
                           required
+                          [appResumeTextLimit]="validationLimits.shortText"
                           formControlName="position"
                         />
+                      </div>
+                      <div class="col-md-6">
+                        <label
+                          class="form-label"
+                          [for]="'resume-experience-' + index + '-company-website'"
+                        >
+                          {{ 'resumeWorkspace.field.companyWebsiteUrl' | t }}
+                        </label>
+                        <input
+                          type="url"
+                          class="form-control"
+                          [id]="'resume-experience-' + index + '-company-website'"
+                          [class.is-invalid]="
+                            fieldInvalid(experienceItem.controls.companyWebsiteUrl)
+                          "
+                          [appResumeTextLimit]="validationLimits.url"
+                          formControlName="companyWebsiteUrl"
+                        />
+                        @if (
+                          fieldInvalid(experienceItem.controls.companyWebsiteUrl) &&
+                            fieldMessage(experienceItem.controls.companyWebsiteUrl);
+                          as message
+                        ) {
+                          <div class="invalid-feedback d-block">{{ message }}</div>
+                        }
                       </div>
                       <div class="col-md-6">
                         <label
@@ -690,6 +788,7 @@
                         <input
                           class="form-control"
                           [id]="'resume-experience-' + index + '-location'"
+                          [appResumeTextLimit]="validationLimits.shortText"
                           formControlName="location"
                         />
                       </div>
@@ -760,8 +859,10 @@
                         <textarea
                           class="form-control"
                           [id]="'resume-experience-' + index + '-summary'"
-                          rows="4"
+                          [appResumeTextLimit]="validationLimits.experienceSummary"
                           formControlName="summary"
+                          cdkTextareaAutosize
+                          cdkAutosizeMinRows="1"
                         ></textarea>
                       </div>
                       <div class="col-12">
@@ -779,17 +880,19 @@
                           ) {
                             <div class="resume-list-input-row">
                               <div class="flex-grow-1">
-                                <input
+                                <textarea
                                   class="form-control"
                                   [class.is-invalid]="fieldInvalid(highlightControl)"
                                   [id]="'resume-experience-' + index + '-highlight-' + itemIndex"
                                   [attr.data-testid]="
                                     'resume-experience-' + index + '-highlight-' + itemIndex
                                   "
-                                  [attr.maxlength]="validationLimits.highlight"
                                   required
+                                  [appResumeTextLimit]="validationLimits.highlight"
                                   [formControlName]="itemIndex"
-                                />
+                                  cdkTextareaAutosize
+                                  cdkAutosizeMinRows="1"
+                                ></textarea>
                                 @if (
                                   fieldInvalid(highlightControl) && fieldMessage(highlightControl);
                                   as message
@@ -813,6 +916,10 @@
                           }
                         </div>
                         <div class="resume-list-input-toolbar">
+                          <app-resume-list-limit
+                            [count]="experienceHighlights(index).length"
+                            [max]="validationLimits.experienceHighlights"
+                          />
                           <button
                             type="button"
                             class="btn btn-outline-success btn-sm resume-icon-action"
@@ -848,13 +955,19 @@
                             <div class="resume-inline-list-item mw-100 position-relative">
                               <input
                                 class="form-control resume-inline-list-input w-auto pe-5"
-                                [class.is-invalid]="fieldInvalid(technologyControl)"
+                                [class.is-invalid]="
+                                  fieldInvalid(technologyControl) ||
+                                  listCountMessage(
+                                    experienceTechnologies(index).length,
+                                    validationLimits.experienceTechnologies
+                                  ) !== null
+                                "
                                 [id]="'resume-experience-' + index + '-technology-' + itemIndex"
                                 [attr.data-testid]="
                                   'resume-experience-' + index + '-technology-' + itemIndex
                                 "
-                                [attr.maxlength]="validationLimits.shortText"
                                 required
+                                [appResumeTextLimit]="validationLimits.shortText"
                                 [formControlName]="itemIndex"
                               />
                               <button
@@ -877,6 +990,10 @@
                               }
                             </div>
                           }
+                          <app-resume-list-limit
+                            [count]="experienceTechnologies(index).length"
+                            [max]="validationLimits.experienceTechnologies"
+                          />
                           <button
                             type="button"
                             class="btn btn-outline-success btn-sm resume-icon-action resume-inline-list-add flex-shrink-0"
@@ -892,6 +1009,15 @@
                             +
                           </button>
                         </div>
+                        @if (
+                          listCountMessage(
+                            experienceTechnologies(index).length,
+                            validationLimits.experienceTechnologies
+                          );
+                          as message
+                        ) {
+                          <div class="invalid-feedback d-block">{{ message }}</div>
+                        }
                       </div>
                       <div class="col-12">
                         <section class="resume-subsection">
@@ -957,6 +1083,7 @@
                                         '-name'
                                       "
                                       required
+                                      [appResumeTextLimit]="validationLimits.shortText"
                                       formControlName="name"
                                     />
                                   </div>
@@ -986,7 +1113,60 @@
                                         '-role'
                                       "
                                       required
+                                      [appResumeTextLimit]="validationLimits.shortText"
                                       formControlName="role"
+                                    />
+                                  </div>
+                                  <div class="col-md-6">
+                                    <label
+                                      class="form-label"
+                                      [for]="
+                                        'resume-experience-' +
+                                        index +
+                                        '-project-' +
+                                        projectIndex +
+                                        '-team-size'
+                                      "
+                                    >
+                                      {{ 'resumeWorkspace.field.teamSize' | t }}
+                                    </label>
+                                    <input
+                                      class="form-control"
+                                      [id]="
+                                        'resume-experience-' +
+                                        index +
+                                        '-project-' +
+                                        projectIndex +
+                                        '-team-size'
+                                      "
+                                      [appResumeTextLimit]="validationLimits.shortText"
+                                      formControlName="teamSize"
+                                    />
+                                  </div>
+                                  <div class="col-md-6">
+                                    <label
+                                      class="form-label"
+                                      [for]="
+                                        'resume-experience-' +
+                                        index +
+                                        '-project-' +
+                                        projectIndex +
+                                        '-scale'
+                                      "
+                                    >
+                                      {{ 'resumeWorkspace.field.scale' | t }}
+                                    </label>
+                                    <input
+                                      class="form-control"
+                                      [id]="
+                                        'resume-experience-' +
+                                        index +
+                                        '-project-' +
+                                        projectIndex +
+                                        '-scale'
+                                      "
+                                      [appResumeTextLimit]="validationLimits.shortText"
+                                      formControlName="scale"
                                     />
                                   </div>
                                   <div class="col-12">
@@ -1011,8 +1191,10 @@
                                         projectIndex +
                                         '-description'
                                       "
-                                      rows="4"
+                                      [appResumeTextLimit]="validationLimits.projectDescription"
                                       formControlName="description"
+                                      cdkTextareaAutosize
+                                      cdkAutosizeMinRows="1"
                                     ></textarea>
                                   </div>
                                   <div class="col-12">
@@ -1037,7 +1219,7 @@
                                       ) {
                                         <div class="resume-list-input-row">
                                           <div class="flex-grow-1">
-                                            <input
+                                            <textarea
                                               class="form-control"
                                               [class.is-invalid]="fieldInvalid(highlightControl)"
                                               [id]="
@@ -1056,10 +1238,12 @@
                                                 '-highlight-' +
                                                 itemIndex
                                               "
-                                              [attr.maxlength]="validationLimits.highlight"
                                               required
+                                              [appResumeTextLimit]="validationLimits.highlight"
                                               [formControlName]="itemIndex"
-                                            />
+                                              cdkTextareaAutosize
+                                              cdkAutosizeMinRows="1"
+                                            ></textarea>
                                             @if (
                                               fieldInvalid(highlightControl) &&
                                                 fieldMessage(highlightControl);
@@ -1097,6 +1281,10 @@
                                       }
                                     </div>
                                     <div class="resume-list-input-toolbar">
+                                      <app-resume-list-limit
+                                        [count]="projectHighlights(index, projectIndex).length"
+                                        [max]="validationLimits.projectHighlights"
+                                      />
                                       <button
                                         type="button"
                                         class="btn btn-outline-success btn-sm resume-icon-action"
@@ -1149,7 +1337,13 @@
                                         >
                                           <input
                                             class="form-control resume-inline-list-input w-auto pe-5"
-                                            [class.is-invalid]="fieldInvalid(technologyControl)"
+                                            [class.is-invalid]="
+                                              fieldInvalid(technologyControl) ||
+                                              listCountMessage(
+                                                projectTechnologies(index, projectIndex).length,
+                                                validationLimits.projectTechnologies
+                                              ) !== null
+                                            "
                                             [id]="
                                               'resume-experience-' +
                                               index +
@@ -1166,8 +1360,8 @@
                                               '-technology-' +
                                               itemIndex
                                             "
-                                            [attr.maxlength]="validationLimits.shortText"
                                             required
+                                            [appResumeTextLimit]="validationLimits.shortText"
                                             [formControlName]="itemIndex"
                                           />
                                           <button
@@ -1208,6 +1402,10 @@
                                           }
                                         </div>
                                       }
+                                      <app-resume-list-limit
+                                        [count]="projectTechnologies(index, projectIndex).length"
+                                        [max]="validationLimits.projectTechnologies"
+                                      />
                                       <button
                                         type="button"
                                         class="btn btn-outline-success btn-sm resume-icon-action resume-inline-list-add flex-shrink-0"
@@ -1229,6 +1427,15 @@
                                         +
                                       </button>
                                     </div>
+                                    @if (
+                                      listCountMessage(
+                                        projectTechnologies(index, projectIndex).length,
+                                        validationLimits.projectTechnologies
+                                      );
+                                      as message
+                                    ) {
+                                      <div class="invalid-feedback d-block">{{ message }}</div>
+                                    }
                                   </div>
                                   <div class="col-md-6">
                                     <label
@@ -1253,7 +1460,7 @@
                                         projectIndex +
                                         '-url'
                                       "
-                                      [attr.maxlength]="validationLimits.url"
+                                      [appResumeTextLimit]="validationLimits.url"
                                       formControlName="url"
                                     />
                                     @if (
@@ -1271,6 +1478,12 @@
                             }
                           </div>
                           <footer class="resume-subsection-footer">
+                            <app-resume-list-limit
+                              [count]="experienceProjects(index).length"
+                              [max]="validationLimits.projectsPerExperience"
+                              [totalCount]="totalProjects()"
+                              [totalMax]="validationLimits.projectsTotal"
+                            />
                             <button
                               type="button"
                               class="btn btn-outline-success btn-sm resume-icon-action"
@@ -1293,6 +1506,10 @@
                 }
               </div>
               <div class="resume-section-toolbar">
+                <app-resume-list-limit
+                  [count]="experience.length"
+                  [max]="validationLimits.experience"
+                />
                 <button
                   type="button"
                   class="btn btn-outline-success btn-sm resume-icon-action"
@@ -1341,6 +1558,7 @@
                           class="form-control"
                           [id]="'resume-education-' + index + '-institution'"
                           required
+                          [appResumeTextLimit]="validationLimits.shortText"
                           formControlName="institution"
                         />
                       </div>
@@ -1353,6 +1571,7 @@
                           class="form-control"
                           [id]="'resume-education-' + index + '-degree'"
                           required
+                          [appResumeTextLimit]="validationLimits.shortText"
                           formControlName="degree"
                         />
                       </div>
@@ -1365,6 +1584,7 @@
                           class="form-control"
                           [id]="'resume-education-' + index + '-field'"
                           required
+                          [appResumeTextLimit]="validationLimits.shortText"
                           formControlName="field"
                         />
                       </div>
@@ -1377,6 +1597,7 @@
                           class="form-control"
                           [id]="'resume-education-' + index + '-location'"
                           required
+                          [appResumeTextLimit]="validationLimits.shortText"
                           formControlName="location"
                         />
                       </div>
@@ -1432,8 +1653,10 @@
                         <textarea
                           class="form-control"
                           [id]="'resume-education-' + index + '-description'"
-                          rows="4"
+                          [appResumeTextLimit]="validationLimits.educationDescription"
                           formControlName="description"
+                          cdkTextareaAutosize
+                          cdkAutosizeMinRows="1"
                         ></textarea>
                       </div>
                     </div>
@@ -1441,6 +1664,10 @@
                 }
               </div>
               <div class="resume-section-toolbar">
+                <app-resume-list-limit
+                  [count]="education.length"
+                  [max]="validationLimits.education"
+                />
                 <button
                   type="button"
                   class="btn btn-outline-success btn-sm resume-icon-action"
@@ -1482,6 +1709,7 @@
                           class="form-control"
                           [id]="'resume-language-' + index + '-name'"
                           required
+                          [appResumeTextLimit]="validationLimits.shortText"
                           formControlName="name"
                         />
                       </div>
@@ -1497,6 +1725,7 @@
                           class="form-control"
                           [id]="'resume-language-' + index + '-proficiency'"
                           required
+                          [appResumeTextLimit]="validationLimits.shortText"
                           formControlName="proficiency"
                         />
                       </div>
@@ -1505,6 +1734,10 @@
                 }
               </div>
               <div class="resume-section-toolbar">
+                <app-resume-list-limit
+                  [count]="languages.length"
+                  [max]="validationLimits.languages"
+                />
                 <button
                   type="button"
                   class="btn btn-outline-success btn-sm resume-icon-action"
@@ -1550,6 +1783,7 @@
                           class="form-control"
                           [id]="'resume-certification-' + index + '-name'"
                           required
+                          [appResumeTextLimit]="validationLimits.shortText"
                           formControlName="name"
                         />
                       </div>
@@ -1563,6 +1797,7 @@
                         <input
                           class="form-control"
                           [id]="'resume-certification-' + index + '-issuer'"
+                          [appResumeTextLimit]="validationLimits.shortText"
                           formControlName="issuer"
                         />
                       </div>
@@ -1620,6 +1855,7 @@
                         <input
                           class="form-control"
                           [id]="'resume-certification-' + index + '-credential-url'"
+                          [appResumeTextLimit]="validationLimits.url"
                           formControlName="credentialUrl"
                         />
                       </div>
@@ -1628,6 +1864,10 @@
                 }
               </div>
               <div class="resume-section-toolbar">
+                <app-resume-list-limit
+                  [count]="certifications.length"
+                  [max]="validationLimits.certifications"
+                />
                 <button
                   type="button"
                   class="btn btn-outline-success btn-sm resume-icon-action"
@@ -1678,6 +1918,7 @@
                           class="form-control"
                           [id]="'resume-additional-section-' + sectionIndex + '-title'"
                           required
+                          [appResumeTextLimit]="validationLimits.shortText"
                           formControlName="title"
                         />
                       </div>
@@ -1736,6 +1977,7 @@
                                         '-title'
                                       "
                                       required
+                                      [appResumeTextLimit]="validationLimits.shortText"
                                       formControlName="title"
                                     />
                                   </div>
@@ -1762,7 +2004,7 @@
                                         itemIndex +
                                         '-url'
                                       "
-                                      [attr.maxlength]="validationLimits.url"
+                                      [appResumeTextLimit]="validationLimits.url"
                                       formControlName="url"
                                     />
                                     @if (
@@ -1797,8 +2039,10 @@
                                         itemIndex +
                                         '-description'
                                       "
-                                      rows="4"
+                                      [appResumeTextLimit]="validationLimits.additionalDescription"
                                       formControlName="description"
+                                      cdkTextareaAutosize
+                                      cdkAutosizeMinRows="1"
                                     ></textarea>
                                   </div>
                                 </div>
@@ -1806,6 +2050,12 @@
                             }
                           </div>
                           <footer class="resume-subsection-footer">
+                            <app-resume-list-limit
+                              [count]="additionalItems(sectionIndex).length"
+                              [max]="validationLimits.additionalItemsPerSection"
+                              [totalCount]="totalAdditionalItems()"
+                              [totalMax]="validationLimits.additionalItemsTotal"
+                            />
                             <button
                               type="button"
                               class="btn btn-outline-success btn-sm resume-icon-action"
@@ -1828,6 +2078,10 @@
                 }
               </div>
               <div class="resume-section-toolbar">
+                <app-resume-list-limit
+                  [count]="additionalSections.length"
+                  [max]="validationLimits.additionalSections"
+                />
                 <button
                   type="button"
                   class="btn btn-outline-success btn-sm resume-icon-action"
@@ -1846,6 +2100,15 @@
     } @else {
       <article class="resume-preview" data-testid="resume-preview">
         <header class="resume-preview-header">
+          @if (previewPayload().content.profile.photoDataUrl; as photo) {
+            <img
+              class="rounded object-fit-cover"
+              width="112"
+              height="112"
+              [src]="photo"
+              [alt]="previewMessage('resumeWorkspace.field.photo')"
+            />
+          }
           @if (previewPayload().content.profile.fullName) {
             <h2>{{ previewPayload().content.profile.fullName }}</h2>
           } @else {
@@ -1928,6 +2191,9 @@
                       <span>· {{ company }}</span>
                     }
                   </h4>
+                  @if (item.companyWebsiteUrl) {
+                    <p class="resume-preview-tech">{{ item.companyWebsiteUrl }}</p>
+                  }
                   @if (dateRange(item.startDate, item.endDate, item.currentStatus); as dates) {
                     <p class="text-body-secondary">{{ dates }}</p>
                   }
@@ -1956,6 +2222,16 @@
                           }
                           @if (previewText(project.role); as role) {
                             <p class="text-body-secondary">{{ role }}</p>
+                          }
+                          @if (previewText(project.teamSize); as teamSize) {
+                            <p class="resume-preview-tech">
+                              {{ previewMessage('resumeWorkspace.field.teamSize') }}: {{ teamSize }}
+                            </p>
+                          }
+                          @if (previewText(project.scale); as scale) {
+                            <p class="resume-preview-tech">
+                              {{ previewMessage('resumeWorkspace.field.scale') }}: {{ scale }}
+                            </p>
                           }
                           @if (previewText(project.description); as description) {
                             <p>{{ description }}</p>

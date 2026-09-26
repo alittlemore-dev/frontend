@@ -18,6 +18,7 @@ import {
   signal,
 } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { CdkTextareaAutosize } from '@angular/cdk/text-field';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, ParamMap, Router, RouterLink } from '@angular/router';
 import { ApiError } from '../../../../core/models/api-error.model';
@@ -31,6 +32,7 @@ import {
   Resumes,
 } from '../../models/resume-workspace.model';
 import { ResumeWorkspaceService } from '../../services/resume-workspace.service';
+import { ResumeTextLimitDirective } from '../../resume-text-limit.directive';
 import {
   UnsavedChangesService,
   UnsavedChangesSource,
@@ -67,6 +69,8 @@ const RESUME_LANGUAGE_OPTIONS: readonly ResumeLanguageOption[] = [
   standalone: true,
   imports: [
     ReactiveFormsModule,
+    CdkTextareaAutosize,
+    ResumeTextLimitDirective,
     RouterLink,
     TranslatePipe,
     LoadingSpinnerComponent,
@@ -303,6 +307,8 @@ export class ResumesPageComponent implements OnInit {
       content: {
         profile: {
           fullName: value.fullName.trim(),
+          photoFileId: '',
+          photoDataUrl: '',
           role: value.role.trim(),
           location: '',
           email: '',

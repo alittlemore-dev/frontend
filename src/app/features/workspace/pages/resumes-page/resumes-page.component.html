@@ -117,7 +117,7 @@
         (keydown)="$event.stopPropagation()"
       >
         <form
-          class="modal-content"
+          class="modal-content resume-create-form"
           data-testid="resume-create-form"
           [formGroup]="createForm"
           (ngSubmit)="createResume()"
@@ -151,7 +151,7 @@
                   class="form-control"
                   [class.is-invalid]="createFieldInvalid('title')"
                   data-testid="resume-create-title"
-                  [attr.maxlength]="validationLimits.shortText"
+                  [appResumeTextLimit]="validationLimits.shortText"
                   formControlName="title"
                 />
                 @if (createFieldInvalid('title') && createFieldMessage('title'); as message) {
@@ -188,7 +188,7 @@
                   class="form-control"
                   [class.is-invalid]="createFieldInvalid('fullName')"
                   data-testid="resume-create-full-name"
-                  [attr.maxlength]="validationLimits.shortText"
+                  [appResumeTextLimit]="validationLimits.shortText"
                   formControlName="fullName"
                 />
                 @if (createFieldInvalid('fullName') && createFieldMessage('fullName'); as message) {
@@ -205,7 +205,7 @@
                   class="form-control"
                   [class.is-invalid]="createFieldInvalid('role')"
                   data-testid="resume-create-role"
-                  [attr.maxlength]="validationLimits.shortText"
+                  [appResumeTextLimit]="validationLimits.shortText"
                   formControlName="role"
                 />
                 @if (createFieldInvalid('role') && createFieldMessage('role'); as message) {
@@ -221,10 +221,11 @@
                   id="resume-create-summary"
                   class="form-control"
                   [class.is-invalid]="createFieldInvalid('summary')"
-                  rows="4"
                   data-testid="resume-create-summary"
-                  [attr.maxlength]="validationLimits.summary"
+                  [appResumeTextLimit]="validationLimits.summary"
                   formControlName="summary"
+                  cdkTextareaAutosize
+                  cdkAutosizeMinRows="1"
                 ></textarea>
                 @if (createFieldInvalid('summary') && createFieldMessage('summary'); as message) {
                   <div class="invalid-feedback d-block">{{ message }}</div>

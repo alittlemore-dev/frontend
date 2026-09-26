@@ -7,6 +7,7 @@ export type ResumeTheme = 'simple' | 'accent';
 
 export interface ResumeProfileDto {
   fullName: string;
+  photoFileId: string;
   role: string;
   location: string;
   email: string;
@@ -28,6 +29,7 @@ export interface ResumeSkillGroupDto {
 
 export interface ResumeExperienceItemDto {
   company: string;
+  companyWebsiteUrl: string;
   position: string;
   location: string;
   startDate: string | null;
@@ -42,6 +44,8 @@ export interface ResumeExperienceItemDto {
 export interface ResumeProjectItemDto {
   name: string;
   role: string;
+  teamSize: string;
+  scale: string;
   description: string;
   highlights: string[];
   technologies: string[];
@@ -121,6 +125,8 @@ export interface ResumeExportPayloadDto extends ResumePayloadDto {
 
 export interface ResumeProfile {
   fullName: string;
+  photoFileId: string;
+  photoDataUrl: string;
   role: string;
   location: string;
   email: string;
@@ -142,6 +148,7 @@ export interface ResumeSkillGroup {
 
 export interface ResumeExperienceItem {
   company: string;
+  companyWebsiteUrl: string;
   position: string;
   location: string;
   startDate: string | null;
@@ -156,6 +163,8 @@ export interface ResumeExperienceItem {
 export interface ResumeProjectItem {
   name: string;
   role: string;
+  teamSize: string;
+  scale: string;
   description: string;
   highlights: string[];
   technologies: string[];
@@ -274,7 +283,7 @@ export function toResumeExportPayloadDto(
 
 export function mapResumeContentDto(dto: ResumeContentDto): ResumeContent {
   return {
-    profile: { ...dto.profile },
+    profile: { ...dto.profile, photoDataUrl: '' },
     summary: { ...dto.summary },
     skills: dto.skills.map((skill) => ({
       category: skill.category,
@@ -282,6 +291,7 @@ export function mapResumeContentDto(dto: ResumeContentDto): ResumeContent {
     })),
     experience: dto.experience.map((item) => ({
       company: item.company,
+      companyWebsiteUrl: item.companyWebsiteUrl,
       position: item.position,
       location: item.location,
       startDate: item.startDate,
@@ -304,7 +314,18 @@ export function mapResumeContentDto(dto: ResumeContentDto): ResumeContent {
 
 function mapResumeContentToDto(content: ResumeContent): ResumeContentDto {
   return {
-    profile: { ...content.profile },
+    profile: {
+      fullName: content.profile.fullName,
+      photoFileId: content.profile.photoFileId,
+      role: content.profile.role,
+      location: content.profile.location,
+      email: content.profile.email,
+      phone: content.profile.phone,
+      websiteUrl: content.profile.websiteUrl,
+      linkedinUrl: content.profile.linkedinUrl,
+      githubUrl: content.profile.githubUrl,
+      telegram: content.profile.telegram,
+    },
     summary: { ...content.summary },
     skills: content.skills.map((skill) => ({
       category: skill.category,
@@ -312,6 +333,7 @@ function mapResumeContentToDto(content: ResumeContent): ResumeContentDto {
     })),
     experience: content.experience.map((item) => ({
       company: item.company,
+      companyWebsiteUrl: item.companyWebsiteUrl,
       position: item.position,
       location: item.location,
       startDate: item.startDate,
@@ -336,6 +358,8 @@ function mapResumeProjectItemDto(item: ResumeProjectItemDto): ResumeProjectItem 
   return {
     name: item.name,
     role: item.role,
+    teamSize: item.teamSize,
+    scale: item.scale,
     description: item.description,
     highlights: [...item.highlights],
     technologies: [...item.technologies],
@@ -347,6 +371,8 @@ function mapResumeProjectItemToDto(item: ResumeProjectItem): ResumeProjectItemDt
   return {
     name: item.name,
     role: item.role,
+    teamSize: item.teamSize,
+    scale: item.scale,
     description: item.description,
     highlights: [...item.highlights],
     technologies: [...item.technologies],

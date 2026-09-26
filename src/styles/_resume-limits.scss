@@ -1,0 +1,56 @@
+:is(.resume-editor, .resume-create-form) {
+  .form-control.resume-limited-input {
+    padding-inline-end: 5rem !important;
+  }
+
+  .form-control.resume-limited-input.is-invalid,
+  .form-control.resume-limited-input.resume-limit-exceeded {
+    background-image: none;
+  }
+
+  .form-control.resume-limit-exceeded {
+    border-color: var(--bs-danger);
+  }
+
+  .resume-text-limit-counter {
+    color: var(--bs-secondary-color);
+    display: block;
+    font-size: 0.7rem;
+    font-variant-numeric: tabular-nums;
+    height: 0;
+    line-height: 1;
+    padding-inline-end: 0.6rem;
+    pointer-events: none;
+    position: relative;
+    text-align: end;
+    transform: translateY(-1.55rem);
+    z-index: 1;
+  }
+
+  .resume-text-limit-counter.resume-limit-near {
+    color: var(--bs-warning-text-emphasis);
+  }
+
+  .resume-text-limit-counter.resume-limit-exceeded {
+    color: var(--bs-danger);
+    font-weight: 700;
+  }
+
+  .resume-inline-list-item .resume-text-limit-counter {
+    padding-inline-end: 2rem;
+  }
+
+  .resume-inline-list-item .form-control.resume-limited-input {
+    min-width: 13rem;
+    padding-inline-end: 6rem !important;
+  }
+}
+
+.resume-editor {
+  .resume-section-toolbar,
+  .resume-subsection-footer,
+  .resume-list-input-toolbar {
+    align-items: center;
+    gap: 0.5rem;
+  }
+}

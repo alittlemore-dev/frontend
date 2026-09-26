@@ -54,6 +54,18 @@ export class ResumeWorkspaceService {
     return this.api.delete<void>(`/api/personal-workspace/resumes/${id}`);
   }
 
+  uploadPhoto(id: string, file: Blob): Observable<Resume> {
+    const data = new FormData();
+    data.append('file', file, 'resume-photo.jpg');
+    return this.api
+      .post<ResumeDto>(`/api/personal-workspace/resumes/${id}/photo`, data)
+      .pipe(map(mapResumeDto));
+  }
+
+  getPhoto(id: string): Observable<Blob> {
+    return this.api.getBlob(`/api/personal-workspace/resumes/${id}/photo`);
+  }
+
   exportResume(
     id: string,
     format: ResumeExportFormat,

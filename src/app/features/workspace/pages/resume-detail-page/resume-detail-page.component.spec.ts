@@ -1,5 +1,6 @@
 import { NotificationService } from '@alittlemore.dev/design-system';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { FormControl } from '@angular/forms';
 import { ActivatedRoute, Router, provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { ApiError } from '../../../../core/models/api-error.model';
@@ -44,6 +45,8 @@ describe('ResumeDetailPageComponent', () => {
   let fixture: ComponentFixture<ResumeDetailPageComponent>;
   let service: {
     getResume: jest.Mock;
+    getPhoto: jest.Mock;
+    uploadPhoto: jest.Mock;
     updateResume: jest.Mock;
     deleteResume: jest.Mock;
     exportResume: jest.Mock;
@@ -58,6 +61,8 @@ describe('ResumeDetailPageComponent', () => {
   beforeEach(async () => {
     service = {
       getResume: jest.fn().mockReturnValue(of(resume())),
+      getPhoto: jest.fn().mockReturnValue(of(new Blob())),
+      uploadPhoto: jest.fn().mockReturnValue(of(resume())),
       updateResume: jest.fn().mockReturnValue(of(resume({ title: 'Updated resume' }))),
       deleteResume: jest.fn().mockReturnValue(of(undefined)),
       exportResume: jest
@@ -150,14 +155,222 @@ describe('ResumeDetailPageComponent', () => {
   it('saves experience and project highlights at the new length limit', () => {
     fixture.componentInstance.setActiveTab('experience');
     fixture.detectChanges();
-    setElementValueById('resume-experience-0-highlight-0', 'x'.repeat(300));
-    setElementValueById('resume-experience-0-project-0-highlight-0', 'y'.repeat(300));
+    setElementValueById('resume-experience-0-highlight-0', 'x'.repeat(512));
+    setElementValueById('resume-experience-0-project-0-highlight-0', 'y'.repeat(512));
 
     fixture.componentInstance.saveResume();
 
     const payload = service.updateResume.mock.calls[0][1] as ResumePayload;
-    expect(payload.content.experience[0].highlights).toEqual(['x'.repeat(300)]);
-    expect(payload.content.experience[0].projects[0].highlights).toEqual(['y'.repeat(300)]);
+    expect(payload.content.experience[0].highlights).toEqual(['x'.repeat(512)]);
+    expect(payload.content.experience[0].projects[0].highlights).toEqual(['y'.repeat(512)]);
+  });
+
+  it('shows a live character counter and an immediate overflow state in the editor', () => {
+    const title = elementById<HTMLInputElement>('resume-title');
+    const counter = elementById<HTMLElement>('resume-title-limit');
+    expect(counter.textContent).toBe(`${title.value.length}/255`);
+    expect(title.hasAttribute('maxlength')).toBe(false);
+
+    setElementValueById('resume-title', 'x'.repeat(256));
+    fixture.detectChanges();
+
+    expect(counter.textContent).toBe('256/255');
+    expect(title.classList).toContain('resume-limit-exceeded');
+    expect(counter.getAttribute('aria-label')).toContain('Превышен лимит');
+    expect(service.updateResume).not.toHaveBeenCalled();
+  });
+
+  it('shows the reached list limit beside a disabled add button', () => {
+    const technologies = fixture.componentInstance.projectTechnologies(0, 0);
+    for (let index = technologies.length; index < 50; index += 1) {
+      technologies.push(new FormControl(`Technology ${index}`, { nonNullable: true }));
+    }
+    fixture.componentInstance.setActiveTab('experience');
+    fixture.detectChanges();
+
+    const button = elementByTestId<HTMLButtonElement>(
+      'resume-experience-0-project-0-add-technology',
+    );
+    const status = button.previousElementSibling as HTMLElement;
+    expect(button.disabled).toBe(true);
+    expect(status.textContent).toContain('50/50');
+    expect(status.textContent).toContain('лимит');
+    expect(status.getAttribute('title')).toContain('В этом списке 50 из 50');
+  });
+
+  it('identifies the project technology list when its item limit blocks saving', () => {
+    const technologies = fixture.componentInstance.projectTechnologies(0, 0);
+    for (let index = technologies.length; index < 51; index += 1) {
+      technologies.push(new FormControl(`Technology ${index}`, { nonNullable: true }));
+    }
+
+    fixture.componentInstance.saveResume();
+    fixture.detectChanges();
+
+    expect(service.updateResume).not.toHaveBeenCalled();
+    expect(elementByTestId<HTMLElement>('resume-validation-summary').textContent).toContain(
+      'Опыт / Компания 1 / Проект 1 / Технологии — Элементов: 51, максимум: 50.',
+    );
+    const technology = elementById<HTMLInputElement>('resume-experience-0-project-0-technology-0');
+    expect(technology.classList).toContain('is-invalid');
+    expect(fieldColumn(technology).textContent).toContain('Элементов: 51, максимум: 50.');
+  });
+
+  it('saves a project with 50 technologies', () => {
+    const technologies = fixture.componentInstance.projectTechnologies(0, 0);
+    for (let index = technologies.length; index < 50; index += 1) {
+      technologies.push(new FormControl(`Technology ${index}`, { nonNullable: true }));
+    }
+
+    fixture.componentInstance.saveResume();
+
+    const payload = service.updateResume.mock.calls[0][1] as ResumePayload;
+    expect(payload.content.experience[0].projects[0].technologies).toHaveLength(50);
+  });
+
+  it('shows a field error when a highlight exceeds 512 characters', () => {
+    fixture.componentInstance.setActiveTab('experience');
+    fixture.detectChanges();
+    setElementValueById('resume-experience-0-project-0-highlight-0', 'x'.repeat(513));
+
+    fixture.componentInstance.saveResume();
+    fixture.detectChanges();
+
+    expect(service.updateResume).not.toHaveBeenCalled();
+    expect(elementByTestId<HTMLElement>('resume-validation-summary').textContent).toContain(
+      'Опыт / Компания 1 / Проект 1 / Достижения / Пункт 1 — Максимум 512 символов.',
+    );
+  });
+
+  it('edits and previews company website, team size, and project scale', () => {
+    fixture.componentInstance.setActiveTab('experience');
+    fixture.detectChanges();
+    setElementValueById('resume-experience-0-company-website', 'https://company.example');
+    setElementValueById('resume-experience-0-project-0-team-size', '7 engineers');
+    setElementValueById('resume-experience-0-project-0-scale', '2M requests/day');
+
+    fixture.componentInstance.showPreview();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('https://company.example');
+    expect(fixture.nativeElement.textContent).toContain('7 engineers');
+    expect(fixture.nativeElement.textContent).toContain('2M requests/day');
+
+    fixture.componentInstance.saveResume();
+    const payload = service.updateResume.mock.calls[0][1] as ResumePayload;
+    expect(payload.content.experience[0].companyWebsiteUrl).toBe('https://company.example');
+    expect(payload.content.experience[0].projects[0]).toEqual(
+      expect.objectContaining({ teamSize: '7 engineers', scale: '2M requests/day' }),
+    );
+  });
+
+  it('previews and removes a selected photo from the resume profile', () => {
+    const photo = 'data:image/jpeg;base64,dGVzdA==';
+    fixture.componentInstance.resumeForm.controls.profile.controls.photoDataUrl.setValue(photo);
+    fixture.componentInstance.showPreview();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.resume-preview img').src).toBe(photo);
+
+    fixture.componentInstance.removePhoto();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.resume-preview img')).toBeNull();
+  });
+
+  it('keeps the photo preview after saving a resume with a file reference', () => {
+    const profile = fixture.componentInstance.resumeForm.controls.profile.controls;
+    const fileId = '00000000000000000000000000000009';
+    const photo = 'data:image/jpeg;base64,dGVzdA==';
+    profile.photoFileId.setValue(fileId);
+    profile.photoDataUrl.setValue(photo);
+    const saved = resume();
+    saved.content.profile.photoFileId = fileId;
+    service.updateResume.mockReturnValue(of(saved));
+
+    fixture.componentInstance.saveResume();
+
+    expect(profile.photoDataUrl.value).toBe(photo);
+    expect(fixture.componentInstance.resumeForm.controls.profile.controls.photoDataUrl.value).toBe(
+      photo,
+    );
+  });
+
+  it('rejects a non-image photo without replacing the current image', () => {
+    const profile = fixture.componentInstance.resumeForm.controls.profile.controls;
+    profile.photoDataUrl.setValue('data:image/jpeg;base64,existing');
+    const input = fixture.nativeElement.querySelector('#resume-profile-photo') as HTMLInputElement;
+    Object.defineProperty(input, 'files', {
+      configurable: true,
+      value: { item: () => new File(['text'], 'photo.txt', { type: 'text/plain' }) },
+    });
+
+    input.dispatchEvent(new Event('change'));
+
+    expect(profile.photoDataUrl.value).toBe('data:image/jpeg;base64,existing');
+    expect(notifications.error).toHaveBeenCalledWith(
+      expect.stringContaining('Не удалось обработать фото'),
+    );
+  });
+
+  it('uploads a selected photo through the resume file endpoint', () => {
+    const originalReader = Object.getOwnPropertyDescriptor(window, 'FileReader');
+    const originalImage = Object.getOwnPropertyDescriptor(window, 'Image');
+    const originalContext = Object.getOwnPropertyDescriptor(
+      HTMLCanvasElement.prototype,
+      'getContext',
+    );
+    const originalDataUrl = Object.getOwnPropertyDescriptor(
+      HTMLCanvasElement.prototype,
+      'toDataURL',
+    );
+    const compressed = 'data:image/jpeg;base64,dGVzdA==';
+    class TestFileReader {
+      result: string | null = null;
+      onload: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      readAsDataURL(): void {
+        this.result = 'data:image/png;base64,dGVzdA==';
+        this.onload?.();
+      }
+    }
+    class TestImage {
+      width = 100;
+      height = 80;
+      onload: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      set src(_value: string) {
+        this.onload?.();
+      }
+    }
+    Object.defineProperty(window, 'FileReader', { configurable: true, value: TestFileReader });
+    Object.defineProperty(window, 'Image', { configurable: true, value: TestImage });
+    Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', {
+      configurable: true,
+      value: () => ({ fillRect: jest.fn(), drawImage: jest.fn() }),
+    });
+    Object.defineProperty(HTMLCanvasElement.prototype, 'toDataURL', {
+      configurable: true,
+      value: () => compressed,
+    });
+    try {
+      const input = fixture.nativeElement.querySelector(
+        '#resume-profile-photo',
+      ) as HTMLInputElement;
+      Object.defineProperty(input, 'files', {
+        configurable: true,
+        value: { item: () => new File(['image'], 'photo.png', { type: 'image/png' }) },
+      });
+      input.dispatchEvent(new Event('change'));
+      expect(service.uploadPhoto).toHaveBeenCalledWith(RESUME_ID, expect.any(Blob));
+      expect(
+        fixture.componentInstance.resumeForm.controls.profile.controls.photoDataUrl.value,
+      ).toBe(compressed);
+    } finally {
+      if (originalReader) Object.defineProperty(window, 'FileReader', originalReader);
+      if (originalImage) Object.defineProperty(window, 'Image', originalImage);
+      if (originalContext)
+        Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', originalContext);
+      if (originalDataUrl)
+        Object.defineProperty(HTMLCanvasElement.prototype, 'toDataURL', originalDataUrl);
+    }
   });
 
   it('stops adding skill groups at the limit and explains an oversized loaded draft', () => {
@@ -172,7 +385,7 @@ describe('ResumeDetailPageComponent', () => {
 
     expect(service.updateResume).not.toHaveBeenCalled();
     expect(elementByTestId<HTMLElement>('resume-validation-summary').textContent).toContain(
-      'Навыки — Максимум 12 элементов.',
+      'Навыки — Элементов: 14, максимум: 12.',
     );
   });
 
@@ -378,14 +591,14 @@ describe('ResumeDetailPageComponent', () => {
     fixture.detectChanges();
 
     const companySummary = elementById<HTMLTextAreaElement>('resume-experience-0-summary');
-    const companyHighlights = elementById<HTMLInputElement>('resume-experience-0-highlight-0');
+    const companyHighlights = elementById<HTMLTextAreaElement>('resume-experience-0-highlight-0');
     const companyTechnologies = elementById<HTMLInputElement>('resume-experience-0-technology-0');
     const projectName = elementById<HTMLInputElement>('resume-experience-0-project-0-name');
     const projectRole = elementById<HTMLInputElement>('resume-experience-0-project-0-role');
     const projectDescription = elementById<HTMLTextAreaElement>(
       'resume-experience-0-project-0-description',
     );
-    const projectHighlights = elementById<HTMLInputElement>(
+    const projectHighlights = elementById<HTMLTextAreaElement>(
       'resume-experience-0-project-0-highlight-0',
     );
     const projectTechnologies = elementById<HTMLInputElement>(
@@ -398,10 +611,12 @@ describe('ResumeDetailPageComponent', () => {
     expect(fieldColumn(projectDescription).classList.contains('col-12')).toBe(true);
     expect(fieldColumn(projectHighlights).classList.contains('col-12')).toBe(true);
     expect(fieldColumn(projectTechnologies).classList.contains('col-12')).toBe(true);
-    expect(companyHighlights.tagName).toBe('INPUT');
+    expect(companyHighlights.tagName).toBe('TEXTAREA');
+    expect(companyHighlights.classList).toContain('cdk-textarea-autosize');
     expect(fieldColumn(projectName).classList.contains('col-md-6')).toBe(true);
     expect(fieldColumn(projectRole).classList.contains('col-md-6')).toBe(true);
-    expect(projectHighlights.tagName).toBe('INPUT');
+    expect(projectHighlights.tagName).toBe('TEXTAREA');
+    expect(projectHighlights.rows).toBe(1);
   });
 
   it('renders skills and technologies as inline list inputs', () => {
@@ -776,7 +991,7 @@ describe('ResumeDetailPageComponent', () => {
       tab: 'experience',
       elementId: 'resume-experience-0-highlight-0',
       invalidValue: INVALID_LONG_TEXT,
-      expectedIssue: 'Опыт / Компания 1 / Достижения / Пункт 1 — Максимум 300 символов.',
+      expectedIssue: 'Опыт / Компания 1 / Достижения / Пункт 1 — Максимум 512 символов.',
     },
     {
       description: 'experience technology',
@@ -825,7 +1040,7 @@ describe('ResumeDetailPageComponent', () => {
       tab: 'experience',
       elementId: 'resume-experience-0-project-0-highlight-0',
       invalidValue: INVALID_LONG_TEXT,
-      expectedIssue: 'Опыт / Компания 1 / Проект 1 / Достижения / Пункт 1 — Максимум 300 символов.',
+      expectedIssue: 'Опыт / Компания 1 / Проект 1 / Достижения / Пункт 1 — Максимум 512 символов.',
     },
     {
       description: 'project technology',
@@ -1637,6 +1852,8 @@ function resume(overrides: Partial<Resume> = {}): Resume {
     content: {
       profile: {
         fullName: 'Candidate Name',
+        photoFileId: '',
+        photoDataUrl: '',
         role: 'Backend инженер',
         location: 'Москва',
         email: 'candidate@example.com',
@@ -1658,6 +1875,7 @@ function resume(overrides: Partial<Resume> = {}): Resume {
       experience: [
         {
           company: 'Компания',
+          companyWebsiteUrl: '',
           position: 'Инженер',
           location: 'Москва',
           startDate: '2024-01-01',
@@ -1670,6 +1888,8 @@ function resume(overrides: Partial<Resume> = {}): Resume {
             {
               name: 'Портфолио',
               role: 'Автор',
+              teamSize: '',
+              scale: '',
               description: 'Сайт и база знаний',
               highlights: ['Статическая CSR SPA'],
               technologies: ['Litestar'],

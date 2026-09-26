@@ -127,6 +127,24 @@ describe('ResumesPageComponent', () => {
     );
   });
 
+  it('shows live limits in the create form and flags overflow before submission', () => {
+    fixture.componentInstance.openCreateDialog();
+    fixture.detectChanges();
+
+    const title = fixture.nativeElement.querySelector('#resume-create-title') as HTMLInputElement;
+    const counter = fixture.nativeElement.querySelector(
+      '#resume-create-title-limit',
+    ) as HTMLElement;
+    expect(counter.textContent).toBe('0/255');
+    expect(title.hasAttribute('maxlength')).toBe(false);
+
+    setInputValue('resume-create-title', 'x'.repeat(256));
+    fixture.detectChanges();
+    expect(counter.textContent).toBe('256/255');
+    expect(title.classList).toContain('resume-limit-exceeded');
+    expect(service.createResume).not.toHaveBeenCalled();
+  });
+
   it('confirms closing a changed create form but not a fully reverted form', () => {
     const confirm = jest.spyOn(window, 'confirm').mockReturnValue(false);
     fixture.componentInstance.openCreateDialog();
@@ -318,6 +336,8 @@ function resume(): Resume {
     content: {
       profile: {
         fullName: 'Candidate Name',
+        photoFileId: '',
+        photoDataUrl: '',
         role: 'Engineer',
         location: '',
         email: '',

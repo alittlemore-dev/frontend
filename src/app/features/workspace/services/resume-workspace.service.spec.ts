@@ -77,7 +77,13 @@ describe('ResumeWorkspaceService', () => {
       request.url.endsWith('/api/personal-workspace/resumes'),
     );
     expect(createReq.request.method).toBe('POST');
-    expect(createReq.request.body).toEqual(payload);
+    expect(createReq.request.body).toEqual({
+      ...payload,
+      content: {
+        ...payload.content,
+        profile: { ...payload.content.profile, photoDataUrl: undefined },
+      },
+    });
     createReq.flush(resumeDto());
 
     service.updateResume(RESUME_ID, payload).subscribe((resume) => {
@@ -87,7 +93,13 @@ describe('ResumeWorkspaceService', () => {
       request.url.endsWith(`/api/personal-workspace/resumes/${RESUME_ID}`),
     );
     expect(updateReq.request.method).toBe('PUT');
-    expect(updateReq.request.body).toEqual(payload);
+    expect(updateReq.request.body).toEqual({
+      ...payload,
+      content: {
+        ...payload.content,
+        profile: { ...payload.content.profile, photoDataUrl: undefined },
+      },
+    });
     updateReq.flush(resumeDto());
 
     service.deleteResume(RESUME_ID).subscribe();
@@ -117,6 +129,10 @@ describe('ResumeWorkspaceService', () => {
       format: 'pdf',
       theme: 'accent',
       ...payload,
+      content: {
+        ...payload.content,
+        profile: { ...payload.content.profile, photoDataUrl: undefined },
+      },
     });
     exportReq.flush(new Blob(['resume'], { type: 'application/pdf' }), {
       headers: { 'X-Resume-Page-Count': '3' },
@@ -124,6 +140,29 @@ describe('ResumeWorkspaceService', () => {
 
     expect(exportedBlob?.type).toBe('application/pdf');
     expect(pageCount).toBe(3);
+  });
+
+  it('uploads and reads a private resume photo through protected endpoints', () => {
+    const photo = new Blob(['jpeg'], { type: 'image/jpeg' });
+    service.uploadPhoto(RESUME_ID, photo).subscribe((resume) => {
+      expect(resume.id).toBe(RESUME_ID);
+    });
+    const upload = httpMock.expectOne((request) =>
+      request.url.endsWith(`/api/personal-workspace/resumes/${RESUME_ID}/photo`),
+    );
+    expect(upload.request.method).toBe('POST');
+    expect(upload.request.body).toBeInstanceOf(FormData);
+    expect((upload.request.body as FormData).get('file')).toBeInstanceOf(Blob);
+    upload.flush(resumeDto());
+
+    service.getPhoto(RESUME_ID).subscribe((blob) => {
+      expect(blob.type).toBe('image/jpeg');
+    });
+    const download = httpMock.expectOne((request) =>
+      request.url.endsWith(`/api/personal-workspace/resumes/${RESUME_ID}/photo`),
+    );
+    expect(download.request.method).toBe('GET');
+    download.flush(photo);
   });
 
   it('maps nested resume content without sharing mutable DTO arrays', () => {
@@ -180,6 +219,8 @@ function resumeContent(): ResumePayload['content'] {
   return {
     profile: {
       fullName: 'Candidate Name',
+      photoFileId: '',
+      photoDataUrl: '',
       role: 'Engineer',
       location: '',
       email: '',
@@ -201,6 +242,7 @@ function resumeContent(): ResumePayload['content'] {
     experience: [
       {
         company: 'Company',
+        companyWebsiteUrl: '',
         position: 'Engineer',
         location: '',
         startDate: '2020-01-01',
@@ -213,6 +255,8 @@ function resumeContent(): ResumePayload['content'] {
           {
             name: 'Portfolio',
             role: 'Creator',
+            teamSize: '',
+            scale: '',
             description: 'Site and knowledge base',
             highlights: ['CSR SPA shell'],
             technologies: ['Litestar'],
