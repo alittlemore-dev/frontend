@@ -30,6 +30,20 @@
         'account.telegram.enabled' | t
       }}</label>
     </div>
+    <div class="form-check form-switch mb-3">
+      <input
+        #notifyToggle
+        id="telegram-notify"
+        type="checkbox"
+        class="form-check-input"
+        [checked]="data.notify"
+        [disabled]="busy()"
+        (change)="setNotify(notifyToggle.checked)"
+      />
+      <label class="form-check-label" for="telegram-notify">{{
+        'account.telegram.notify' | t
+      }}</label>
+    </div>
     @if (data.enabled) {
       <p class="text-body-secondary">{{ 'account.telegram.inviteHint' | t }}</p>
       <div class="row g-2 align-items-end mb-3">
@@ -150,6 +164,16 @@
                 <td>{{ 'account.telegram.state.' + connection.state | t }}</td>
                 <td>
                   <div class="d-flex flex-wrap gap-1">
+                    @if (connection.state === 'active' || connection.state === 'pending') {
+                      <button
+                        type="button"
+                        class="btn btn-outline-primary btn-sm"
+                        [disabled]="busy()"
+                        (click)="beginEditNotifications(connection)"
+                      >
+                        {{ 'account.telegram.notificationSettings' | t }}
+                      </button>
+                    }
                     @if (connection.state === 'pending') {
                       <button
                         [id]="'telegram-approve-' + connection.id"
@@ -205,6 +229,84 @@
           </tbody>
         </table>
       </div>
+      @if (notificationDraft(); as draft) {
+        <section class="border rounded p-3 mt-3" aria-labelledby="telegram-notification-title">
+          <h4 id="telegram-notification-title" class="h6">
+            {{ 'account.telegram.notificationSettings' | t }} · {{ draft.label }}
+          </h4>
+          <div class="form-check form-switch mb-2">
+            <input
+              #birthdayToggle
+              class="form-check-input"
+              type="checkbox"
+              id="telegram-notify-birthday"
+              [checked]="draft.notifyBirthday"
+              [disabled]="busy()"
+              (change)="updateNotificationDraft({ notifyBirthday: birthdayToggle.checked })"
+            />
+            <label class="form-check-label" for="telegram-notify-birthday">{{
+              'account.telegram.notifyBirthday' | t
+            }}</label>
+          </div>
+          <div class="form-check form-switch mb-2">
+            <input
+              #dateToggle
+              class="form-check-input"
+              type="checkbox"
+              id="telegram-notify-date"
+              [checked]="draft.notifyMemorableDate"
+              [disabled]="busy()"
+              (change)="updateNotificationDraft({ notifyMemorableDate: dateToggle.checked })"
+            />
+            <label class="form-check-label" for="telegram-notify-date">{{
+              'account.telegram.notifyMemorableDate' | t
+            }}</label>
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-12 col-md-4">
+              <label class="form-label" for="telegram-notification-language">{{
+                'account.telegram.notificationLanguage' | t
+              }}</label>
+              <select
+                #languageSelect
+                id="telegram-notification-language"
+                class="form-select"
+                [value]="draft.language"
+                [disabled]="busy()"
+                (change)="setNotificationLanguage(languageSelect.value)"
+              >
+                <option value="en">English</option>
+                <option value="ru">Русский</option>
+              </select>
+            </div>
+            <div class="col-12 col-md-5">
+              <label class="form-label" for="telegram-notification-timezone">{{
+                'account.telegram.notificationTimeZone' | t
+              }}</label>
+              <select
+                #timezoneSelect
+                id="telegram-notification-timezone"
+                class="form-select"
+                [value]="draft.timeZone"
+                [disabled]="busy()"
+                (change)="updateNotificationDraft({ timeZone: timezoneSelect.value })"
+              >
+                @for (zone of timeZones; track zone) {
+                  <option [value]="zone">{{ zone }}</option>
+                }
+              </select>
+            </div>
+          </div>
+          <button
+            type="button"
+            class="btn btn-primary btn-sm"
+            [disabled]="busy()"
+            (click)="saveNotifications()"
+          >
+            {{ 'account.telegram.saveNotifications' | t }}
+          </button>
+        </section>
+      }
     }
   }
 }

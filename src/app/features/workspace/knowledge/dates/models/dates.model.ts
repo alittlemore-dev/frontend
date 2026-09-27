@@ -28,6 +28,7 @@ export interface KnowledgeDatesPage {
 
 export interface KnowledgeDateDetail extends KnowledgeDateSummary {
   description: string;
+  notificationsEnabled: boolean;
   attachments: readonly KnowledgeFile[];
 }
 
@@ -47,6 +48,7 @@ export interface KnowledgeDateCreatePayload {
 
 export interface KnowledgeDateUpdatePayload extends KnowledgeDateCreatePayload {
   description: string;
+  notificationsEnabled: boolean;
   tagIds: readonly string[];
   personIds: readonly string[];
 }

@@ -22,6 +22,7 @@ const DATE: KnowledgeDateDetail = {
   displayName: 'Годовщина',
   date: { day: 29, month: 2, year: null },
   description: '<script>alert(1)</script>',
+  notificationsEnabled: true,
   relatedPeople: [{ id: 'person-1', displayName: 'Иван Иванов' }],
   tags: [{ id: 'tag-1', name: 'Семья', color: '#ffffff' }],
   attachments: [
@@ -54,6 +55,7 @@ const PERSON: PersonDetail = {
   telegram: '',
   birthday: null,
   description: '',
+  notificationsEnabled: true,
   tags: [],
   relationships: [],
   relatedDates: [],
@@ -294,10 +296,21 @@ describe('DateDetailComponent', () => {
       displayName: 'Обновлённая дата',
       date: { day: 29, month: 2, year: null },
       description: 'Описание',
+      notificationsEnabled: true,
       tagIds: ['tag-2'],
       personIds: ['person-2'],
     });
     expect(notifications.success).toHaveBeenCalled();
+  });
+
+  it('saves the date notification switch', () => {
+    const component = fixture.componentInstance;
+    component.dateForm.controls.notificationsEnabled.setValue(false);
+    component.saveDate();
+    expect(datesService.updateDate).toHaveBeenCalledWith(
+      'date-1',
+      expect.objectContaining({ notificationsEnabled: false }),
+    );
   });
 
   it('adds People from search suggestions instead of rendering every candidate as a button', () => {

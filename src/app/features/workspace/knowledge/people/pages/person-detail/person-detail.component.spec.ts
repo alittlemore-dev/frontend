@@ -26,6 +26,7 @@ const PERSON: PersonDetail = {
   telegram: '@ivanov',
   birthday: { day: 29, month: 2, year: null },
   description: '<script>alert(1)</script>',
+  notificationsEnabled: true,
   tags: [],
   relationships: [],
   relatedDates: [
@@ -510,6 +511,16 @@ describe('PersonDetailComponent', () => {
     expect(createObjectURL).toHaveBeenCalledTimes(1);
     fixture.destroy();
     expect(revokeObjectURL).toHaveBeenCalledWith('blob:current-photo');
+  });
+
+  it('saves the birthday notification switch', () => {
+    const component = fixture.componentInstance;
+    component.personForm.controls.notificationsEnabled.setValue(false);
+    component.savePerson();
+    expect(peopleService.updatePerson).toHaveBeenCalledWith(
+      'person-1',
+      expect.objectContaining({ notificationsEnabled: false }),
+    );
   });
 });
 

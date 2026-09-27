@@ -19,11 +19,21 @@ export interface TelegramConnection {
   requestedAt: string;
   connectedAt: string | null;
   lastContactAt: string;
+  notifyBirthday: boolean;
+  notifyMemorableDate: boolean;
+  language: 'ru' | 'en';
+  timeZone: string;
 }
+
+export type TelegramConnectionSettings = Pick<
+  TelegramConnection,
+  'notifyBirthday' | 'notifyMemorableDate' | 'language' | 'timeZone'
+>;
 
 export interface TelegramSettings {
   available: boolean;
   enabled: boolean;
+  notify: boolean;
   invitations: TelegramInvitation[];
   connections: TelegramConnection[];
 }
@@ -53,6 +63,7 @@ export class TelegramSettingsService {
           map((workspace) => ({
             ...workspace,
             enabled: settings.telegramBots['personal-workspace']?.enabled ?? false,
+            notify: settings.telegramBots['personal-workspace']?.notify ?? false,
           })),
         );
     });
@@ -67,12 +78,38 @@ export class TelegramSettingsService {
           ...settings,
           telegramBots: {
             ...settings.telegramBots,
-            'personal-workspace': { enabled },
+            'personal-workspace': {
+              enabled,
+              notify: settings.telegramBots['personal-workspace']?.notify ?? false,
+            },
           },
         })
         .pipe(
           map((account) => ({
             enabled: account.settings.telegramBots['personal-workspace']?.enabled ?? false,
+          })),
+        );
+    });
+  }
+
+  setNotify(notify: boolean): Observable<{ notify: boolean }> {
+    return defer(() => {
+      const settings = this.preferences.settings();
+      if (!settings) return throwError(() => new Error('Account settings are unavailable'));
+      return this.preferences
+        .update({
+          ...settings,
+          telegramBots: {
+            ...settings.telegramBots,
+            'personal-workspace': {
+              enabled: settings.telegramBots['personal-workspace']?.enabled ?? false,
+              notify,
+            },
+          },
+        })
+        .pipe(
+          map((account) => ({
+            notify: account.settings.telegramBots['personal-workspace']?.notify ?? false,
           })),
         );
     });
@@ -97,6 +134,16 @@ export class TelegramSettingsService {
     return this.api.put<TelegramConnection>(
       `${this.workspaceBase}/connections/${encodeURIComponent(id)}/label`,
       { label },
+    );
+  }
+
+  updateConnectionSettings(
+    id: string,
+    settings: TelegramConnectionSettings,
+  ): Observable<TelegramConnection> {
+    return this.api.put<TelegramConnection>(
+      `${this.workspaceBase}/connections/${encodeURIComponent(id)}/settings`,
+      settings,
     );
   }
 }

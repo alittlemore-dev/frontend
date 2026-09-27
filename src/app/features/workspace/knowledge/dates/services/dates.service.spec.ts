@@ -10,6 +10,7 @@ const DATE: KnowledgeDateDetail = {
   displayName: 'Годовщина',
   date: { day: 29, month: 2, year: null },
   description: '',
+  notificationsEnabled: true,
   relatedPeople: [{ id: 'person-1', displayName: 'Иван Иванов' }],
   tags: [],
   attachments: [],

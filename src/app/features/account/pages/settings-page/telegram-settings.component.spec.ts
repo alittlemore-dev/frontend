@@ -10,6 +10,7 @@ import { TelegramSettingsComponent } from './telegram-settings.component';
 const SETTINGS: TelegramSettings = {
   available: true,
   enabled: true,
+  notify: false,
   invitations: [],
   connections: [
     {
@@ -22,6 +23,10 @@ const SETTINGS: TelegramSettings = {
       requestedAt: '2026-09-26T12:00:00Z',
       connectedAt: null,
       lastContactAt: '2026-09-26T12:00:00Z',
+      notifyBirthday: false,
+      notifyMemorableDate: false,
+      language: 'en',
+      timeZone: 'UTC',
     },
   ],
 };
@@ -31,6 +36,8 @@ describe('TelegramSettingsComponent', () => {
   const service = {
     load: jest.fn(),
     setEnabled: jest.fn(),
+    setNotify: jest.fn(),
+    updateConnectionSettings: jest.fn(),
     createInvitation: jest.fn(),
     cancelInvitation: jest.fn(),
     changeState: jest.fn(),
@@ -40,6 +47,8 @@ describe('TelegramSettingsComponent', () => {
   beforeEach(async () => {
     service.load.mockReset().mockReturnValue(of(SETTINGS));
     service.setEnabled.mockReset().mockReturnValue(of({ enabled: true }));
+    service.setNotify.mockReset().mockReturnValue(of({ notify: false }));
+    service.updateConnectionSettings.mockReset().mockReturnValue(of(SETTINGS.connections[0]));
     service.createInvitation.mockReset().mockReturnValue(
       of({
         url: 'https://t.me/shared_bot?start=secret',
@@ -103,5 +112,39 @@ describe('TelegramSettingsComponent', () => {
     expect(component.editingId()).toBe('abc');
     expect(component.editLabel.value).toBe('Family');
     expect(fixture.nativeElement.querySelector('#telegram-rename-abc')).not.toBeNull();
+  });
+
+  it('keeps notification selections available after a failed save', () => {
+    service.updateConnectionSettings.mockReturnValue(throwError(() => new Error('offline')));
+    const component = fixture.componentInstance;
+    component.beginEditNotifications(SETTINGS.connections[0]);
+    component.updateNotificationDraft({ notifyBirthday: true, language: 'ru' });
+    component.saveNotifications();
+    fixture.detectChanges();
+    expect(component.notificationDraft()?.notifyBirthday).toBe(true);
+    expect(component.notificationDraft()?.language).toBe('ru');
+    expect(fixture.nativeElement.querySelector('#telegram-notify-birthday')).not.toBeNull();
+  });
+
+  it('saves all notification settings together and closes the editor', () => {
+    const component = fixture.componentInstance;
+    component.beginEditNotifications(SETTINGS.connections[0]);
+    component.updateNotificationDraft({
+      notifyBirthday: true,
+      notifyMemorableDate: true,
+      language: 'ru',
+      timeZone: 'Asia/Yerevan',
+    });
+    component.saveNotifications();
+    fixture.detectChanges();
+
+    expect(service.updateConnectionSettings).toHaveBeenCalledWith('abc', {
+      notifyBirthday: true,
+      notifyMemorableDate: true,
+      language: 'ru',
+      timeZone: 'Asia/Yerevan',
+    });
+    expect(component.notificationDraft()).toBeNull();
+    expect(service.load).toHaveBeenCalledTimes(2);
   });
 });

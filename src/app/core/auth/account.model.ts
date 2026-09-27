@@ -8,6 +8,7 @@ export type TelegramBotId = 'personal-workspace';
 
 export interface TelegramBotSettings {
   enabled: boolean;
+  notify: boolean;
 }
 
 export interface AccountSettings {

@@ -10,6 +10,7 @@ import {
   TelegramConnectionAction,
   TelegramSettings,
   TelegramSettingsService,
+  TelegramConnection,
 } from '../../services/telegram-settings.service';
 
 @Component({
@@ -30,6 +31,11 @@ export class TelegramSettingsComponent {
   readonly busy = signal(false);
   readonly error = signal('');
   readonly editingId = signal('');
+  readonly timeZones = [
+    'UTC',
+    ...Intl.supportedValuesOf('timeZone').filter((zone) => zone !== 'UTC'),
+  ];
+  readonly notificationDraft = signal<TelegramConnection | null>(null);
   readonly inviteLabel = new FormControl('', {
     nonNullable: true,
     validators: [Validators.required, Validators.maxLength(100)],
@@ -61,6 +67,37 @@ export class TelegramSettingsComponent {
   setEnabled(enabled: boolean): void {
     if (this.busy() || !this.settings()?.available) return;
     this.run(this.service.setEnabled(enabled));
+  }
+
+  setNotify(notify: boolean): void {
+    if (this.busy() || !this.settings()?.available) return;
+    this.run(this.service.setNotify(notify));
+  }
+
+  beginEditNotifications(connection: TelegramConnection): void {
+    this.notificationDraft.set({ ...connection });
+  }
+
+  updateNotificationDraft(patch: Partial<TelegramConnection>): void {
+    this.notificationDraft.update((current) => (current ? { ...current, ...patch } : null));
+  }
+
+  setNotificationLanguage(value: string): void {
+    if (value === 'ru' || value === 'en') this.updateNotificationDraft({ language: value });
+  }
+
+  saveNotifications(): void {
+    const connection = this.notificationDraft();
+    if (!connection) return;
+    this.run(
+      this.service.updateConnectionSettings(connection.id, {
+        notifyBirthday: connection.notifyBirthday,
+        notifyMemorableDate: connection.notifyMemorableDate,
+        language: connection.language,
+        timeZone: connection.timeZone,
+      }),
+      () => this.notificationDraft.set(null),
+    );
   }
 
   createInvitation(): void {

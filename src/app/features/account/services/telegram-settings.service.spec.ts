@@ -13,7 +13,7 @@ describe('TelegramSettingsService', () => {
   const accountSettings = signal({
     language: 'ru' as const,
     theme: 'dark' as const,
-    telegramBots: { 'personal-workspace': { enabled: true } },
+    telegramBots: { 'personal-workspace': { enabled: true, notify: false } },
   });
   const preferences = { settings: accountSettings, update: jest.fn() };
 
@@ -56,8 +56,34 @@ describe('TelegramSettingsService', () => {
     expect(preferences.update).toHaveBeenCalledWith({
       language: 'ru',
       theme: 'dark',
-      telegramBots: { 'personal-workspace': { enabled: false } },
+      telegramBots: { 'personal-workspace': { enabled: false, notify: false } },
     });
+  });
+
+  it('updates the bot notification switch without changing bot availability', () => {
+    preferences.update.mockReturnValue(of({ settings: accountSettings() }));
+    service.setNotify(true).subscribe();
+    expect(preferences.update).toHaveBeenCalledWith({
+      language: 'ru',
+      theme: 'dark',
+      telegramBots: { 'personal-workspace': { enabled: true, notify: true } },
+    });
+  });
+
+  it('saves all notification preferences for one connection', () => {
+    const settings = {
+      notifyBirthday: true,
+      notifyMemorableDate: false,
+      language: 'ru' as const,
+      timeZone: 'Asia/Yerevan',
+    };
+    service.updateConnectionSettings('abc', settings).subscribe();
+    const request = http.expectOne((item) =>
+      item.url.endsWith('/api/personal-workspace/telegram/connections/abc/settings'),
+    );
+    expect(request.request.method).toBe('PUT');
+    expect(request.request.body).toEqual(settings);
+    request.flush({});
   });
 
   it('creates a one-time invitation and returns its link', () => {

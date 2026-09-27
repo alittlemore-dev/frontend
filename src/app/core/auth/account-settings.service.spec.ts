@@ -23,7 +23,7 @@ const account: AccountInfo = {
   settings: {
     language: 'en',
     theme: 'light',
-    telegramBots: { 'personal-workspace': { enabled: true } },
+    telegramBots: { 'personal-workspace': { enabled: true, notify: false } },
   },
 };
 
@@ -65,7 +65,7 @@ describe('AccountSettingsService', () => {
       service.update({
         language: 'ru',
         theme: 'dark',
-        telegramBots: { 'personal-workspace': { enabled: true } },
+        telegramBots: { 'personal-workspace': { enabled: true, notify: false } },
       }),
     );
     expect(service.saving()).toBe(true);
@@ -73,14 +73,14 @@ describe('AccountSettingsService', () => {
     expect(api.put).toHaveBeenCalledWith('/api/auth/account/me/settings', {
       language: 'ru',
       theme: 'dark',
-      telegramBots: { 'personal-workspace': { enabled: true } },
+      telegramBots: { 'personal-workspace': { enabled: true, notify: false } },
     });
     result.next({
       ...account,
       settings: {
         language: 'ru',
         theme: 'dark',
-        telegramBots: { 'personal-workspace': { enabled: true } },
+        telegramBots: { 'personal-workspace': { enabled: true, notify: false } },
       },
     });
     result.complete();
@@ -98,7 +98,7 @@ describe('AccountSettingsService', () => {
         service.update({
           language: 'ru',
           theme: 'dark',
-          telegramBots: { 'personal-workspace': { enabled: true } },
+          telegramBots: { 'personal-workspace': { enabled: true, notify: false } },
         }),
       ),
     ).rejects.toThrow('offline');
@@ -143,7 +143,7 @@ describe('AccountSettingsService', () => {
       settings: {
         language: 'ru',
         theme: 'dark',
-        telegramBots: { 'personal-workspace': { enabled: true } },
+        telegramBots: { 'personal-workspace': { enabled: true, notify: false } },
       },
     };
     api.get.mockReturnValue(of(updated));
@@ -161,7 +161,7 @@ describe('AccountSettingsService', () => {
       settings: {
         language: 'ru',
         theme: 'dark',
-        telegramBots: { 'personal-workspace': { enabled: true } },
+        telegramBots: { 'personal-workspace': { enabled: true, notify: false } },
       },
     };
     api.put.mockReturnValue(of(updated));
@@ -180,7 +180,7 @@ describe('AccountSettingsService', () => {
       .update({
         language: 'ru',
         theme: 'dark',
-        telegramBots: { 'personal-workspace': { enabled: true } },
+        telegramBots: { 'personal-workspace': { enabled: true, notify: false } },
       })
       .subscribe(next);
     session.clear();
@@ -190,7 +190,7 @@ describe('AccountSettingsService', () => {
       settings: {
         language: 'ru',
         theme: 'dark',
-        telegramBots: { 'personal-workspace': { enabled: true } },
+        telegramBots: { 'personal-workspace': { enabled: true, notify: false } },
       },
     });
     response.complete();

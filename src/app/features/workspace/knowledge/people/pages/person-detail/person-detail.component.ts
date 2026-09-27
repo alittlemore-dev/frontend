@@ -83,6 +83,7 @@ interface PersonFormValue {
     year: string;
   };
   description: string;
+  notificationsEnabled: boolean;
 }
 
 interface RelationshipFormControls {
@@ -189,6 +190,7 @@ export class PersonDetailComponent implements OnInit, OnDestroy {
       { validators: birthdayValidator },
     ),
     description: ['', Validators.maxLength(100000)],
+    notificationsEnabled: [true],
   });
   readonly relationshipForms = new FormArray<RelationshipFormGroup>([]);
   readonly relationshipTypeForm = this.formBuilder.group({
@@ -970,6 +972,7 @@ export class PersonDetailComponent implements OnInit, OnDestroy {
             : String(person.birthday.year),
       },
       description: person.description,
+      notificationsEnabled: person.notificationsEnabled,
     });
     this.selectedTagIds.set(person.tags.map((tag) => tag.id));
     this.deletedRelationshipIds.set([]);
@@ -1048,6 +1051,7 @@ export class PersonDetailComponent implements OnInit, OnDestroy {
               year: value.birthday.year === '' ? null : Number(value.birthday.year),
             },
       description: value.description,
+      notificationsEnabled: value.notificationsEnabled,
       tagIds: this.selectedTagIds(),
       relationshipChanges: {
         create: rows
@@ -1121,6 +1125,7 @@ function emptyPersonFormValue(): PersonFormValue {
     telegram: '',
     birthday: { day: '', month: '', year: '' },
     description: '',
+    notificationsEnabled: true,
   };
 }
 

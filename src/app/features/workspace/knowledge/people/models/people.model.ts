@@ -73,6 +73,7 @@ export interface PersonDetail {
   telegram: string;
   birthday: PersonBirthday | null;
   description: string;
+  notificationsEnabled: boolean;
   tags: readonly KnowledgeTag[];
   relationships: readonly PersonRelationship[];
   relatedDates: readonly KnowledgeDateReference[];
@@ -121,6 +122,7 @@ export interface PersonUpdatePayload {
   telegram: string;
   birthday: PersonBirthday | null;
   description: string;
+  notificationsEnabled: boolean;
   tagIds: readonly string[];
   relationshipChanges: PersonRelationshipChangesPayload;
 }

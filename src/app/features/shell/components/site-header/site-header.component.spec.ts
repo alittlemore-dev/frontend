@@ -102,13 +102,13 @@ describe('Shared site header', () => {
       settings: {
         language: 'en',
         theme: 'light',
-        telegramBots: { 'personal-workspace': { enabled: true } },
+        telegramBots: { 'personal-workspace': { enabled: true, notify: false } },
       },
     });
     preferences.settings.set({
       language: 'en',
       theme: 'light',
-      telegramBots: { 'personal-workspace': { enabled: true } },
+      telegramBots: { 'personal-workspace': { enabled: true, notify: false } },
     });
     fixture.detectChanges();
     expect(el.querySelector('a[href="/account/settings"]')).not.toBeNull();
@@ -116,13 +116,13 @@ describe('Shared site header', () => {
     expect(preferences.update).toHaveBeenCalledWith({
       language: 'en',
       theme: 'dark',
-      telegramBots: { 'personal-workspace': { enabled: true } },
+      telegramBots: { 'personal-workspace': { enabled: true, notify: false } },
     });
     fixture.componentInstance.switchLanguage('ru');
     expect(preferences.update).toHaveBeenCalledWith({
       language: 'ru',
       theme: 'light',
-      telegramBots: { 'personal-workspace': { enabled: true } },
+      telegramBots: { 'personal-workspace': { enabled: true, notify: false } },
     });
   });
 

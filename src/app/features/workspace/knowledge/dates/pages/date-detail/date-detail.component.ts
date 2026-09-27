@@ -61,6 +61,7 @@ interface DateFormValue {
     year: string;
   };
   description: string;
+  notificationsEnabled: boolean;
 }
 
 const RELATED_PEOPLE_PREVIEW_LIMIT = 10;
@@ -137,6 +138,7 @@ export class DateDetailComponent implements OnInit {
       { validators: annualDateValidator },
     ),
     description: ['', Validators.maxLength(100000)],
+    notificationsEnabled: [true],
   });
   readonly mainSnapshot = computed(() => ({
     form: this.formSnapshot(),
@@ -694,6 +696,7 @@ export class DateDetailComponent implements OnInit {
         year: value.date.year === null ? '' : String(value.date.year),
       },
       description: value.description,
+      notificationsEnabled: value.notificationsEnabled,
     });
     this.selectedTagIds.set(value.tags.map((tag) => tag.id));
     this.selectedPeople.set(value.relatedPeople.map((person) => ({ ...person })));
@@ -721,6 +724,7 @@ export class DateDetailComponent implements OnInit {
         year: value.date.year === '' ? null : Number(value.date.year),
       },
       description: value.description,
+      notificationsEnabled: value.notificationsEnabled,
       tagIds: this.selectedTagIds(),
       personIds: this.selectedPeople().map((person) => person.id),
     };
@@ -732,5 +736,6 @@ function emptyDateFormValue(): DateFormValue {
     displayName: '',
     date: { day: '', month: '', year: '' },
     description: '',
+    notificationsEnabled: true,
   };
 }

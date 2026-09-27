@@ -16,6 +16,7 @@ const PERSON: PersonDetail = {
   telegram: '@ivanov',
   birthday: null,
   description: '',
+  notificationsEnabled: true,
   tags: [],
   relationships: [],
   relatedDates: [],

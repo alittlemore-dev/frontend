@@ -12,14 +12,14 @@ describe('SettingsPageComponent', () => {
   const settings = signal<AccountSettings>({
     language: 'en',
     theme: 'light',
-    telegramBots: { 'personal-workspace': { enabled: true } },
+    telegramBots: { 'personal-workspace': { enabled: true, notify: false } },
   });
   const preferences = { settings, saving: signal(false), load: jest.fn(), update: jest.fn() };
   beforeEach(async () => {
     settings.set({
       language: 'en',
       theme: 'light',
-      telegramBots: { 'personal-workspace': { enabled: true } },
+      telegramBots: { 'personal-workspace': { enabled: true, notify: false } },
     });
     preferences.saving.set(false);
     preferences.load.mockReset().mockReturnValue(of({}));
@@ -60,7 +60,7 @@ describe('SettingsPageComponent', () => {
     expect(preferences.update).toHaveBeenCalledWith({
       language: 'ru',
       theme: 'light',
-      telegramBots: { 'personal-workspace': { enabled: true } },
+      telegramBots: { 'personal-workspace': { enabled: true, notify: false } },
     });
   });
   it('switches tabs and saves a dark theme', () => {
@@ -74,7 +74,7 @@ describe('SettingsPageComponent', () => {
     expect(preferences.update).toHaveBeenCalledWith({
       language: 'en',
       theme: 'dark',
-      telegramBots: { 'personal-workspace': { enabled: true } },
+      telegramBots: { 'personal-workspace': { enabled: true, notify: false } },
     });
   });
   it('offers a Telegram integration tab in account settings', () => {
