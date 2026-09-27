@@ -174,6 +174,34 @@ describe('MatrixQuestionWorkspaceService', () => {
     expect(subsectionName).toBe('Style');
   });
 
+  it('sends explicit confirmation state to each structure delete endpoint', () => {
+    const cases = [
+      {
+        request: service.deleteSheet(SHEET_ID, false),
+        path: `sheets/${SHEET_ID}`,
+        confirmed: 'false',
+      },
+      {
+        request: service.deleteSection(SECTION_ID, true),
+        path: `sections/${SECTION_ID}`,
+        confirmed: 'true',
+      },
+      {
+        request: service.deleteSubsection(SUBSECTION_ID, false),
+        path: `subsections/${SUBSECTION_ID}`,
+        confirmed: 'false',
+      },
+    ];
+
+    for (const { request, path, confirmed } of cases) {
+      request.subscribe();
+      const req = httpMock.expectOne((r) => r.url.endsWith(`/api/admin/competency-matrix/${path}`));
+      expect(req.request.method).toBe('DELETE');
+      expect(req.request.params.get('deleteWithQuestions')).toBe(confirmed);
+      req.flush(null);
+    }
+  });
+
   it('loads matrix question details with a string id so large identifiers stay exact', () => {
     const id = '1152921504606846975';
 

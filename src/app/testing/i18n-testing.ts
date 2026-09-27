@@ -448,6 +448,20 @@ const I18N_TEST_MESSAGES: Record<string, string> = {
   'adminMatrixStructure.addSheet': 'Добавить лист',
   'adminMatrixStructure.addSection': 'Добавить раздел',
   'adminMatrixStructure.addSubsection': 'Добавить подраздел',
+  'adminMatrixStructure.deleteSheet': 'Удалить лист',
+  'adminMatrixStructure.deleteSection': 'Удалить раздел',
+  'adminMatrixStructure.deleteSubsection': 'Удалить подраздел',
+  'adminMatrixStructure.confirmDeleteSheet':
+    'Вы точно уверены, что хотите удалить лист вместе с вопросами?',
+  'adminMatrixStructure.confirmDeleteSection':
+    'Вы точно уверены, что хотите удалить раздел вместе с вопросами?',
+  'adminMatrixStructure.confirmDeleteSubsection':
+    'Вы точно уверены, что хотите удалить подраздел вместе с вопросами?',
+  'adminMatrixStructure.sheetDeleted': 'Лист удалён.',
+  'adminMatrixStructure.sectionDeleted': 'Раздел удалён.',
+  'adminMatrixStructure.subsectionDeleted': 'Подраздел удалён.',
+  'adminMatrixStructure.deleteError': 'Не удалось удалить элемент структуры матрицы.',
+  'adminMatrixStructure.deleting': 'Удаление',
   'adminMatrixStructure.createSheetTitle': 'Новый лист',
   'adminMatrixStructure.createSectionTitle': 'Новый раздел',
   'adminMatrixStructure.createSubsectionTitle': 'Новый подраздел',

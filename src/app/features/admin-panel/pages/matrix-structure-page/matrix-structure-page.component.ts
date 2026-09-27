@@ -1,4 +1,5 @@
 import { CdkDrag, CdkDragDrop, CdkDropList, moveItemInArray } from '@angular/cdk/drag-drop';
+import { DOCUMENT } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -90,6 +91,7 @@ export class MatrixStructurePageComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly document = inject(DOCUMENT);
   readonly unsavedChangesScope = inject(AdminUnsavedChangesService).createScope(this.destroyRef);
   private currentQueryParams: ParamMap | null = null;
   private structureLoaded = false;
@@ -98,12 +100,14 @@ export class MatrixStructurePageComponent implements OnInit {
   readonly selectedSheetId = signal<string | null>(null);
   readonly loading = signal(false);
   readonly saving = signal(false);
+  readonly deleting = signal(false);
   readonly error = signal<ApiError | null>(null);
   readonly createDialog = signal<MatrixCreateDialog | null>(null);
   readonly createSubmitting = signal(false);
   readonly createFormSubmitted = signal(false);
   readonly createError = signal<ApiError | null>(null);
   readonly validationLimits = ADMIN_VALIDATION_LIMITS;
+  readonly busy = computed(() => this.saving() || this.createSubmitting() || this.deleting());
 
   readonly selectedSheet = computed(() => {
     const selectedId = this.selectedSheetId();
@@ -210,6 +214,18 @@ export class MatrixStructurePageComponent implements OnInit {
       parentId: section.id,
       parentName: section.name,
     });
+  }
+
+  deleteSheet(sheetId: string): void {
+    this.deleteNode('sheet', sheetId);
+  }
+
+  deleteSection(sectionId: string): void {
+    this.deleteNode('section', sectionId);
+  }
+
+  deleteSubsection(subsectionId: string): void {
+    this.deleteNode('subsection', subsectionId);
   }
 
   closeCreateDialog(): void {
@@ -350,6 +366,95 @@ export class MatrixStructurePageComponent implements OnInit {
         this.loadStructure();
       },
     });
+  }
+
+  private deleteNode(kind: MatrixCreateKind, nodeId: string): void {
+    if (this.loading() || this.busy() || this.createDialog() !== null) return;
+    this.deleting.set(true);
+    this.deleteRequest(kind, nodeId, false)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => this.finishDelete(kind, nodeId),
+        error: (err: ApiError) => {
+          if (err.status !== 409) {
+            this.deleting.set(false);
+            this.notifications.error(this.i18n.translate('adminMatrixStructure.deleteError'));
+            return;
+          }
+          const confirmed = this.document.defaultView?.confirm(
+            this.i18n.translate(`adminMatrixStructure.confirmDelete${capitalizeCreateKind(kind)}`),
+          );
+          if (confirmed !== true) {
+            this.deleting.set(false);
+            return;
+          }
+          this.deleteRequest(kind, nodeId, true)
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe({
+              next: () => this.finishDelete(kind, nodeId),
+              error: () => {
+                this.deleting.set(false);
+                this.notifications.error(this.i18n.translate('adminMatrixStructure.deleteError'));
+              },
+            });
+        },
+      });
+  }
+
+  private deleteRequest(
+    kind: MatrixCreateKind,
+    nodeId: string,
+    deleteWithQuestions: boolean,
+  ): Observable<void> {
+    if (kind === 'sheet') return this.workspaceService.deleteSheet(nodeId, deleteWithQuestions);
+    if (kind === 'section') return this.workspaceService.deleteSection(nodeId, deleteWithQuestions);
+    return this.workspaceService.deleteSubsection(nodeId, deleteWithQuestions);
+  }
+
+  private finishDelete(kind: MatrixCreateKind, nodeId: string): void {
+    const structure = cloneStructure(this.structure());
+    if (kind === 'sheet') {
+      structure.sheets = structure.sheets.filter((sheet) => sheet.id !== nodeId);
+    } else if (kind === 'section') {
+      for (const sheet of structure.sheets) {
+        sheet.sections = sheet.sections.filter((section) => section.id !== nodeId);
+      }
+    } else {
+      for (const sheet of structure.sheets) {
+        for (const section of sheet.sections) {
+          section.subsections = section.subsections.filter(
+            (subsection) => subsection.id !== nodeId,
+          );
+        }
+      }
+    }
+    this.structure.set(structure);
+    this.structureUnsavedSource?.commit();
+    const selectedId = this.nextSelectedSheetId(structure);
+    this.selectedSheetId.set(selectedId);
+    this.replaceSelectedSheet(
+      structure.sheets.find((sheet) => sheet.id === selectedId)?.key ?? null,
+    );
+    this.notifications.success(this.i18n.translate(`adminMatrixStructure.${kind}Deleted`));
+    this.workspaceService
+      .getStructure(this.currentLanguage())
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (freshStructure) => {
+          this.structure.set(freshStructure);
+          const freshSelectedId = this.selectedSheetIdAfterRefresh(freshStructure, selectedId);
+          this.selectedSheetId.set(freshSelectedId);
+          this.replaceSelectedSheet(
+            freshStructure.sheets.find((sheet) => sheet.id === freshSelectedId)?.key ?? null,
+          );
+          this.structureUnsavedSource?.commit();
+          this.deleting.set(false);
+        },
+        error: () => {
+          this.deleting.set(false);
+          this.notifications.error(this.i18n.translate('adminMatrixStructure.loadError'));
+        },
+      });
   }
 
   private openCreateDialog(dialog: MatrixCreateDialog): void {

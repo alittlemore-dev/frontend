@@ -92,6 +92,24 @@ export class MatrixQuestionWorkspaceService {
     );
   }
 
+  deleteSheet(sheetId: string, deleteWithQuestions: boolean): Observable<void> {
+    return this.api.delete<void>(`/api/admin/competency-matrix/sheets/${sheetId}`, {
+      deleteWithQuestions: String(deleteWithQuestions),
+    });
+  }
+
+  deleteSection(sectionId: string, deleteWithQuestions: boolean): Observable<void> {
+    return this.api.delete<void>(`/api/admin/competency-matrix/sections/${sectionId}`, {
+      deleteWithQuestions: String(deleteWithQuestions),
+    });
+  }
+
+  deleteSubsection(subsectionId: string, deleteWithQuestions: boolean): Observable<void> {
+    return this.api.delete<void>(`/api/admin/competency-matrix/subsections/${subsectionId}`, {
+      deleteWithQuestions: String(deleteWithQuestions),
+    });
+  }
+
   updateSheetPriorities(orderedIds: readonly string[]): Observable<void> {
     return this.api.put<void>('/api/admin/competency-matrix/sheets/priorities', {
       orderedIds,

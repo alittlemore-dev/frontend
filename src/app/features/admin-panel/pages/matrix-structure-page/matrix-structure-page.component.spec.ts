@@ -31,6 +31,9 @@ describe('MatrixStructurePageComponent', () => {
       createSheet: jest.fn(),
       createSection: jest.fn(),
       createSubsection: jest.fn(),
+      deleteSheet: jest.fn().mockReturnValue(of(undefined)),
+      deleteSection: jest.fn().mockReturnValue(of(undefined)),
+      deleteSubsection: jest.fn().mockReturnValue(of(undefined)),
       updateSheetPriorities: jest.fn().mockReturnValue(of(undefined)),
       updateSectionPriorities: jest.fn().mockReturnValue(of(undefined)),
       updateSubsectionPriorities: jest.fn().mockReturnValue(of(undefined)),
@@ -57,6 +60,8 @@ describe('MatrixStructurePageComponent', () => {
     router = TestBed.inject(Router);
     jest.spyOn(router, 'navigate').mockResolvedValue(true);
   });
+
+  afterEach(() => jest.restoreAllMocks());
 
   it('renders loading and then the loaded structure', () => {
     const structure = new Subject<AdminMatrixStructure>();
@@ -317,6 +322,104 @@ describe('MatrixStructurePageComponent', () => {
     expect(notifications.error).toHaveBeenCalledWith(
       'Не удалось создать элемент структуры матрицы.',
     );
+  });
+
+  it('deletes an empty sheet without confirmation and selects the next sheet', () => {
+    const confirm = jest.spyOn(window, 'confirm');
+    service.getStructure
+      .mockReturnValueOnce(of(matrixStructure()))
+      .mockReturnValueOnce(of({ sheets: [matrixStructure().sheets[1]] }));
+    createComponent();
+
+    click('[data-testid="matrix-structure-delete-sheet"]');
+
+    expect(service.deleteSheet).toHaveBeenCalledWith(PYTHON_SHEET_ID, false);
+    expect(confirm).not.toHaveBeenCalled();
+    expect(sheetTabs().map((tab) => tab.textContent?.trim())).toEqual(['SQL']);
+    expect(fixture.componentInstance.selectedSheetId()).toBe(SQL_SHEET_ID);
+    expect(router.navigate).toHaveBeenCalledWith(
+      [],
+      expect.objectContaining({ queryParams: { sheet: 'sql' } }),
+    );
+    expect(notifications.success).toHaveBeenCalledWith('Лист удалён.');
+    confirm.mockRestore();
+  });
+
+  it('asks before deleting a section with questions and preserves it on cancellation', () => {
+    service.deleteSection.mockReturnValue(throwError(() => ({ status: 409 })));
+    const confirm = jest.spyOn(window, 'confirm').mockReturnValue(false);
+    createComponent();
+
+    click('[data-testid="matrix-structure-delete-section"]');
+
+    expect(confirm).toHaveBeenCalledWith(
+      'Вы точно уверены, что хотите удалить раздел вместе с вопросами?',
+    );
+    expect(service.deleteSection).toHaveBeenCalledTimes(1);
+    expect(fixture.componentInstance.selectedSheet()?.sections[0].id).toBe(BASICS_SECTION_ID);
+    expect(notifications.success).not.toHaveBeenCalled();
+    confirm.mockRestore();
+  });
+
+  it('retries a subsection deletion after confirmation and updates the tree', () => {
+    service.deleteSubsection
+      .mockReturnValueOnce(throwError(() => ({ status: 409 })))
+      .mockReturnValueOnce(of(undefined));
+    const confirm = jest.spyOn(window, 'confirm').mockReturnValue(true);
+    const refreshed = matrixStructure();
+    refreshed.sheets[0].sections[0].subsections.shift();
+    service.getStructure
+      .mockReturnValueOnce(of(matrixStructure()))
+      .mockReturnValueOnce(of(refreshed));
+    createComponent();
+
+    click('[data-testid="matrix-structure-delete-subsection"]');
+
+    expect(service.deleteSubsection).toHaveBeenNthCalledWith(1, STYLE_SUBSECTION_ID, false);
+    expect(service.deleteSubsection).toHaveBeenNthCalledWith(2, STYLE_SUBSECTION_ID, true);
+    expect(
+      fixture.componentInstance.selectedSheet()?.sections[0].subsections.map((item) => item.id),
+    ).toEqual([TYPING_SUBSECTION_ID]);
+    expect(notifications.success).toHaveBeenCalledWith('Подраздел удалён.');
+    confirm.mockRestore();
+  });
+
+  it('keeps the structure available when deletion fails', () => {
+    service.deleteSheet.mockReturnValue(throwError(() => ({ status: 500 })));
+    createComponent();
+
+    click('[data-testid="matrix-structure-delete-sheet"]');
+
+    expect(sheetTabs()).toHaveLength(2);
+    expect(fixture.componentInstance.deleting()).toBe(false);
+    expect(notifications.error).toHaveBeenCalledWith(
+      'Не удалось удалить элемент структуры матрицы.',
+    );
+  });
+
+  it('disables structure actions while a delete request is pending', () => {
+    const request = new Subject<void>();
+    service.deleteSheet.mockReturnValue(request.asObservable());
+    createComponent();
+
+    click('[data-testid="matrix-structure-delete-sheet"]');
+
+    const deleteButton = fixture.nativeElement.querySelector(
+      '[data-testid="matrix-structure-delete-sheet"]',
+    ) as HTMLButtonElement | null;
+    const addSectionButton = fixture.nativeElement.querySelector(
+      '[data-testid="matrix-structure-open-section-create"]',
+    ) as HTMLButtonElement | null;
+    expect(deleteButton?.disabled).toBe(true);
+    expect(addSectionButton?.disabled).toBe(true);
+    expect(
+      fixture.nativeElement.querySelector('.matrix-structure-section.cdk-drag-disabled'),
+    ).toBeTruthy();
+    expect(service.deleteSheet).toHaveBeenCalledTimes(1);
+
+    request.error({ status: 500 });
+    fixture.detectChanges();
+    expect(fixture.componentInstance.deleting()).toBe(false);
   });
 
   function createComponent(): void {

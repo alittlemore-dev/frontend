@@ -5,7 +5,7 @@
       type="button"
       class="btn btn-success btn-sm"
       data-testid="matrix-structure-open-sheet-create"
-      [disabled]="loading() || saving() || createSubmitting()"
+      [disabled]="loading() || busy()"
       (click)="openSheetCreateDialog()"
     >
       {{ 'adminMatrixStructure.addSheet' | t }}
@@ -14,7 +14,7 @@
       type="button"
       class="btn btn-outline-secondary btn-sm"
       data-testid="matrix-structure-reload"
-      [disabled]="loading() || saving() || createSubmitting()"
+      [disabled]="loading() || busy()"
       (click)="loadStructure()"
     >
       {{ 'shared.update' | t }}
@@ -38,18 +38,19 @@
     cdkDropList
     cdkDropListOrientation="horizontal"
     [cdkDropListData]="structure().sheets"
-    [cdkDropListDisabled]="saving()"
+    [cdkDropListDisabled]="busy()"
     (cdkDropListDropped)="dropSheets($event)"
     data-testid="matrix-structure-sheet-list"
   >
     @for (sheet of structure().sheets; track sheet.id) {
-      <div class="matrix-structure-sheet-item" cdkDrag [cdkDragDisabled]="saving()">
+      <div class="matrix-structure-sheet-item" cdkDrag [cdkDragDisabled]="busy()">
         <button
           type="button"
           class="btn btn-sm"
           data-testid="matrix-structure-sheet-tab"
           [class.btn-primary]="selectedSheetId() === sheet.id"
           [class.btn-outline-secondary]="selectedSheetId() !== sheet.id"
+          [disabled]="busy()"
           (click)="selectSheet(sheet.id)"
         >
           {{ sheet.name }}
@@ -65,14 +66,26 @@
         @if (saving()) {
           <span class="badge text-bg-secondary">{{ 'adminMatrixStructure.saving' | t }}</span>
         }
+        @if (deleting()) {
+          <span class="badge text-bg-secondary">{{ 'adminMatrixStructure.deleting' | t }}</span>
+        }
         <button
           type="button"
           class="btn btn-outline-success btn-sm ms-auto"
           data-testid="matrix-structure-open-section-create"
-          [disabled]="saving() || createSubmitting()"
+          [disabled]="busy()"
           (click)="openSectionCreateDialog()"
         >
           {{ 'adminMatrixStructure.addSection' | t }}
+        </button>
+        <button
+          type="button"
+          class="btn btn-outline-danger btn-sm"
+          data-testid="matrix-structure-delete-sheet"
+          [disabled]="busy()"
+          (click)="deleteSheet(sheet.id)"
+        >
+          {{ 'adminMatrixStructure.deleteSheet' | t }}
         </button>
       </div>
 
@@ -80,7 +93,7 @@
         class="matrix-structure-section-list"
         cdkDropList
         [cdkDropListData]="sheet.sections"
-        [cdkDropListDisabled]="saving()"
+        [cdkDropListDisabled]="busy()"
         (cdkDropListDropped)="dropSections($event, sheet)"
         data-testid="matrix-structure-section-list"
       >
@@ -88,7 +101,7 @@
           <section
             class="matrix-structure-section border rounded mb-3"
             cdkDrag
-            [cdkDragDisabled]="saving()"
+            [cdkDragDisabled]="busy()"
           >
             <header class="matrix-structure-section-header">
               <div>
@@ -97,22 +110,33 @@
                   {{ 'adminMatrixStructure.priority' | t }} {{ section.priority }}
                 </span>
               </div>
-              <button
-                type="button"
-                class="btn btn-outline-success btn-sm ms-auto"
-                data-testid="matrix-structure-open-subsection-create"
-                [disabled]="saving() || createSubmitting()"
-                (click)="openSubsectionCreateDialog(section)"
-              >
-                {{ 'adminMatrixStructure.addSubsection' | t }}
-              </button>
+              <div class="d-flex flex-wrap gap-2 ms-auto">
+                <button
+                  type="button"
+                  class="btn btn-outline-success btn-sm"
+                  data-testid="matrix-structure-open-subsection-create"
+                  [disabled]="busy()"
+                  (click)="openSubsectionCreateDialog(section)"
+                >
+                  {{ 'adminMatrixStructure.addSubsection' | t }}
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-outline-danger btn-sm"
+                  data-testid="matrix-structure-delete-section"
+                  [disabled]="busy()"
+                  (click)="deleteSection(section.id)"
+                >
+                  {{ 'adminMatrixStructure.deleteSection' | t }}
+                </button>
+              </div>
             </header>
 
             <div
               class="list-group list-group-flush"
               cdkDropList
               [cdkDropListData]="section.subsections"
-              [cdkDropListDisabled]="saving()"
+              [cdkDropListDisabled]="busy()"
               (cdkDropListDropped)="dropSubsections($event, section)"
               data-testid="matrix-structure-subsection-list"
             >
@@ -120,12 +144,21 @@
                 <div
                   class="list-group-item matrix-structure-subsection"
                   cdkDrag
-                  [cdkDragDisabled]="saving()"
+                  [cdkDragDisabled]="busy()"
                 >
                   <span class="flex-grow-1">{{ subsection.name }}</span>
                   <span class="small text-body-secondary">
                     {{ 'adminMatrixStructure.priority' | t }} {{ subsection.priority }}
                   </span>
+                  <button
+                    type="button"
+                    class="btn btn-outline-danger btn-sm"
+                    data-testid="matrix-structure-delete-subsection"
+                    [disabled]="busy()"
+                    (click)="deleteSubsection(subsection.id)"
+                  >
+                    {{ 'adminMatrixStructure.deleteSubsection' | t }}
+                  </button>
                 </div>
               } @empty {
                 <div class="list-group-item text-body-secondary">

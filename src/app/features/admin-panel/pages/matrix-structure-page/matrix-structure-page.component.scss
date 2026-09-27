@@ -29,6 +29,7 @@
 .matrix-structure-section-header,
 .matrix-structure-subsection {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem;
 }
