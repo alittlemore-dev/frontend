@@ -25,7 +25,7 @@ describe('ArticleDetailComponent', () => {
       createdAt: '2026-01-01T03:04:05+00:00',
       updatedAt: '2026-01-03T03:04:05+00:00',
       excerpt: 'Excerpt',
-      content: '# Content\n\nRead [[matrix:how-to-write-function|matrix question]].',
+      content: '# Content\n\nRead [[matrix:python:how-to-write-function|matrix question]].',
       metadata: {
         seoTitleRu: 'SEO Typed articles RU',
         seoTitleEn: 'SEO Typed articles EN',
@@ -51,11 +51,11 @@ describe('ArticleDetailComponent', () => {
       translations: {
         ru: {
           title: 'Typed articles',
-          content: '# Content\n\nRead [[matrix:how-to-write-function|matrix question]].',
+          content: '# Content\n\nRead [[matrix:python:how-to-write-function|matrix question]].',
         },
         en: {
           title: 'Typed articles',
-          content: '# Content\n\nRead [[matrix:how-to-write-function|matrix question]].',
+          content: '# Content\n\nRead [[matrix:python:how-to-write-function|matrix question]].',
         },
       },
     });
@@ -168,7 +168,9 @@ describe('ArticleDetailComponent', () => {
     const link = fixture.debugElement.query(By.css('.articles-markdown a'))
       .nativeElement as HTMLAnchorElement;
 
-    expect(link.getAttribute('href')).toBe('/en/competency/matrix/questions/how-to-write-function');
+    expect(link.getAttribute('href')).toBe(
+      '/en/competency/matrix/questions/python/how-to-write-function',
+    );
     expect(link.textContent).toBe('matrix question');
   });
 

@@ -86,7 +86,7 @@ async function assertDiscoveryEndpoints(frontendPort) {
     [
       'sitemap competency matrix route',
       sitemapText.includes(
-        `${origin}/ru/competency/matrix/questions/how-to-write-function`,
+        `${origin}/ru/competency/matrix/questions/python/how-to-write-function`,
       ),
     ],
     ['sitemap excludes legacy article route', !sitemapText.includes(`${origin}/ru/articles/`)],
@@ -108,10 +108,6 @@ async function assertLegacyCompetencyRedirects(frontendPort) {
       '/ru/competency/articles/typed-articles?tag=angular',
     ],
     ['/en/competency-matrix', '/en/competency/matrix'],
-    [
-      '/en/competency-matrix/questions/how-to-write-function',
-      '/en/competency/matrix/questions/how-to-write-function',
-    ],
   ];
 
   for (const [legacyPath, canonicalPath] of cases) {
@@ -260,7 +256,7 @@ async function assertPublishedArticleHtml(frontendPort, requests) {
     ['json-ld headline', html.includes('"headline":"SEO Typed articles RU"')],
     [
       'wiki link to matrix localized',
-      html.includes('href="/ru/competency/matrix/questions/how-to-write-function"'),
+      html.includes('href="/ru/competency/matrix/questions/python/how-to-write-function"'),
     ],
     ['article code language', html.includes('class="language-ts"')],
     ['article code syntax token', html.includes('class="token keyword">const</span>')],
@@ -274,7 +270,7 @@ async function assertPublishedArticleHtml(frontendPort, requests) {
 async function assertPublishedMatrixQuestionHtml(frontendPort, requests) {
   const requestStart = requests.length;
   const response = await fetch(
-    `http://127.0.0.1:${frontendPort}/ru/competency/matrix/questions/how-to-write-function`,
+    `http://127.0.0.1:${frontendPort}/ru/competency/matrix/questions/python/how-to-write-function`,
   );
   const html = await response.text();
   const pageRequests = requests.slice(requestStart);
@@ -285,7 +281,7 @@ async function assertPublishedMatrixQuestionHtml(frontendPort, requests) {
     [
       'canonical',
       html.includes(
-        `href="http://127.0.0.1:${frontendPort}/ru/competency/matrix/questions/how-to-write-function"`,
+        `href="http://127.0.0.1:${frontendPort}/ru/competency/matrix/questions/python/how-to-write-function"`,
       ),
     ],
     ['hreflang ru', html.includes('hreflang="ru"')],
@@ -303,7 +299,7 @@ async function assertPublishedMatrixQuestionHtml(frontendPort, requests) {
       'matrix public detail preflight',
       hasRequest(
         pageRequests,
-        '/api/competency-matrix/items/public/how-to-write-function',
+        '/api/competency-matrix/items/public/python/how-to-write-function',
         'language=ru',
       ),
     ],
@@ -342,7 +338,7 @@ async function assertMissingArticleNoindex(frontendPort, requests) {
 async function assertMissingMatrixQuestionNoindex(frontendPort, requests) {
   const requestStart = requests.length;
   const response = await fetch(
-    `http://127.0.0.1:${frontendPort}/ru/competency/matrix/questions/missing-question`,
+    `http://127.0.0.1:${frontendPort}/ru/competency/matrix/questions/python/missing-question`,
   );
   const html = await response.text();
   const pageRequests = requests.slice(requestStart);
@@ -352,12 +348,12 @@ async function assertMissingMatrixQuestionNoindex(frontendPort, requests) {
     [
       'canonical',
       html.includes(
-        `href="http://127.0.0.1:${frontendPort}/ru/competency/matrix/questions/missing-question"`,
+        `href="http://127.0.0.1:${frontendPort}/ru/competency/matrix/questions/python/missing-question"`,
       ),
     ],
     [
       'missing matrix preflight',
-      hasRequest(pageRequests, '/api/competency-matrix/items/public/missing-question', 'language=ru'),
+      hasRequest(pageRequests, '/api/competency-matrix/items/public/python/missing-question', 'language=ru'),
     ],
     ['no analytics request', pageRequests.every((entry) => !entry.includes('/analytics/'))],
     ['no reaction request', pageRequests.every((entry) => !entry.includes('/reaction'))],

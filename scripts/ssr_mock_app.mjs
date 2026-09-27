@@ -49,13 +49,13 @@ export const articleDto = {
     },
   ],
   content:
-    '## Rendered SSR article body\n\nRead [[matrix:how-to-write-function|matrix question]].\n\n```ts\nconst answer = 42;\n```',
+    '## Rendered SSR article body\n\nRead [[matrix:python:how-to-write-function|matrix question]].\n\n```ts\nconst answer = 42;\n```',
   createdAt: '2026-01-01T03:04:05+00:00',
   translations: {
     ru: {
       title: 'Typed articles',
       content:
-        '## Rendered SSR article body\n\nRead [[matrix:how-to-write-function|matrix question]].\n\n```ts\nconst answer = 42;\n```',
+        '## Rendered SSR article body\n\nRead [[matrix:python:how-to-write-function|matrix question]].\n\n```ts\nconst answer = 42;\n```',
       folder: 'Engineering',
     },
     en: {
@@ -342,8 +342,8 @@ function buildSitemapXml(origin) {
     '/en/updates',
     '/ru/competency/articles/typed-articles',
     '/en/competency/articles/typed-articles',
-    '/ru/competency/matrix/questions/how-to-write-function',
-    '/en/competency/matrix/questions/how-to-write-function',
+    '/ru/competency/matrix/questions/python/how-to-write-function',
+    '/en/competency/matrix/questions/python/how-to-write-function',
   ];
   const entries = urls
     .map((path) => `  <url>\n    <loc>${origin}${path}</loc>\n  </url>`)
@@ -513,7 +513,7 @@ function createMockBackendHandler(requests) {
       return;
     }
 
-    if (url.pathname === '/api/competency-matrix/items/public/how-to-write-function') {
+    if (url.pathname === '/api/competency-matrix/items/public/python/how-to-write-function') {
       writeJson(res, matrixQuestionDto);
       return;
     }

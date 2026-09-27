@@ -16,7 +16,9 @@ describe('MatrixQuestionPageComponent', () => {
   let el: HTMLElement;
 
   beforeEach(async () => {
-    paramMap = new BehaviorSubject(convertToParamMap({ slug: 'what-is-a-closure' }));
+    paramMap = new BehaviorSubject(
+      convertToParamMap({ sheetKey: 'javascript', slug: 'what-is-a-closure' }),
+    );
     matrixService = {
       getPublicQuestionBySlug: jest.fn().mockReturnValue(of(matrixQuestion())),
     };
@@ -45,7 +47,11 @@ describe('MatrixQuestionPageComponent', () => {
   it('loads a published matrix question by slug and active language', () => {
     fixture.detectChanges();
 
-    expect(matrixService.getPublicQuestionBySlug).toHaveBeenCalledWith('what-is-a-closure', 'ru');
+    expect(matrixService.getPublicQuestionBySlug).toHaveBeenCalledWith(
+      'javascript',
+      'what-is-a-closure',
+      'ru',
+    );
     expect(el.textContent).toContain('Что такое замыкание?');
     expect(el.innerHTML).toContain('<strong>');
   });
@@ -63,10 +69,10 @@ describe('MatrixQuestionPageComponent', () => {
     expect(seoService.setMeta).toHaveBeenCalledWith({
       title: 'Что такое замыкание?',
       description: 'Замыкание хранит внешнюю область видимости.',
-      canonicalPath: '/ru/competency/matrix/questions/what-is-a-closure',
+      canonicalPath: '/ru/competency/matrix/questions/javascript/what-is-a-closure',
       alternates: [
-        { language: 'ru', path: '/ru/competency/matrix/questions/what-is-a-closure' },
-        { language: 'en', path: '/en/competency/matrix/questions/what-is-a-closure' },
+        { language: 'ru', path: '/ru/competency/matrix/questions/javascript/what-is-a-closure' },
+        { language: 'en', path: '/en/competency/matrix/questions/javascript/what-is-a-closure' },
       ],
       structuredData: {
         '@context': 'https://schema.org',
@@ -102,12 +108,12 @@ describe('MatrixQuestionPageComponent', () => {
       .mockReturnValueOnce(second.asObservable());
 
     fixture.detectChanges();
-    paramMap.next(convertToParamMap({ slug: 'dependency-injection' }));
+    paramMap.next(convertToParamMap({ sheetKey: 'typescript', slug: 'what-is-a-closure' }));
 
     first.next(matrixQuestion({ slug: 'what-is-a-closure', question: 'Stale question' }));
     second.next(
       matrixQuestion({
-        slug: 'dependency-injection',
+        sheetKey: 'typescript',
         question: 'Что такое DI?',
         answer: 'DI передаёт зависимости извне.',
       }),
@@ -116,7 +122,8 @@ describe('MatrixQuestionPageComponent', () => {
 
     expect(matrixService.getPublicQuestionBySlug).toHaveBeenNthCalledWith(
       2,
-      'dependency-injection',
+      'typescript',
+      'what-is-a-closure',
       'ru',
     );
     expect(el.textContent).toContain('Что такое DI?');
@@ -133,7 +140,7 @@ describe('MatrixQuestionPageComponent', () => {
       expect.objectContaining({
         title: 'Вопрос не найден',
         description: 'Вопрос матрицы недоступен или ещё не опубликован.',
-        canonicalPath: '/ru/competency/matrix/questions/what-is-a-closure',
+        canonicalPath: '/ru/competency/matrix/questions/javascript/what-is-a-closure',
         robots: 'noindex, follow',
       }),
     );

@@ -15,8 +15,8 @@ describe('serverRoutes', () => {
       expect.arrayContaining([
         { path: 'ru/competency/articles/:slug', renderMode: RenderMode.Server },
         { path: 'en/competency/articles/:slug', renderMode: RenderMode.Server },
-        { path: 'ru/competency/matrix/questions/:slug', renderMode: RenderMode.Server },
-        { path: 'en/competency/matrix/questions/:slug', renderMode: RenderMode.Server },
+        { path: 'ru/competency/matrix/questions/:sheetKey/:slug', renderMode: RenderMode.Server },
+        { path: 'en/competency/matrix/questions/:sheetKey/:slug', renderMode: RenderMode.Server },
         { path: 'ru/how-this-site-is-built', renderMode: RenderMode.Server },
         { path: 'en/how-this-site-is-built', renderMode: RenderMode.Server },
         { path: 'ru/updates', renderMode: RenderMode.Server },
@@ -37,8 +37,6 @@ describe('serverRoutes', () => {
         { path: 'en/articles/:slug', renderMode: RenderMode.Server },
         { path: 'ru/competency-matrix', renderMode: RenderMode.Server },
         { path: 'en/competency-matrix', renderMode: RenderMode.Server },
-        { path: 'ru/competency-matrix/questions/:slug', renderMode: RenderMode.Server },
-        { path: 'en/competency-matrix/questions/:slug', renderMode: RenderMode.Server },
       ]),
     );
   });

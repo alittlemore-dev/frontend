@@ -2,7 +2,7 @@ import { Routes } from '@angular/router';
 
 export const matrixRoutes: Routes = [
   {
-    path: 'questions/:slug',
+    path: 'questions/:sheetKey/:slug',
     loadComponent: () =>
       import('./pages/matrix-question-page/matrix-question-page.component').then(
         (m) => m.MatrixQuestionPageComponent,

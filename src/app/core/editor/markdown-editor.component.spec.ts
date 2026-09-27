@@ -1,6 +1,8 @@
 import { CSP_NONCE, PLATFORM_ID } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { of } from 'rxjs';
+import { By } from '@angular/platform-browser';
+import { MarkdownEditorComponent as DesignSystemMarkdownEditorComponent } from '@alittlemore.dev/design-system/markdown-editor';
+import { firstValueFrom, of } from 'rxjs';
 import { provideI18nTesting } from '../../testing/i18n-testing';
 import { WikiLinkTargetsService } from '../wiki-links/wiki-link-targets.service';
 import { createWikiLinkTargetRegistry } from '../wiki-links/wiki-links';
@@ -26,7 +28,7 @@ describe('application Markdown editor integration', () => {
       ],
     }).compileComponents();
     fixture = TestBed.createComponent(MarkdownEditorComponent);
-    fixture.componentRef.setInput('value', 'Read [[matrix:angular-forms|Angular forms]].');
+    fixture.componentRef.setInput('value', 'Read [[matrix:angular:angular-forms|Angular forms]].');
     fixture.componentRef.setInput('language', 'ru');
     fixture.componentRef.setInput('accessibleLabel', 'Article body');
     fixture.componentRef.setInput('imageUploadsEnabled', true);
@@ -52,8 +54,46 @@ describe('application Markdown editor integration', () => {
     host.querySelector<HTMLButtonElement>('[data-testid="markdown-editor-preview-tab"]')!.click();
     fixture.detectChanges();
     expect(host.querySelector('a')?.getAttribute('href')).toBe(
-      '/en/competency/matrix/questions/angular-forms',
+      '/en/competency/matrix/questions/angular/angular-forms',
     );
+  });
+
+  it('offers sheet-scoped matrix targets in editor suggestions', async () => {
+    await create();
+    getTargets.mockReturnValue(
+      of(
+        createWikiLinkTargetRegistry([
+          {
+            type: 'matrix',
+            items: [
+              {
+                slug: 'python:how-to-write-function',
+                title: 'Как написать функцию',
+                publishStatus: 'Published',
+              },
+            ],
+          },
+        ]),
+      ),
+    );
+    const editor = fixture.debugElement.query(By.directive(DesignSystemMarkdownEditorComponent))
+      .componentInstance as DesignSystemMarkdownEditorComponent;
+    const config = editor.wikiLinks();
+
+    expect(config).not.toBeNull();
+    expect(await firstValueFrom(config!.loadTargets())).toEqual([
+      {
+        namespace: 'matrix',
+        targets: [
+          {
+            key: 'python:how-to-write-function',
+            label: 'Как написать функцию',
+            description: null,
+            badge: 'Опубликовано',
+          },
+        ],
+      },
+    ]);
   });
 
   it('maps image transport results into the emitted Markdown document', async () => {

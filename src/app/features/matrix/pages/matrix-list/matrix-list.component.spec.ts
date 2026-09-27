@@ -465,7 +465,11 @@ describe('MatrixListComponent', () => {
 
     component.openDetail('what-is-a-closure');
 
-    expect(matrixService.getPublicQuestionBySlug).toHaveBeenCalledWith('what-is-a-closure', 'ru');
+    expect(matrixService.getPublicQuestionBySlug).toHaveBeenCalledWith(
+      'javascript',
+      'what-is-a-closure',
+      'ru',
+    );
     expect(matrixService.getAdminQuestion).not.toHaveBeenCalled();
   });
 
@@ -477,7 +481,7 @@ describe('MatrixListComponent', () => {
     const modal = fixture.nativeElement.querySelector('[role="dialog"]') as HTMLElement;
     const header = modal.querySelector('.modal-header') as HTMLElement | null;
     const link = header?.querySelector(
-      'a[href="/ru/competency/matrix/questions/what-is-a-closure"]',
+      'a[href="/ru/competency/matrix/questions/javascript/what-is-a-closure"]',
     ) as HTMLAnchorElement | null;
 
     expect(modal.querySelector('.modal-title')).toBeNull();

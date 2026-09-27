@@ -10,11 +10,11 @@ export const serverRoutes: ServerRoute[] = [
     renderMode: RenderMode.Server,
   },
   {
-    path: 'ru/competency/matrix/questions/:slug',
+    path: 'ru/competency/matrix/questions/:sheetKey/:slug',
     renderMode: RenderMode.Server,
   },
   {
-    path: 'en/competency/matrix/questions/:slug',
+    path: 'en/competency/matrix/questions/:sheetKey/:slug',
     renderMode: RenderMode.Server,
   },
   {
@@ -39,14 +39,6 @@ export const serverRoutes: ServerRoute[] = [
   },
   {
     path: 'en/competency-matrix',
-    renderMode: RenderMode.Server,
-  },
-  {
-    path: 'ru/competency-matrix/questions/:slug',
-    renderMode: RenderMode.Server,
-  },
-  {
-    path: 'en/competency-matrix/questions/:slug',
     renderMode: RenderMode.Server,
   },
   {

@@ -156,7 +156,7 @@ export class MatrixListComponent implements OnInit {
     const question = this.selectedQuestion();
     const language = this.i18n.language();
     if (question === null || language === null) return null;
-    return `/${language}/competency/matrix/questions/${question.slug}`;
+    return `/${language}/competency/matrix/questions/${question.sheetKey}/${question.slug}`;
   });
 
   private readonly languageReloadEffect = effect(() => {
@@ -238,12 +238,13 @@ export class MatrixListComponent implements OnInit {
     this.search.set(value);
   }
 
-  openDetail(slug: string): void {
+  openDetail(slug: string, sheetKey: string | null = this.selectedSheetKey()): void {
+    if (sheetKey === null) return;
     this.detailVisible.set(true);
     this.selectedQuestion.set(null);
     this.detailLoading.set(true);
     this.detailError.set(null);
-    this.publicDetailRequest(slug)
+    this.publicDetailRequest(sheetKey, slug)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (detail) => {
@@ -346,7 +347,7 @@ export class MatrixListComponent implements OnInit {
     this.loadSheets();
     const detail = this.selectedQuestion();
     if (detail !== null && this.detailVisible()) {
-      this.openDetail(detail.slug);
+      this.openDetail(detail.slug, detail.sheetKey);
     }
   }
 
@@ -358,9 +359,9 @@ export class MatrixListComponent implements OnInit {
     return language;
   }
 
-  private publicDetailRequest(slug: string): Observable<MatrixQuestionDetail> {
+  private publicDetailRequest(sheetKey: string, slug: string): Observable<MatrixQuestionDetail> {
     const language = this.currentLanguage();
-    return this.matrixService.getPublicQuestionBySlug(slug, language);
+    return this.matrixService.getPublicQuestionBySlug(sheetKey, slug, language);
   }
 
   private storage(): Storage | null {

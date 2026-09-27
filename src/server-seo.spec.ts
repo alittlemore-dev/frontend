@@ -12,14 +12,18 @@ describe('server SEO helpers', () => {
       language: 'en',
       slug: 'angular-ssr',
     });
-    expect(parsePublicSeoPath('/ru/competency/matrix/questions/how-to-write-function')).toEqual({
+    expect(
+      parsePublicSeoPath('/ru/competency/matrix/questions/python/how-to-write-function'),
+    ).toEqual({
       kind: 'matrixQuestion',
       language: 'ru',
+      sheetKey: 'python',
       slug: 'how-to-write-function',
     });
   });
 
   it('ignores non-public SEO URLs', () => {
+    expect(parsePublicSeoPath('/ru/competency/matrix/questions/how-to-write-function')).toBeNull();
     expect(parsePublicSeoPath('/articles/typed-articles')).toBeNull();
     expect(parsePublicSeoPath('/ru/articles/typed-articles')).toBeNull();
     expect(parsePublicSeoPath('/ru/articles')).toBeNull();
@@ -46,11 +50,12 @@ describe('server SEO helpers', () => {
     const url = buildPublicSeoApiUrl('https://api.example.com', {
       kind: 'matrixQuestion',
       language: 'en',
+      sheetKey: 'python',
       slug: 'how-to-write-function',
     });
 
     expect(url.toString()).toBe(
-      'https://api.example.com/api/competency-matrix/items/public/how-to-write-function?language=en',
+      'https://api.example.com/api/competency-matrix/items/public/python/how-to-write-function?language=en',
     );
   });
 
@@ -63,6 +68,7 @@ describe('server SEO helpers', () => {
     const matrixHtml = buildPublicNotFoundHtml('https://example.com', {
       kind: 'matrixQuestion',
       language: 'ru',
+      sheetKey: 'python',
       slug: 'missing-question',
     });
 
@@ -74,7 +80,7 @@ describe('server SEO helpers', () => {
     expect(matrixHtml).toContain('<title>Matrix question not found</title>');
     expect(matrixHtml).toContain('<meta name="robots" content="noindex, follow">');
     expect(matrixHtml).toContain(
-      '<link rel="canonical" href="https://example.com/ru/competency/matrix/questions/missing-question">',
+      '<link rel="canonical" href="https://example.com/ru/competency/matrix/questions/python/missing-question">',
     );
   });
 });

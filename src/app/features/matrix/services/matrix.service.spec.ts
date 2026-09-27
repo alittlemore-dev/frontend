@@ -89,13 +89,15 @@ describe('MatrixService', () => {
     let resultSlug: string | undefined;
     let suggestedByUsername: string | undefined;
 
-    service.getPublicQuestionBySlug('how-to-write-function', 'ru').subscribe((question) => {
-      resultSlug = question.slug;
-      suggestedByUsername = question.suggestedByUsername;
-    });
+    service
+      .getPublicQuestionBySlug('python', 'how-to-write-function', 'ru')
+      .subscribe((question) => {
+        resultSlug = question.slug;
+        suggestedByUsername = question.suggestedByUsername;
+      });
 
     const req = httpMock.expectOne((r) =>
-      r.url.endsWith('/api/competency-matrix/items/public/how-to-write-function'),
+      r.url.endsWith('/api/competency-matrix/items/public/python/how-to-write-function'),
     );
     expect(req.request.method).toBe('GET');
     expect(req.request.params.get('language')).toBe('ru');

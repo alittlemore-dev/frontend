@@ -12,7 +12,7 @@ module.exports = {
         `${LHCI_ORIGIN}/ru/competency/articles`,
         `${LHCI_ORIGIN}/ru/competency/articles/typed-articles`,
         `${LHCI_ORIGIN}/ru/competency/matrix`,
-        `${LHCI_ORIGIN}/ru/competency/matrix/questions/how-to-write-function`,
+        `${LHCI_ORIGIN}/ru/competency/matrix/questions/python/how-to-write-function`,
       ],
       settings: {
         preset: 'desktop',

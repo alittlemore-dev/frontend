@@ -75,24 +75,10 @@ describe('routes', () => {
         params: { slug: 'typed-articles' },
         queryParams: { tag: 'angular' },
         fragment: 'content',
-      } as Parameters<RedirectFunction>[0]),
+      } as unknown as Parameters<RedirectFunction>[0]),
     );
     expect(router.serializeUrl(articleResult as UrlTree)).toBe(
       '/ru/competency/articles/typed-articles?tag=angular#content',
-    );
-
-    const matrixRedirect = russianRoutes.find(
-      (route) => route.path === 'competency-matrix/questions/:slug',
-    )?.redirectTo as RedirectFunction;
-    const matrixResult = TestBed.runInInjectionContext(() =>
-      matrixRedirect({
-        params: { slug: 'angular-forms' },
-        queryParams: {},
-        fragment: null,
-      } as Parameters<RedirectFunction>[0]),
-    );
-    expect(router.serializeUrl(matrixResult as UrlTree)).toBe(
-      '/ru/competency/matrix/questions/angular-forms',
     );
 
     expect(russianRoutes.find((route) => route.path === 'articles')).toBeDefined();

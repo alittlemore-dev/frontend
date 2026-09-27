@@ -48,7 +48,7 @@ describe('WikiLinkTargetsService', () => {
           type: 'matrix',
           items: [
             {
-              slug: 'how-to-write-function',
+              slug: 'python:how-to-write-function',
               title: 'Как написать функцию',
               publishStatus: 'Draft',
             },
@@ -72,7 +72,7 @@ describe('WikiLinkTargetsService', () => {
         type: 'matrix',
         items: [
           {
-            slug: 'how-to-write-function',
+            slug: 'python:how-to-write-function',
             title: 'Как написать функцию',
             publishStatus: 'Draft',
           },
@@ -80,7 +80,7 @@ describe('WikiLinkTargetsService', () => {
       },
     ]);
     expect(received?.lookup.get('articles')).toEqual(new Set(['typed-articles']));
-    expect(received?.lookup.get('matrix')).toEqual(new Set(['how-to-write-function']));
+    expect(received?.lookup.get('matrix')).toEqual(new Set(['python:how-to-write-function']));
   });
 
   it('shares one HTTP request between subscribers for the same language', () => {

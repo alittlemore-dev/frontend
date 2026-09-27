@@ -13,6 +13,7 @@ export interface PublicSeoArticleRoute extends PublicArticleRoute {
 export interface PublicMatrixQuestionRoute {
   kind: 'matrixQuestion';
   language: PublicSeoLanguage;
+  sheetKey: string;
   slug: string;
 }
 
@@ -21,7 +22,7 @@ export type PublicSeoRoute = PublicSeoArticleRoute | PublicMatrixQuestionRoute;
 const PUBLIC_ARTICLE_PATH_PATTERN =
   /^\/(ru|en)\/competency\/articles\/([a-z0-9]+(?:-[a-z0-9]+)*)\/?$/;
 const PUBLIC_MATRIX_QUESTION_PATH_PATTERN =
-  /^\/(ru|en)\/competency\/matrix\/questions\/([a-z0-9]+(?:-[a-z0-9]+)*)\/?$/;
+  /^\/(ru|en)\/competency\/matrix\/questions\/([a-z0-9]+(?:-[a-z0-9]+)*)\/([a-z0-9]+(?:-[a-z0-9]+)*)\/?$/;
 
 export function parsePublicSeoPath(pathname: string): PublicSeoRoute | null {
   const articleRoute = parsePublicArticlePath(pathname);
@@ -34,7 +35,8 @@ export function parsePublicSeoPath(pathname: string): PublicSeoRoute | null {
   return {
     kind: 'matrixQuestion',
     language: matrixMatch[1] as PublicSeoLanguage,
-    slug: matrixMatch[2],
+    sheetKey: matrixMatch[2],
+    slug: matrixMatch[3],
   };
 }
 
@@ -52,7 +54,10 @@ export function buildPublicSeoApiUrl(apiOrigin: string, route: PublicSeoRoute): 
     return buildPublicArticleApiUrl(apiOrigin, route);
   }
 
-  const url = new URL(`/api/competency-matrix/items/public/${route.slug}`, apiOrigin);
+  const url = new URL(
+    `/api/competency-matrix/items/public/${route.sheetKey}/${route.slug}`,
+    apiOrigin,
+  );
   url.searchParams.set('language', route.language);
   return url;
 }
@@ -98,7 +103,7 @@ function canonicalPath(route: PublicSeoRoute): string {
   if (route.kind === 'article') {
     return `/${route.language}/competency/articles/${route.slug}`;
   }
-  return `/${route.language}/competency/matrix/questions/${route.slug}`;
+  return `/${route.language}/competency/matrix/questions/${route.sheetKey}/${route.slug}`;
 }
 
 function escapeHtml(value: string): string {

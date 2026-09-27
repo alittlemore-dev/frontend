@@ -2,13 +2,14 @@ import {
   createWikiLinkTargetLookup,
   findMissingWikiLinkTargets,
   parseWikiLinks,
+  replaceWikiLinksWithPlainText,
 } from './wiki-links';
 
 describe('wiki links', () => {
-  it('parses typed slug-only and labelled links', () => {
+  it('parses article and sheet-scoped matrix links', () => {
     expect(
       parseWikiLinks(
-        'Read [[articles:typed-articles]] and [[matrix:angular-forms|Angular forms]].',
+        'Read [[articles:typed-articles]] and [[matrix:angular:angular-forms|Angular forms]].',
       ),
     ).toEqual([
       {
@@ -19,9 +20,9 @@ describe('wiki links', () => {
       },
       {
         type: 'matrix',
-        slug: 'angular-forms',
+        slug: 'angular:angular-forms',
         label: 'Angular forms',
-        raw: '[[matrix:angular-forms|Angular forms]]',
+        raw: '[[matrix:angular:angular-forms|Angular forms]]',
       },
     ]);
   });
@@ -35,9 +36,9 @@ describe('wiki links', () => {
     },
     {
       type: 'matrix' as const,
-      slug: 'angular-forms',
+      slug: 'angular:angular-forms',
       label: 'Angular forms',
-      path: '/en/competency/matrix/questions/angular-forms',
+      path: '/en/competency/matrix/questions/angular/angular-forms',
     },
   ])('parses an escaped label separator for $type links', (link) => {
     const markdown = `[[${link.type}:${link.slug}\\|${link.label}]]`;
@@ -56,12 +57,17 @@ describe('wiki links', () => {
     expect(
       parseWikiLinks('Read [[typed-articles]], [[unknown:typed-articles]], and [[articles:OK]].'),
     ).toEqual([]);
+    expect(
+      parseWikiLinks(
+        '[[articles:folder/article]] [[matrix:question]] [[matrix:angular/question]] [[matrix:too:many:segments]]',
+      ),
+    ).toEqual([]);
   });
 
   it('reports missing typed targets once', () => {
     const missing = findMissingWikiLinkTargets({
       markdown:
-        'Read [[articles:typed-articles]], [[matrix:missing-question]], and [[matrix:missing-question|again]].',
+        'Read [[articles:typed-articles]], [[matrix:python:missing-question]], and [[matrix:python:missing-question|again]].',
       availableTargets: createWikiLinkTargetLookup([
         {
           type: 'articles',
@@ -77,7 +83,7 @@ describe('wiki links', () => {
           type: 'matrix',
           items: [
             {
-              slug: 'known-question',
+              slug: 'python:known-question',
               title: 'Known question',
               publishStatus: 'Draft',
             },
@@ -86,6 +92,14 @@ describe('wiki links', () => {
       ]),
     });
 
-    expect(missing).toEqual(['matrix:missing-question']);
+    expect(missing).toEqual(['matrix:python:missing-question']);
+  });
+
+  it('uses labels for sheet-scoped links in plain text and leaves old formats untouched', () => {
+    expect(
+      replaceWikiLinksWithPlainText(
+        '[[matrix:python:question|Python question]] [[matrix:question|Old]]',
+      ),
+    ).toBe('Python question [[matrix:question|Old]]');
   });
 });

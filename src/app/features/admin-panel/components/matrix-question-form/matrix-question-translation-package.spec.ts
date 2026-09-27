@@ -17,7 +17,7 @@ const markdownSource = [
   '```',
   '',
   'Используйте `Protocol`: https://docs.python.org/3/library/typing.html',
-  'и [[articles:python-typing|статью]], а затем [[matrix:python|матрицу]].',
+  'и [[articles:python-typing|статью]], а затем [[matrix:python:typing|матрицу]].',
 ].join('\n');
 
 const markdownTranslation = [
@@ -28,7 +28,7 @@ const markdownTranslation = [
   '```',
   '',
   'Use `Protocol`: https://docs.python.org/3/library/typing.html',
-  'read the [[articles:python-typing|article]], then the [[matrix:python|matrix]].',
+  'read the [[articles:python-typing|article]], then the [[matrix:python:typing|matrix]].',
 ].join('\n');
 
 const fields: readonly MatrixQuestionTranslationField[] = [

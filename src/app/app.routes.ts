@@ -67,10 +67,6 @@ function publicRoutes(language: LanguageCode | null): Routes {
       children: competencyRoutes(),
     },
     {
-      path: 'competency-matrix/questions/:slug',
-      redirectTo: competencyRedirect(language, ['matrix', 'questions', ':slug']),
-    },
-    {
       path: 'competency-matrix',
       redirectTo: competencyRedirect(language, ['matrix']),
       pathMatch: 'full',

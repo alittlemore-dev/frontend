@@ -33,9 +33,15 @@ export class MatrixService {
       .pipe(map(mapMatrixListDto));
   }
 
-  getPublicQuestionBySlug(slug: string, language: LanguageCode): Observable<MatrixQuestionDetail> {
+  getPublicQuestionBySlug(
+    sheetKey: string,
+    slug: string,
+    language: LanguageCode,
+  ): Observable<MatrixQuestionDetail> {
     return this.api
-      .get<MatrixItemDetailDto>(`/api/competency-matrix/items/public/${slug}`, { language })
+      .get<MatrixItemDetailDto>(`/api/competency-matrix/items/public/${sheetKey}/${slug}`, {
+        language,
+      })
       .pipe(map(mapMatrixDetailDto));
   }
 

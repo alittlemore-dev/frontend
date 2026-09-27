@@ -36,11 +36,18 @@ export interface WikiLinkTargetRegistry {
 }
 
 const WIKI_LINK_PATTERN =
-  /\[\[(articles|matrix):([a-z0-9]+(?:-[a-z0-9]+)*)(?:\\?\|([^\]\n]+))?\]\]/g;
+  /\[\[(articles|matrix):([a-z0-9]+(?:-[a-z0-9]+)*(?::[a-z0-9]+(?:-[a-z0-9]+)*)?)(?:\\?\|([^\]\n]+))?\]\]/g;
+const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const MATRIX_KEY_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*:[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+function validWikiLinkKey(type: WikiLinkTargetType, key: string): boolean {
+  if (type === 'articles') return SLUG_PATTERN.test(key);
+  return MATRIX_KEY_PATTERN.test(key);
+}
 export function parseWikiLinks(markdown: string): WikiLink[] {
   return parseMarkdownWikiLinks(markdown)
     .filter(
-      (link) => isWikiLinkTargetType(link.namespace) && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(link.key),
+      (link) => isWikiLinkTargetType(link.namespace) && validWikiLinkKey(link.namespace, link.key),
     )
     .map((link) => ({
       type: link.namespace as WikiLinkTargetType,
@@ -92,7 +99,7 @@ export function applicationWikiLinks(language: LanguageCode): MarkdownWikiLinkRe
   return {
     namespaces: WIKI_LINK_TARGET_TYPES.map((key) => ({ key, label: key })),
     resolve: ({ namespace, key }) =>
-      isWikiLinkTargetType(namespace) && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(key)
+      isWikiLinkTargetType(namespace) && validWikiLinkKey(namespace, key)
         ? { href: wikiLinkPath(namespace, key, language), openIn: 'same-tab' }
         : null,
   };
@@ -105,7 +112,8 @@ function isWikiLinkTargetType(value: string): value is WikiLinkTargetType {
 export function replaceWikiLinksWithPlainText(markdown: string): string {
   return markdown.replace(
     WIKI_LINK_PATTERN,
-    (_raw, _type: WikiLinkTargetType, slug: string, label?: string) => label?.trim() || slug,
+    (raw, type: WikiLinkTargetType, slug: string, label?: string) =>
+      validWikiLinkKey(type, slug) ? label?.trim() || slug : raw,
   );
 }
 
@@ -117,5 +125,5 @@ export function wikiLinkPath(
   if (type === 'articles') {
     return `/${language}/competency/articles/${slug}`;
   }
-  return `/${language}/competency/matrix/questions/${slug}`;
+  return `/${language}/competency/matrix/questions/${slug.replace(':', '/')}`;
 }

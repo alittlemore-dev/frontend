@@ -15,7 +15,7 @@ describe('appConfig HTTP transfer cache filter', () => {
       shouldTransferCacheRequest(
         new HttpRequest(
           'GET',
-          'http://localhost:8000/api/competency-matrix/items/public/how-to-write-function?language=ru',
+          'http://localhost:8000/api/competency-matrix/items/public/python/how-to-write-function?language=ru',
         ),
       ),
     ).toBe(true);
@@ -59,9 +59,9 @@ describe('appConfig auth startup', () => {
     expect(authStartupMode('/ru/how-this-site-is-built', false)).toBe('skip');
     expect(authStartupMode('/en/competency/articles/typed-articles', false)).toBe('skip');
     expect(authStartupMode('/ru/competency/matrix', false)).toBe('skip');
-    expect(authStartupMode('/ru/competency/matrix/questions/how-to-write-function', false)).toBe(
-      'skip',
-    );
+    expect(
+      authStartupMode('/ru/competency/matrix/questions/python/how-to-write-function', false),
+    ).toBe('skip');
   });
 
   it('restores a known session after the first public render', () => {

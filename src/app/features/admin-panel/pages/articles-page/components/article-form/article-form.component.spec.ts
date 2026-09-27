@@ -1080,12 +1080,12 @@ describe('ArticleFormComponent', () => {
     const contentEditors = fixture.debugElement.queryAll(By.directive(MarkdownEditorStubComponent));
 
     contentEditors[0].componentInstance.valueChange.emit(
-      'См. [[articles:typed-article]] и [[matrix:missing-question|отсутствующий вопрос]].',
+      'См. [[articles:typed-article]] и [[matrix:python:missing-question|отсутствующий вопрос]].',
     );
     fixture.detectChanges();
 
     const text = fixture.nativeElement.textContent as string;
-    expect(text).toContain('matrix:missing-question');
+    expect(text).toContain('matrix:python:missing-question');
   });
 
   it('renders active-language preview content with wiki links', () => {

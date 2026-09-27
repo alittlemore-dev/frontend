@@ -60,9 +60,15 @@ export class MatrixQuestionPageComponent implements OnInit {
   ngOnInit(): void {
     combineLatest([
       this.route.paramMap.pipe(
-        map((params) => params.get('slug')),
-        filter((slug): slug is string => slug !== null),
-        distinctUntilChanged(),
+        map((params) => ({ sheetKey: params.get('sheetKey'), slug: params.get('slug') })),
+        filter(
+          (params): params is { sheetKey: string; slug: string } =>
+            params.sheetKey !== null && params.slug !== null,
+        ),
+        distinctUntilChanged(
+          (previous, current) =>
+            previous.sheetKey === current.sheetKey && previous.slug === current.slug,
+        ),
       ),
       this.language$.pipe(
         filter((language): language is LanguageCode => language !== null),
@@ -70,17 +76,23 @@ export class MatrixQuestionPageComponent implements OnInit {
       ),
     ])
       .pipe(
-        switchMap(([slug, language]) => this.loadQuestion(slug, language)),
+        switchMap(([params, language]) =>
+          this.loadQuestion(params.sheetKey, params.slug, language),
+        ),
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe();
   }
 
-  private loadQuestion(slug: string, language: LanguageCode): Observable<MatrixQuestionDetail> {
+  private loadQuestion(
+    sheetKey: string,
+    slug: string,
+    language: LanguageCode,
+  ): Observable<MatrixQuestionDetail> {
     this.loading.set(true);
     this.error.set(null);
     this.question.set(null);
-    return this.matrixService.getPublicQuestionBySlug(slug, language).pipe(
+    return this.matrixService.getPublicQuestionBySlug(sheetKey, slug, language).pipe(
       tap((question) => {
         this.question.set(question);
         this.loading.set(false);
@@ -89,14 +101,14 @@ export class MatrixQuestionPageComponent implements OnInit {
       catchError((err: ApiError) => {
         this.error.set(err);
         this.loading.set(false);
-        this.setNotFoundSeo(slug, language);
+        this.setNotFoundSeo(sheetKey, slug, language);
         return EMPTY;
       }),
     );
   }
 
   private setQuestionSeo(question: MatrixQuestionDetail, language: LanguageCode): void {
-    const path = `/competency/matrix/questions/${question.slug}`;
+    const path = `/competency/matrix/questions/${question.sheetKey}/${question.slug}`;
     const answerText = plainTextFromMarkdown(question.answer);
     this.seoService.setMeta({
       title: question.question,
@@ -110,8 +122,8 @@ export class MatrixQuestionPageComponent implements OnInit {
     });
   }
 
-  private setNotFoundSeo(slug: string, language: LanguageCode): void {
-    const path = `/competency/matrix/questions/${slug}`;
+  private setNotFoundSeo(sheetKey: string, slug: string, language: LanguageCode): void {
+    const path = `/competency/matrix/questions/${sheetKey}/${slug}`;
     this.seoService.setMeta({
       title: this.i18n.translate('matrix.question.notFoundTitle'),
       description: this.i18n.translate('matrix.question.notFoundDescription'),
