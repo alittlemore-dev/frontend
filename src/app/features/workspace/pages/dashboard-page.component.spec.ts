@@ -1,6 +1,7 @@
 import { NotificationService } from '@alittlemore.dev/design-system';
 import { DOCUMENT } from '@angular/common';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { NEVER } from 'rxjs';
 import { I18nService } from '../../../core/i18n/i18n.service';
@@ -8,20 +9,39 @@ import { I18nService } from '../../../core/i18n/i18n.service';
 import { provideI18nTesting } from '../../../testing/i18n-testing';
 import { CalendarService } from '../services/calendar.service';
 import { ToolsService } from '../services/tools.service';
+import { EventsService } from '../services/events.service';
+import { ImportantInfoService } from '../services/important-info.service';
 import { DashboardPageComponent } from './dashboard-page.component';
+import { EventsCalendarComponent } from '../components/events-calendar/events-calendar.component';
+import { AccountSettingsService } from '../../../core/auth/account-settings.service';
+
+@Component({
+  selector: 'app-events-calendar',
+  standalone: true,
+  template: '',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+class StubEventsCalendarComponent {}
 
 const DASHBOARD_COLLAPSED_SECTIONS_STORAGE_KEY = 'dashboardCollapsedSections';
 
 describe('DashboardPageComponent', () => {
   let fixture: ComponentFixture<DashboardPageComponent>;
+  const timeZone = signal('UTC');
+  const getCalendar = jest.fn(() => NEVER);
 
   beforeEach(async () => {
     localStorage.clear();
+    timeZone.set('UTC');
+    getCalendar.mockClear();
     await TestBed.configureTestingModule({
       providers: [
         provideRouter([]),
         provideI18nTesting(),
-        { provide: CalendarService, useValue: { getCalendar: jest.fn(() => NEVER) } },
+        { provide: CalendarService, useValue: { getCalendar } },
+        { provide: AccountSettingsService, useValue: { timeZone } },
+        { provide: EventsService, useValue: { occurrences: jest.fn(() => NEVER) } },
+        { provide: ImportantInfoService, useValue: { list: jest.fn(() => NEVER) } },
         {
           provide: ToolsService,
           useValue: {
@@ -36,7 +56,12 @@ describe('DashboardPageComponent', () => {
           useValue: { success: jest.fn(), error: jest.fn() },
         },
       ],
-    }).compileComponents();
+    })
+      .overrideComponent(DashboardPageComponent, {
+        remove: { imports: [EventsCalendarComponent] },
+        add: { imports: [StubEventsCalendarComponent] },
+      })
+      .compileComponents();
   });
 
   afterEach(() => {
@@ -71,7 +96,7 @@ describe('DashboardPageComponent', () => {
       '[data-testid="dashboard-tabpanel-month-calendar"]',
     ) as HTMLElement;
     expect(calendarPanel.hidden).toBe(false);
-    expect(calendarPanel.querySelector('app-month-calendar-widget')).not.toBeNull();
+    expect(calendarPanel.querySelector('app-events-calendar')).not.toBeNull();
     expect(
       calendarPanel.querySelector('[data-testid="ds-section-toggle-month-calendar"]'),
     ).toBeNull();
@@ -129,6 +154,7 @@ describe('DashboardPageComponent', () => {
     TestBed.configureTestingModule({
       providers: [
         { provide: CalendarService, useValue: { getCalendar: jest.fn() } },
+        { provide: AccountSettingsService, useValue: { timeZone } },
         { provide: I18nService, useValue: {} },
         { provide: DOCUMENT, useValue: { defaultView: null } },
       ],
@@ -148,5 +174,19 @@ describe('DashboardPageComponent', () => {
     expect(localStorage.getItem(DASHBOARD_COLLAPSED_SECTIONS_STORAGE_KEY)).toBe(
       JSON.stringify(['upcoming-dates']),
     );
+  });
+
+  it('uses the account-local reference day and refreshes it when the zone changes', () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-10-02T01:30:00Z'));
+    try {
+      fixture = TestBed.createComponent(DashboardPageComponent);
+      fixture.detectChanges();
+      expect(getCalendar).toHaveBeenCalledWith('2026-10-02', 'currentAndNextMonths');
+      timeZone.set('Pacific/Honolulu');
+      TestBed.tick();
+      expect(getCalendar).toHaveBeenLastCalledWith('2026-10-01', 'currentAndNextMonths');
+    } finally {
+      jest.useRealTimers();
+    }
   });
 });

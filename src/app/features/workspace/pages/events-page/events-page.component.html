@@ -1,0 +1,65 @@
+<section class="vstack gap-3">
+  <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
+    <h1 class="h3 mb-0">{{ 'workspaceEvents.title' | t }}</h1>
+    <button type="button" class="btn btn-success" (click)="openCreate()">
+      {{ 'workspaceEvents.create' | t }}
+    </button>
+  </div>
+  <label class="visually-hidden" for="workspace-events-search">{{
+    'workspaceEvents.search' | t
+  }}</label>
+  <input
+    id="workspace-events-search"
+    class="form-control"
+    type="search"
+    [ngModel]="search()"
+    (ngModelChange)="search.set($event)"
+    [placeholder]="'workspaceEvents.search' | t"
+  />
+  @if (loading()) {
+    <ds-loading-spinner [ariaLabel]="'shared.loading' | t" />
+  } @else if (error()) {
+    <ds-error-message [error]="error()!" [retryLabel]="'shared.retry' | t" (retry)="load()" />
+  } @else if (filteredEvents().length === 0) {
+    <ds-empty-state [message]="'workspaceEvents.empty' | t" />
+  } @else {
+    <ul class="list-group">
+      @for (event of filteredEvents(); track event.id) {
+        <li
+          class="list-group-item d-flex align-items-start justify-content-between gap-3 flex-wrap"
+        >
+          <div>
+            <h2 class="h6 mb-1">{{ event.title }}</h2>
+            @if (event.description) {
+              <p class="mb-1 text-body-secondary text-break">{{ event.description }}</p>
+            }
+            <small class="text-body-secondary"
+              >{{ eventDateLabel(event) }} ·
+              {{ 'workspaceEvents.frequency.' + event.recurrence.frequency | t }}</small
+            >
+          </div>
+          <div class="d-flex gap-2">
+            <button
+              type="button"
+              class="btn btn-sm btn-outline-secondary"
+              (click)="openEdit(event)"
+            >
+              {{ 'workspaceEvents.edit' | t }}
+            </button>
+            <button
+              type="button"
+              class="btn btn-sm btn-outline-danger"
+              [disabled]="deletingId() === event.id"
+              (click)="remove(event)"
+            >
+              {{ 'workspaceEvents.delete' | t }}
+            </button>
+          </div>
+        </li>
+      }
+    </ul>
+  }
+</section>
+@if (editorOpen()) {
+  <app-event-editor [event]="selected()" (saved)="onSaved($event)" (closed)="closeEditor()" />
+}

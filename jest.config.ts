@@ -14,7 +14,7 @@ const config: Config = {
   },
   // Allow Jest to transform ESM-only packages while preserving the Angular preset's mjs handling
   transformIgnorePatterns: [
-    'node_modules/(?!(.*\\.mjs$|@angular/common/locales/.*\\.js$|marked|dompurify))',
+    'node_modules/(?!(.*\\.mjs$|@angular/common/locales/.*\\.js$|marked|dompurify|fullcalendar|@fullcalendar|@full-ui|temporal-polyfill|temporal-utils|preact))',
   ],
 };
 

@@ -279,23 +279,6 @@
                 <option value="ru">Русский</option>
               </select>
             </div>
-            <div class="col-12 col-md-5">
-              <label class="form-label" for="telegram-notification-timezone">{{
-                'account.telegram.notificationTimeZone' | t
-              }}</label>
-              <select
-                #timezoneSelect
-                id="telegram-notification-timezone"
-                class="form-select"
-                [value]="draft.timeZone"
-                [disabled]="busy()"
-                (change)="updateNotificationDraft({ timeZone: timezoneSelect.value })"
-              >
-                @for (zone of timeZones; track zone) {
-                  <option [value]="zone">{{ zone }}</option>
-                }
-              </select>
-            </div>
           </div>
           <button
             type="button"

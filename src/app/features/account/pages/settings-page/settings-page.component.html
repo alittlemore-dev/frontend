@@ -52,6 +52,32 @@
           (valueChange)="changeLanguage($event)"
         />
       </div>
+      <div class="col-12 col-md-6">
+        <label for="settings-time-zone" class="form-label">{{
+          'account.settings.timeZone' | t
+        }}</label>
+        <ds-site-select
+          inputId="settings-time-zone"
+          [options]="timeZoneOptions()"
+          controlSize="default"
+          appearance="default"
+          [required]="false"
+          [invalid]="false"
+          [controlDisabled]="preferences.saving()"
+          [value]="settings.timeZone"
+          (valueChange)="changeTimeZone($event)"
+        />
+        <button
+          type="button"
+          id="settings-time-zone-device"
+          class="btn btn-outline-secondary btn-sm mt-2"
+          [disabled]="preferences.saving() || settings.timeZone === deviceZone"
+          (click)="useDeviceTimeZone()"
+        >
+          {{ 'account.settings.timeZoneDevice' | t }} ({{ deviceZone }})
+        </button>
+        <p class="form-text">{{ 'account.settings.timeZoneHint' | t }}</p>
+      </div>
     </div>
   </div>
   <div

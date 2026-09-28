@@ -102,12 +102,14 @@ describe('Shared site header', () => {
       settings: {
         language: 'en',
         theme: 'light',
+        timeZone: 'UTC',
         telegramBots: { 'personal-workspace': { enabled: true, notify: false } },
       },
     });
     preferences.settings.set({
       language: 'en',
       theme: 'light',
+      timeZone: 'UTC',
       telegramBots: { 'personal-workspace': { enabled: true, notify: false } },
     });
     fixture.detectChanges();
@@ -116,12 +118,14 @@ describe('Shared site header', () => {
     expect(preferences.update).toHaveBeenCalledWith({
       language: 'en',
       theme: 'dark',
+      timeZone: 'UTC',
       telegramBots: { 'personal-workspace': { enabled: true, notify: false } },
     });
     fixture.componentInstance.switchLanguage('ru');
     expect(preferences.update).toHaveBeenCalledWith({
       language: 'ru',
       theme: 'light',
+      timeZone: 'UTC',
       telegramBots: { 'personal-workspace': { enabled: true, notify: false } },
     });
   });

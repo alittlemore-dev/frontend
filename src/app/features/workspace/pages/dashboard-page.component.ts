@@ -10,23 +10,28 @@ import {
   DestroyRef,
   OnInit,
   computed,
+  effect,
   inject,
   signal,
+  untracked,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { I18nService } from '../../../core/i18n/i18n.service';
+import { AccountSettingsService } from '../../../core/auth/account-settings.service';
 import { TranslatePipe } from '../../../core/i18n/translate.pipe';
 import { ApiError } from '../../../core/models/api-error.model';
 
 import { FoldableSectionComponent } from '@alittlemore.dev/design-system';
 import { ToolsWidgetComponent } from '../components/tools-widget/tools-widget.component';
-import { MonthCalendarWidgetComponent } from '../components/month-calendar-widget/month-calendar-widget.component';
+import { ImportantInfoComponent } from '../components/important-info/important-info.component';
+import { EventsCalendarComponent } from '../components/events-calendar/events-calendar.component';
 import { formatAnnualDate } from '../knowledge/shared/annual-date';
 import { Calendar, CalendarEntry } from '../models/calendar.model';
 import { CalendarService } from '../services/calendar.service';
+import { Temporal } from 'temporal-polyfill';
 
-type DashboardSectionKey = 'upcoming-dates';
+type DashboardSectionKey = 'upcoming-dates' | 'important-info';
 
 type DashboardTabKey = 'home' | 'month-calendar' | 'tools';
 
@@ -43,7 +48,7 @@ const DASHBOARD_TABS: readonly DashboardTabDefinition[] = [
   { key: 'tools', labelKey: 'workspaceDashboard.tools.title' },
 ];
 
-const DASHBOARD_SECTIONS: readonly DashboardSectionKey[] = ['upcoming-dates'];
+const DASHBOARD_SECTIONS: readonly DashboardSectionKey[] = ['important-info', 'upcoming-dates'];
 
 @Component({
   selector: 'app-dashboard-page',
@@ -55,7 +60,8 @@ const DASHBOARD_SECTIONS: readonly DashboardSectionKey[] = ['upcoming-dates'];
     ErrorMessageComponent,
     LoadingSpinnerComponent,
     FoldableSectionComponent,
-    MonthCalendarWidgetComponent,
+    ImportantInfoComponent,
+    EventsCalendarComponent,
     ToolsWidgetComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -65,9 +71,11 @@ const DASHBOARD_SECTIONS: readonly DashboardSectionKey[] = ['upcoming-dates'];
 export class DashboardPageComponent implements OnInit {
   private readonly calendarService = inject(CalendarService);
   private readonly i18n = inject(I18nService);
+  private readonly preferences = inject(AccountSettingsService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly document = inject(DOCUMENT);
   private upcomingLoadGeneration = 0;
+  private previousTimeZone = this.preferences.timeZone();
 
   readonly upcomingCalendar = signal<Calendar | null>(null);
   readonly upcomingLoading = signal(false);
@@ -83,6 +91,14 @@ export class DashboardPageComponent implements OnInit {
     const summary = this.upcomingCalendar()?.summary;
     return `${this.i18n.translate('workspaceDashboard.dates.type.memorableDate')}: ${summary?.memorableDateCount ?? 0} · ${this.i18n.translate('workspaceDashboard.dates.type.birthday')}: ${summary?.birthdayCount ?? 0}`;
   });
+  constructor() {
+    effect(() => {
+      const zone = this.preferences.timeZone();
+      if (zone === this.previousTimeZone) return;
+      this.previousTimeZone = zone;
+      untracked(() => this.loadUpcomingDates());
+    });
+  }
   ngOnInit(): void {
     this.loadUpcomingDates();
   }
@@ -92,7 +108,13 @@ export class DashboardPageComponent implements OnInit {
     this.upcomingLoading.set(true);
     this.upcomingError.set(null);
     this.calendarService
-      .getCalendar(browserLocalDate(new Date()), 'currentAndNextMonths')
+      .getCalendar(
+        Temporal.Instant.from(new Date().toISOString())
+          .toZonedDateTimeISO(this.preferences.timeZone())
+          .toPlainDate()
+          .toString(),
+        'currentAndNextMonths',
+      )
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (calendar) => {
@@ -200,13 +222,6 @@ export class DashboardPageComponent implements OnInit {
 
 function isDashboardSectionKey(value: unknown): value is DashboardSectionKey {
   return typeof value === 'string' && DASHBOARD_SECTIONS.some((sectionKey) => sectionKey === value);
-}
-
-function browserLocalDate(value: Date): string {
-  const year = String(value.getFullYear()).padStart(4, '0');
-  const month = String(value.getMonth() + 1).padStart(2, '0');
-  const day = String(value.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
 }
 
 function pluralSuffix(category: Intl.LDMLPluralRule): 'one' | 'few' | 'many' | 'other' {

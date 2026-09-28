@@ -1,0 +1,115 @@
+<div class="vstack gap-2">
+  @if (loading()) {
+    <ds-loading-spinner [ariaLabel]="'shared.loading' | t" />
+  } @else if (error()) {
+    <ds-error-message [error]="error()!" [retryLabel]="'shared.retry' | t" (retry)="load()" />
+  } @else {
+    <ul
+      class="important-info-grid list-unstyled mb-0"
+      cdkDropList
+      cdkDropListOrientation="mixed"
+      [cdkDropListData]="items()"
+      (cdkDropListDropped)="drop($event)"
+      (focusout)="onGridFocusOut($event)"
+    >
+      @for (item of items(); track item.id; let index = $index) {
+        <li
+          class="important-info-item d-flex align-items-center gap-1"
+          [attr.data-info-id]="item.id"
+          cdkDrag
+          [cdkDragStartDelay]="{ touch: 220, mouse: 0 }"
+          [cdkDragDisabled]="busy() || editingId() === item.id"
+        >
+          <ng-template cdkDragPlaceholder>
+            <li class="important-info-drop-placeholder" aria-hidden="true"></li>
+          </ng-template>
+          @if (editingId() === item.id) {
+            <input
+              class="important-info-text form-control form-control-sm border-0 bg-transparent"
+              [id]="'important-info-edit-' + item.id"
+              [value]="editSnapshot()"
+              [disabled]="busy()"
+              maxlength="255"
+              [attr.aria-label]="'workspaceDashboard.importantInfo.edit' | t"
+              [attr.aria-invalid]="editError()"
+              (input)="onEditInput(item.id, $event)"
+              (blur)="onEditBlur(item.id, $event)"
+              (keydown)="onEditKeydown($event)"
+            />
+          } @else {
+            <button
+              type="button"
+              class="important-info-display btn btn-link text-start text-decoration-none"
+              [class.text-body]="!!item.text"
+              [class.text-body-secondary]="!item.text"
+              [disabled]="busy()"
+              [attr.aria-label]="
+                ('workspaceDashboard.importantInfo.edit' | t) +
+                ': ' +
+                (item.text || ('workspaceDashboard.importantInfo.placeholder' | t))
+              "
+              (click)="edit(item)"
+            >
+              {{ item.text || ('workspaceDashboard.importantInfo.placeholder' | t) }}
+            </button>
+          }
+          <div
+            class="important-info-actions d-flex align-items-center gap-1"
+            (pointerdown)="onActionPointerDown($event)"
+            (mousedown)="onActionDragStart($event)"
+            (touchstart)="onActionDragStart($event)"
+          >
+            <button
+              type="button"
+              class="btn btn-sm btn-link text-secondary info-move-button"
+              [disabled]="busy() || index === 0"
+              [attr.aria-label]="'workspaceDashboard.importantInfo.moveUp' | t"
+              [title]="'workspaceDashboard.importantInfo.moveUp' | t"
+              (click)="move(item.id, -1)"
+            >
+              ↑
+            </button>
+            <button
+              type="button"
+              class="btn btn-sm btn-link text-secondary info-move-button"
+              [disabled]="busy() || index === items().length - 1"
+              [attr.aria-label]="'workspaceDashboard.importantInfo.moveDown' | t"
+              [title]="'workspaceDashboard.importantInfo.moveDown' | t"
+              (click)="move(item.id, 1)"
+            >
+              ↓
+            </button>
+            <button
+              type="button"
+              class="btn btn-sm btn-link text-danger info-icon-button"
+              [disabled]="busy()"
+              [attr.aria-label]="'workspaceDashboard.importantInfo.delete' | t"
+              [title]="'workspaceDashboard.importantInfo.delete' | t"
+              (click)="remove(item.id)"
+            >
+              <span aria-hidden="true">−</span>
+            </button>
+          </div>
+          @if (editingId() === item.id && editError()) {
+            <span class="important-info-error text-danger small" role="alert">{{
+              'workspaceDashboard.importantInfo.tooLong' | t
+            }}</span>
+          }
+        </li>
+      }
+      <li class="important-info-add-item">
+        <button
+          type="button"
+          class="important-info-add btn btn-sm btn-link text-secondary info-icon-button"
+          [disabled]="busy()"
+          [attr.aria-label]="'workspaceDashboard.importantInfo.add' | t"
+          [title]="'workspaceDashboard.importantInfo.add' | t"
+          (pointerdown)="onAddPointerDown($event)"
+          (click)="add()"
+        >
+          <span aria-hidden="true">+</span>
+        </button>
+      </li>
+    </ul>
+  }
+</div>

@@ -33,6 +33,15 @@
       [hidden]="activeTab() !== 'home'"
     >
       <ds-foldable-section
+        sectionKey="important-info"
+        [title]="'workspaceDashboard.importantInfo.title' | t"
+        summary=""
+        [expanded]="isSectionExpanded('important-info')"
+        (expandedChange)="setSectionExpanded('important-info', $event)"
+      >
+        <app-important-info />
+      </ds-foldable-section>
+      <ds-foldable-section
         sectionKey="upcoming-dates"
         [title]="'workspaceDashboard.dates.title' | t"
         [summary]="datesSummary()"
@@ -122,7 +131,9 @@
       [attr.data-testid]="'dashboard-tabpanel-month-calendar'"
       [hidden]="activeTab() !== 'month-calendar'"
     >
-      <app-month-calendar-widget />
+      @if (activeTab() === 'month-calendar') {
+        <app-events-calendar />
+      }
     </div>
 
     <div

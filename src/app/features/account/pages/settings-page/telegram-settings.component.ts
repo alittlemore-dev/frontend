@@ -31,10 +31,6 @@ export class TelegramSettingsComponent {
   readonly busy = signal(false);
   readonly error = signal('');
   readonly editingId = signal('');
-  readonly timeZones = [
-    'UTC',
-    ...Intl.supportedValuesOf('timeZone').filter((zone) => zone !== 'UTC'),
-  ];
   readonly notificationDraft = signal<TelegramConnection | null>(null);
   readonly inviteLabel = new FormControl('', {
     nonNullable: true,
@@ -94,7 +90,6 @@ export class TelegramSettingsComponent {
         notifyBirthday: connection.notifyBirthday,
         notifyMemorableDate: connection.notifyMemorableDate,
         language: connection.language,
-        timeZone: connection.timeZone,
       }),
       () => this.notificationDraft.set(null),
     );

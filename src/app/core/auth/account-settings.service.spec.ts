@@ -23,6 +23,7 @@ const account: AccountInfo = {
   settings: {
     language: 'en',
     theme: 'light',
+    timeZone: 'UTC',
     telegramBots: { 'personal-workspace': { enabled: true, notify: false } },
   },
 };
@@ -57,6 +58,17 @@ describe('AccountSettingsService', () => {
     expect(api.put).not.toHaveBeenCalled();
   });
 
+  it('resolves the account zone and defaults to UTC before account load', () => {
+    expect(service.timeZone()).toBe('UTC');
+    session.setCurrentUser({
+      ...account,
+      settings: { ...account.settings, timeZone: 'Pacific/Honolulu' },
+    });
+    expect(service.timeZone()).toBe('Pacific/Honolulu');
+    session.setCurrentUser(account);
+    expect(service.timeZone()).toBe('UTC');
+  });
+
   it('saves the full settings and keeps the previous account until success', async () => {
     session.setCurrentUser(account);
     const result = new Subject<AccountInfo>();
@@ -65,6 +77,7 @@ describe('AccountSettingsService', () => {
       service.update({
         language: 'ru',
         theme: 'dark',
+        timeZone: 'UTC',
         telegramBots: { 'personal-workspace': { enabled: true, notify: false } },
       }),
     );
@@ -73,6 +86,7 @@ describe('AccountSettingsService', () => {
     expect(api.put).toHaveBeenCalledWith('/api/auth/account/me/settings', {
       language: 'ru',
       theme: 'dark',
+      timeZone: 'UTC',
       telegramBots: { 'personal-workspace': { enabled: true, notify: false } },
     });
     result.next({
@@ -80,6 +94,7 @@ describe('AccountSettingsService', () => {
       settings: {
         language: 'ru',
         theme: 'dark',
+        timeZone: 'UTC',
         telegramBots: { 'personal-workspace': { enabled: true, notify: false } },
       },
     });
@@ -98,6 +113,7 @@ describe('AccountSettingsService', () => {
         service.update({
           language: 'ru',
           theme: 'dark',
+          timeZone: 'UTC',
           telegramBots: { 'personal-workspace': { enabled: true, notify: false } },
         }),
       ),
@@ -143,6 +159,7 @@ describe('AccountSettingsService', () => {
       settings: {
         language: 'ru',
         theme: 'dark',
+        timeZone: 'UTC',
         telegramBots: { 'personal-workspace': { enabled: true, notify: false } },
       },
     };
@@ -161,6 +178,7 @@ describe('AccountSettingsService', () => {
       settings: {
         language: 'ru',
         theme: 'dark',
+        timeZone: 'UTC',
         telegramBots: { 'personal-workspace': { enabled: true, notify: false } },
       },
     };
@@ -180,6 +198,7 @@ describe('AccountSettingsService', () => {
       .update({
         language: 'ru',
         theme: 'dark',
+        timeZone: 'UTC',
         telegramBots: { 'personal-workspace': { enabled: true, notify: false } },
       })
       .subscribe(next);
@@ -190,6 +209,7 @@ describe('AccountSettingsService', () => {
       settings: {
         language: 'ru',
         theme: 'dark',
+        timeZone: 'UTC',
         telegramBots: { 'personal-workspace': { enabled: true, notify: false } },
       },
     });

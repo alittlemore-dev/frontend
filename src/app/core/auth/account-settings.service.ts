@@ -32,6 +32,7 @@ export class AccountSettingsService {
   readonly saving = signal(false);
   readonly applicationFailed = signal(false);
   readonly settings = computed(() => this.session.currentUser()?.settings ?? null);
+  readonly timeZone = computed(() => this.settings()?.timeZone || 'UTC');
 
   constructor() {
     this.router.events

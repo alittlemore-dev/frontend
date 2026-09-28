@@ -1,0 +1,130 @@
+.important-info-grid {
+  display: grid;
+  gap: 0 1rem;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 768px) {
+  .important-info-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.important-info-item {
+  min-width: 0;
+  padding: 0.15rem 0.25rem;
+  border-bottom: 1px solid var(--bs-border-color);
+  flex-wrap: wrap;
+  cursor: grab;
+}
+
+.important-info-item:hover,
+.important-info-item:focus-within {
+  background: var(--bs-tertiary-bg);
+}
+
+.important-info-item:active {
+  cursor: grabbing;
+}
+
+.important-info-item.cdk-drag-preview {
+  background: var(--bs-body-bg);
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius);
+  box-shadow: var(--bs-box-shadow-sm);
+}
+
+.important-info-drop-placeholder.cdk-drag-placeholder {
+  min-height: 2rem;
+  border: 1px dashed var(--bs-success);
+  border-radius: var(--bs-border-radius);
+  background: var(--bs-success-bg-subtle);
+  opacity: 1;
+}
+
+.important-info-add-item {
+  padding: 0.15rem 0.25rem;
+}
+
+.important-info-text {
+  min-width: 4rem;
+  flex: 1 1 8rem;
+  padding-inline: 0.25rem;
+  text-overflow: ellipsis;
+  box-shadow: none;
+}
+
+.important-info-display {
+  min-width: 4rem;
+  flex: 1 1 8rem;
+  overflow: hidden;
+  padding: 0.25rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: grab;
+}
+
+.important-info-display:active {
+  cursor: grabbing;
+}
+
+.important-info-text:focus {
+  box-shadow: none;
+}
+
+.important-info-actions {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+}
+
+.important-info-item:hover .important-info-actions,
+.important-info-item:focus-within .important-info-actions {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+@media (hover: none) {
+  .important-info-actions {
+    opacity: 0.65;
+    pointer-events: auto;
+  }
+
+  .important-info-item:focus-within .important-info-actions {
+    opacity: 1;
+  }
+
+  .info-icon-button,
+  .info-move-button {
+    min-width: 2rem;
+    min-height: 2rem;
+  }
+}
+
+.info-icon-button,
+.info-move-button {
+  flex: 0 0 auto;
+  min-width: 1.5rem;
+  padding: 0 0.2rem;
+  line-height: 1.35;
+  text-decoration: none;
+}
+
+.info-icon-button {
+  font-size: 1.25rem;
+}
+
+.info-move-button {
+  font-size: 0.875rem;
+}
+
+.important-info-error {
+  flex-basis: 100%;
+  padding-inline: 0.25rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .important-info-actions {
+    transition: none;
+  }
+}

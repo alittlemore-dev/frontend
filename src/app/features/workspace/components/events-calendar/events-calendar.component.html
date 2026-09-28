@@ -1,0 +1,263 @@
+<link rel="stylesheet" href="/assets/fullcalendar/skeleton.css" />
+<link rel="stylesheet" href="/assets/fullcalendar/theme.css" />
+<link rel="stylesheet" href="/assets/fullcalendar/palette.css" />
+<section class="vstack gap-3" aria-label="{{ 'workspaceDashboard.calendar.title' | t }}">
+  <div
+    class="calendar-toolbar d-flex align-items-center gap-2 flex-wrap"
+    role="toolbar"
+    [attr.aria-label]="'workspaceDashboard.calendar.title' | t"
+  >
+    <div class="btn-group btn-group-sm" role="group">
+      <button
+        type="button"
+        class="btn btn-outline-secondary"
+        [attr.aria-label]="'workspaceDashboard.calendar.previous' | t"
+        [title]="'workspaceDashboard.calendar.previous' | t"
+        (click)="previous()"
+      >
+        ‹
+      </button>
+      <button
+        type="button"
+        class="btn btn-outline-secondary"
+        [attr.aria-label]="'workspaceDashboard.calendar.next' | t"
+        [title]="'workspaceDashboard.calendar.next' | t"
+        (click)="next()"
+      >
+        ›
+      </button>
+      <button type="button" class="btn btn-outline-secondary" (click)="today()">
+        {{ 'workspaceDashboard.calendar.today' | t }}
+      </button>
+    </div>
+    <h2 class="calendar-toolbar-title h5 mb-0">{{ calendarTitle() }}</h2>
+    <div class="calendar-toolbar-date">
+      <ds-localized-date-picker
+        class="calendar-date-picker"
+        inputId="calendar-navigation-date"
+        controlSize="small"
+        [value]="pickerDate()"
+        [dateLocale]="dateLocale()"
+        [labels]="datePickerLabels()"
+        [required]="false"
+        [invalid]="false"
+        [controlDisabled]="false"
+        [readonly]="false"
+        (valueChange)="goToDate($event)"
+      />
+    </div>
+    <div
+      class="btn-group btn-group-sm"
+      role="group"
+      [attr.aria-label]="'workspaceDashboard.calendar.title' | t"
+    >
+      <button
+        type="button"
+        class="btn btn-outline-secondary"
+        [class.active]="activeView() === 'dayGridMonth'"
+        [attr.aria-pressed]="activeView() === 'dayGridMonth'"
+        (click)="changeView('dayGridMonth')"
+      >
+        {{ 'workspaceDashboard.calendar.view.month' | t }}
+      </button>
+      <button
+        type="button"
+        class="btn btn-outline-secondary"
+        [class.active]="activeView() === 'timeGridWeek'"
+        [attr.aria-pressed]="activeView() === 'timeGridWeek'"
+        (click)="changeView('timeGridWeek')"
+      >
+        {{ 'workspaceDashboard.calendar.view.week' | t }}
+      </button>
+      <button
+        type="button"
+        class="btn btn-outline-secondary"
+        [class.active]="activeView() === 'timeGridDay'"
+        [attr.aria-pressed]="activeView() === 'timeGridDay'"
+        (click)="changeView('timeGridDay')"
+      >
+        {{ 'workspaceDashboard.calendar.view.day' | t }}
+      </button>
+      <button
+        type="button"
+        class="btn btn-outline-secondary"
+        [class.active]="activeView() === 'multiMonthYear'"
+        [attr.aria-pressed]="activeView() === 'multiMonthYear'"
+        (click)="changeView('multiMonthYear')"
+      >
+        {{ 'workspaceDashboard.calendar.view.year' | t }}
+      </button>
+    </div>
+    <button type="button" class="btn btn-success btn-sm" (click)="openCreate()">
+      {{ 'workspaceDashboard.calendar.create' | t }}
+    </button>
+  </div>
+  <p class="text-body-secondary small mb-0">
+    {{ 'workspaceDashboard.calendar.timeZone' | t }}: {{ timeZone }}
+  </p>
+  @if (loading() && !hasLoaded()) {
+    <ds-loading-spinner [ariaLabel]="'shared.loading' | t" />
+  }
+  @if (error()) {
+    <ds-error-message [error]="error()!" [retryLabel]="'shared.retry' | t" (retry)="load()" />
+  }
+  <full-calendar class="workspace-fullcalendar" [options]="options()" />
+  @if (occurrences().unplacedAnnualEntries.length > 0) {
+    <section class="alert alert-secondary mb-0" aria-labelledby="calendar-unplaced-heading">
+      <h3 id="calendar-unplaced-heading" class="h6">
+        {{ 'workspaceDashboard.calendar.noDayThisYear' | t }}
+      </h3>
+      <ul class="mb-0">
+        @for (entry of occurrences().unplacedAnnualEntries; track entry.kind + entry.sourceId) {
+          <li>
+            <a [routerLink]="entryRoute(entry)">{{ entry.displayName }}</a> ·
+            {{ annualLabel(entry) }}
+          </li>
+        }
+      </ul>
+    </section>
+  }
+</section>
+
+@if (selectedDay(); as day) {
+  <div class="modal-backdrop show"></div>
+  <section
+    class="modal d-block calendar-dialog"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="calendar-day-title"
+    cdkTrapFocus
+    [cdkTrapFocusAutoCapture]="true"
+    (keydown.escape)="closeDay()"
+  >
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="calendar-day-title" class="modal-title fs-5">
+            {{ 'workspaceDashboard.calendar.dayDetails' | t }} · {{ day }}
+          </h2>
+          <button
+            type="button"
+            class="btn-close"
+            cdkFocusInitial
+            [attr.aria-label]="'workspaceEvents.cancel' | t"
+            (click)="closeDay()"
+          ></button>
+        </div>
+        <div class="modal-body">
+          @if (error()) {
+            <ds-error-message
+              [error]="error()!"
+              [retryLabel]="'shared.retry' | t"
+              (retry)="load()"
+            />
+          } @else if (!dayDetailsReady()) {
+            <ds-loading-spinner [ariaLabel]="'shared.loading' | t" />
+          } @else if (dayEntries().length === 0) {
+            <ds-empty-state [message]="'workspaceEvents.empty' | t" />
+          } @else {
+            <ul class="list-group">
+              @for (entry of dayEntries(); track entry.id) {
+                <li class="list-group-item">
+                  <button
+                    type="button"
+                    class="btn btn-link text-start p-0"
+                    (click)="showDayEntry(entry)"
+                  >
+                    {{ entry.displayName }}
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" (click)="closeDay()">
+            {{ 'workspaceEvents.cancel' | t }}
+          </button>
+          <button type="button" class="btn btn-success" (click)="createOnSelectedDay()">
+            {{ 'workspaceDashboard.calendar.create' | t }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+}
+
+@if (selectedOccurrence(); as entry) {
+  <div class="modal-backdrop show"></div>
+  <section
+    class="modal d-block calendar-dialog"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="calendar-event-title"
+    cdkTrapFocus
+    [cdkTrapFocusAutoCapture]="true"
+    (keydown.escape)="closeDetails()"
+  >
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="calendar-event-title" class="modal-title fs-5">
+            {{ 'workspaceDashboard.calendar.eventDetails' | t }}
+          </h2>
+          <button
+            type="button"
+            class="btn-close"
+            cdkFocusInitial
+            [attr.aria-label]="'workspaceEvents.cancel' | t"
+            (click)="closeDetails()"
+          ></button>
+        </div>
+        <div class="modal-body vstack gap-2">
+          <strong>{{ entry.displayName }}</strong>
+          @if (entry.kind === 'event') {
+            @if (eventLoading()) {
+              <ds-loading-spinner [ariaLabel]="'shared.loading' | t" />
+            } @else if (eventError()) {
+              <ds-error-message
+                [error]="eventError()!"
+                [retryLabel]="'shared.retry' | t"
+                (retry)="showDayEntry(entry)"
+              />
+            } @else if (selectedEvent(); as event) {
+              @if (event.description) {
+                <p class="mb-0 text-break">{{ event.description }}</p>
+              }
+              <span>{{ occurrenceTimeLabel(entry) }}</span>
+              <span>{{ 'workspaceEvents.frequency.' + event.recurrence.frequency | t }}</span>
+            }
+          } @else {
+            <span>{{ annualLabel(entry) }}</span>
+            @for (person of entry.relatedPeople; track person.id) {
+              <a [routerLink]="['/personal-workspace/knowledge/people', person.id]">{{
+                person.displayName
+              }}</a>
+            }
+            <a [routerLink]="entryRoute(entry)">{{
+              'workspaceDashboard.calendar.legacyDetails' | t
+            }}</a>
+          }
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" (click)="closeDetails()">
+            {{ 'workspaceEvents.cancel' | t }}
+          </button>
+          @if (selectedEvent()) {
+            <button type="button" class="btn btn-success" (click)="openEdit()">
+              {{ 'workspaceEvents.edit' | t }}
+            </button>
+          }
+        </div>
+      </div>
+    </div>
+  </section>
+}
+@if (editorOpen()) {
+  <app-event-editor
+    [event]="editorEvent()"
+    [initial]="editorInitial()"
+    (saved)="onSaved()"
+    (closed)="closeEditor()"
+  />
+}

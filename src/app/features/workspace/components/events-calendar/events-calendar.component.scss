@@ -1,0 +1,36 @@
+:host {
+  display: block;
+}
+.calendar-dialog {
+  overflow-y: auto;
+}
+.calendar-toolbar-title {
+  min-width: 9rem;
+  flex: 1 1 10rem;
+}
+.calendar-toolbar-date {
+  flex: 0 0 auto;
+}
+.calendar-date-picker {
+  width: 2.5rem;
+}
+.calendar-date-picker ::ng-deep .temporal-picker-field-endpoint {
+  display: none;
+}
+.calendar-date-picker ::ng-deep .temporal-picker-field-trigger {
+  min-height: 2rem;
+  border-inline-start: 0;
+}
+.workspace-fullcalendar {
+  --fc-classic-background: var(--bs-body-bg);
+  --fc-classic-foreground: var(--bs-body-color);
+  --fc-classic-muted-foreground: var(--bs-secondary-color);
+  --fc-classic-border: var(--bs-border-color);
+  --fc-classic-faint: var(--bs-tertiary-bg);
+  --fc-classic-muted: var(--bs-secondary-bg);
+  --fc-classic-button: var(--bs-secondary-bg);
+  --fc-classic-button-border: var(--bs-border-color);
+  --fc-classic-button-foreground: var(--bs-body-color);
+  --fc-classic-event: var(--bs-success);
+  --fc-classic-event-contrast: var(--bs-white);
+}

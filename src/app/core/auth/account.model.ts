@@ -14,6 +14,7 @@ export interface TelegramBotSettings {
 export interface AccountSettings {
   language: LanguageCode;
   theme: 'light' | 'dark';
+  timeZone: string;
   telegramBots: Partial<Record<TelegramBotId, TelegramBotSettings>>;
 }
 

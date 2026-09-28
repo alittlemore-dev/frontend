@@ -13,6 +13,7 @@ describe('TelegramSettingsService', () => {
   const accountSettings = signal({
     language: 'ru' as const,
     theme: 'dark' as const,
+    timeZone: 'UTC',
     telegramBots: { 'personal-workspace': { enabled: true, notify: false } },
   });
   const preferences = { settings: accountSettings, update: jest.fn() };
@@ -56,6 +57,7 @@ describe('TelegramSettingsService', () => {
     expect(preferences.update).toHaveBeenCalledWith({
       language: 'ru',
       theme: 'dark',
+      timeZone: 'UTC',
       telegramBots: { 'personal-workspace': { enabled: false, notify: false } },
     });
   });
@@ -66,6 +68,7 @@ describe('TelegramSettingsService', () => {
     expect(preferences.update).toHaveBeenCalledWith({
       language: 'ru',
       theme: 'dark',
+      timeZone: 'UTC',
       telegramBots: { 'personal-workspace': { enabled: true, notify: true } },
     });
   });
@@ -75,7 +78,6 @@ describe('TelegramSettingsService', () => {
       notifyBirthday: true,
       notifyMemorableDate: false,
       language: 'ru' as const,
-      timeZone: 'Asia/Yerevan',
     };
     service.updateConnectionSettings('abc', settings).subscribe();
     const request = http.expectOne((item) =>

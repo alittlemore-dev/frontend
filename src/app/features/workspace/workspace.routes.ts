@@ -14,6 +14,7 @@ export const workspaceRoutes: Routes = [
         path: '',
         pathMatch: 'full',
         title: 'workspaceDashboard.title',
+        canDeactivate: [unsavedChangesGuard],
         loadComponent: () =>
           import('./pages/dashboard-page.component').then((m) => m.DashboardPageComponent),
       },
@@ -59,6 +60,13 @@ export const workspaceRoutes: Routes = [
         canDeactivate: [unsavedChangesGuard],
         loadComponent: () =>
           import('./pages/resumes-page/resumes-page.component').then((m) => m.ResumesPageComponent),
+      },
+      {
+        path: 'events',
+        title: 'workspaceEvents.title',
+        canDeactivate: [unsavedChangesGuard],
+        loadComponent: () =>
+          import('./pages/events-page/events-page.component').then((m) => m.EventsPageComponent),
       },
       {
         path: 'resumes/:id',

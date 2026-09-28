@@ -29,6 +29,12 @@ export const WORKSPACE_NAVIGATION_SECTIONS: readonly WorkspaceNavigationSection[
         route: '/personal-workspace/knowledge/dates',
         badgeTextKey: null,
       },
+      {
+        key: 'events',
+        labelKey: 'workspaceEvents.title',
+        route: '/personal-workspace/events',
+        badgeTextKey: null,
+      },
     ],
   },
 ];

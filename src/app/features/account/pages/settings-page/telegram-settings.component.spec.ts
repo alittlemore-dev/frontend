@@ -26,7 +26,6 @@ const SETTINGS: TelegramSettings = {
       notifyBirthday: false,
       notifyMemorableDate: false,
       language: 'en',
-      timeZone: 'UTC',
     },
   ],
 };
@@ -133,7 +132,6 @@ describe('TelegramSettingsComponent', () => {
       notifyBirthday: true,
       notifyMemorableDate: true,
       language: 'ru',
-      timeZone: 'Asia/Yerevan',
     });
     component.saveNotifications();
     fixture.detectChanges();
@@ -142,7 +140,6 @@ describe('TelegramSettingsComponent', () => {
       notifyBirthday: true,
       notifyMemorableDate: true,
       language: 'ru',
-      timeZone: 'Asia/Yerevan',
     });
     expect(component.notificationDraft()).toBeNull();
     expect(service.load).toHaveBeenCalledTimes(2);

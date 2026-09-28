@@ -3,6 +3,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { of, Subject, throwError } from 'rxjs';
 import { AccountSettingsService } from '../../../../core/auth/account-settings.service';
 import { AccountSettings } from '../../../../core/auth/account.model';
+import { deviceTimeZone } from '../../../../core/auth/time-zone';
 import { TelegramSettingsService } from '../../services/telegram-settings.service';
 import { provideI18nTesting } from '../../../../testing/i18n-testing';
 import { SettingsPageComponent } from './settings-page.component';
@@ -12,6 +13,7 @@ describe('SettingsPageComponent', () => {
   const settings = signal<AccountSettings>({
     language: 'en',
     theme: 'light',
+    timeZone: 'UTC',
     telegramBots: { 'personal-workspace': { enabled: true, notify: false } },
   });
   const preferences = { settings, saving: signal(false), load: jest.fn(), update: jest.fn() };
@@ -19,6 +21,7 @@ describe('SettingsPageComponent', () => {
     settings.set({
       language: 'en',
       theme: 'light',
+      timeZone: 'UTC',
       telegramBots: { 'personal-workspace': { enabled: true, notify: false } },
     });
     preferences.saving.set(false);
@@ -27,7 +30,11 @@ describe('SettingsPageComponent', () => {
     await TestBed.configureTestingModule({
       imports: [SettingsPageComponent],
       providers: [
-        provideI18nTesting(),
+        provideI18nTesting({
+          'account.settings.timeZone': 'Time zone',
+          'account.settings.timeZoneDevice': 'Use device time zone',
+          'account.settings.timeZoneHint': 'Used for calendar times.',
+        }),
         { provide: AccountSettingsService, useValue: preferences },
         {
           provide: TelegramSettingsService,
@@ -60,6 +67,7 @@ describe('SettingsPageComponent', () => {
     expect(preferences.update).toHaveBeenCalledWith({
       language: 'ru',
       theme: 'light',
+      timeZone: 'UTC',
       telegramBots: { 'personal-workspace': { enabled: true, notify: false } },
     });
   });
@@ -74,8 +82,38 @@ describe('SettingsPageComponent', () => {
     expect(preferences.update).toHaveBeenCalledWith({
       language: 'en',
       theme: 'dark',
+      timeZone: 'UTC',
       telegramBots: { 'personal-workspace': { enabled: true, notify: false } },
     });
+  });
+  it('saves a selected IANA zone and can restore the device default', () => {
+    const el = create();
+    const selectedZone = deviceTimeZone() === 'Pacific/Honolulu' ? 'UTC' : 'Pacific/Honolulu';
+    const zoneSelect = el.querySelector('#settings-time-zone');
+    expect(zoneSelect).not.toBeNull();
+    expect(el.textContent).toContain('Use device time zone');
+    fixture.componentInstance.changeTimeZone(selectedZone);
+    expect(preferences.update).toHaveBeenCalledWith({
+      language: 'en',
+      theme: 'light',
+      timeZone: selectedZone,
+      telegramBots: { 'personal-workspace': { enabled: true, notify: false } },
+    });
+    settings.update((value) => ({ ...value, timeZone: selectedZone }));
+    fixture.detectChanges();
+    el.querySelector<HTMLButtonElement>('#settings-time-zone-device')!.click();
+    expect(preferences.update).toHaveBeenLastCalledWith({
+      language: 'en',
+      theme: 'light',
+      timeZone: deviceTimeZone(),
+      telegramBots: { 'personal-workspace': { enabled: true, notify: false } },
+    });
+  });
+
+  it('keeps an account zone alias selectable even when not in the platform list', () => {
+    settings.update((value) => ({ ...value, timeZone: 'Asia/Calcutta' }));
+    const el = create();
+    expect(el.querySelector('#settings-time-zone')?.textContent).toContain('Asia/Calcutta');
   });
   it('offers a Telegram integration tab in account settings', () => {
     const el = create();

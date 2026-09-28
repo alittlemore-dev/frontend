@@ -22,12 +22,11 @@ export interface TelegramConnection {
   notifyBirthday: boolean;
   notifyMemorableDate: boolean;
   language: 'ru' | 'en';
-  timeZone: string;
 }
 
 export type TelegramConnectionSettings = Pick<
   TelegramConnection,
-  'notifyBirthday' | 'notifyMemorableDate' | 'language' | 'timeZone'
+  'notifyBirthday' | 'notifyMemorableDate' | 'language'
 >;
 
 export interface TelegramSettings {
