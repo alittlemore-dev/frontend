@@ -77,7 +77,7 @@
     "express": {
       "qs": "6.16.0"
     },
-    "postcss": "8.5.15",
+    "postcss": "8.5.28",
     "sockjs": {
       "uuid": "11.1.1"
     },
