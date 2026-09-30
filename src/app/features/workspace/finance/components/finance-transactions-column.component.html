@@ -1,0 +1,117 @@
+<section
+  class="finance-transactions-column"
+  [attr.aria-label]="(kind() === 'expense' ? 'finance.expenses' : 'finance.income') | t"
+>
+  <header class="finance-budget-heading">
+    <div>
+      <h2>{{ (kind() === 'expense' ? 'finance.expenses' : 'finance.income') | t }}</h2>
+      <div class="finance-budget-totals">
+        <span
+          >{{ 'finance.total' | t }}
+          <strong>{{
+            money(
+              kind() === 'expense' ? month().actualExpense : month().actualIncome,
+              month().currency
+            )
+          }}</strong>
+        </span>
+      </div>
+    </div>
+    <button
+      type="button"
+      class="finance-icon-button finance-add-transaction"
+      [attr.aria-label]="
+        ('finance.transaction.add' | t) +
+        ': ' +
+        ((kind() === 'expense' ? 'finance.expenses' : 'finance.income') | t)
+      "
+      [attr.title]="'finance.transaction.add' | t"
+      [disabled]="saving()"
+      (click)="creationRequested.emit()"
+    >
+      +
+    </button>
+  </header>
+  <table class="table finance-transactions-table">
+    <thead>
+      <tr>
+        <th scope="col">{{ 'finance.dateTime.label' | t }}</th>
+        <th scope="col">{{ 'finance.category.name' | t }}</th>
+        <th scope="col" class="text-end">{{ 'finance.transaction.amount' | t }}</th>
+        <th scope="col">
+          <span class="visually-hidden">{{ 'finance.actions' | t }}</span>
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (transaction of transactions(); track transaction.id) {
+        <tr class="finance-transaction-row" [class.finance-archived]="transaction.deleted">
+          <td>
+            <time [attr.datetime]="transaction.occurredAt">{{
+              dateTime(transaction.occurredAt)
+            }}</time>
+          </td>
+          <td>
+            <button
+              type="button"
+              class="finance-transaction-edit"
+              [disabled]="transaction.deleted || saving()"
+              [attr.aria-label]="
+                ('finance.transaction.edit' | t) +
+                ': ' +
+                (transaction.categoryName || ('finance.category.none' | t))
+              "
+              (click)="editRequested.emit(transaction)"
+            >
+              <strong>{{ transaction.categoryName || ('finance.category.none' | t) }}</strong>
+              @if (transaction.description) {
+                <span>{{ transaction.description }}</span>
+              }
+            </button>
+          </td>
+          <td class="text-end finance-amount-cell">
+            {{ money(transaction.amount, transaction.currency) }}
+            @if (transaction.currency !== month().currency) {
+              <small [attr.title]="'finance.transaction.converted' | t">{{
+                money(transaction.convertedAmount, month().currency)
+              }}</small>
+            }
+          </td>
+          <td class="finance-icon-cell">
+            <button
+              type="button"
+              class="finance-icon-button"
+              [class.finance-icon-button-danger]="!transaction.deleted"
+              [attr.aria-label]="(transaction.deleted ? 'finance.restore' : 'finance.delete') | t"
+              [attr.title]="(transaction.deleted ? 'finance.restore' : 'finance.delete') | t"
+              [disabled]="saving()"
+              (click)="deletionRequested.emit(transaction)"
+            >
+              {{ transaction.deleted ? '+' : '−' }}
+            </button>
+            <button
+              type="button"
+              class="finance-icon-button finance-history-button"
+              [class.active]="historyTransactionId() === transaction.id"
+              [attr.aria-expanded]="historyTransactionId() === transaction.id"
+              [attr.aria-controls]="
+                historyTransactionId() === transaction.id ? 'finance-history' : null
+              "
+              [attr.aria-label]="'finance.history' | t"
+              [attr.title]="'finance.history' | t"
+              (click)="historyRequested.emit(transaction)"
+            >
+              ↺
+            </button>
+          </td>
+        </tr>
+      } @empty {
+        <tr>
+          <td colspan="4" class="finance-transactions-empty text-body-secondary">
+            {{ 'finance.transaction.empty' | t }}
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</section>

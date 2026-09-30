@@ -1,0 +1,177 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.finance-transactions-column {
+  background: var(--bs-body-bg);
+  border: 1px solid var(--bs-border-color);
+  border-radius: 1rem;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.finance-budget-heading {
+  align-items: start;
+  background: var(--bs-tertiary-bg);
+  border-bottom: 1px solid var(--bs-border-color);
+  padding: 1rem 1.15rem;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+
+  h2 {
+    font-size: 1.05rem;
+    font-weight: 650;
+    margin: 0 0 0.7rem;
+  }
+}
+
+.finance-icon-button.finance-add-transaction {
+  color: var(--accent-color);
+  flex-shrink: 0;
+  font-size: 1.6rem;
+  height: 2.25rem;
+  width: 2.25rem;
+}
+
+.finance-budget-totals {
+  color: var(--bs-secondary-color);
+  font-size: 0.78rem;
+  strong {
+    color: var(--bs-body-color);
+    display: block;
+    font-size: 0.98rem;
+    font-weight: 650;
+  }
+}
+
+.finance-icon-cell {
+  text-align: right;
+}
+.finance-icon-button {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 0.35rem;
+  color: var(--bs-secondary-color);
+  display: inline-flex;
+  font-size: 1.15rem;
+  height: 1.85rem;
+  justify-content: center;
+  line-height: 1;
+  padding: 0;
+  width: 1.85rem;
+  &:hover:not(:disabled),
+  &:focus-visible {
+    background: var(--bs-tertiary-bg);
+    color: var(--bs-body-color);
+  }
+}
+.finance-icon-button-danger {
+  background: var(--bs-danger-bg-subtle);
+  color: var(--bs-danger-text-emphasis);
+  &:hover:not(:disabled),
+  &:focus-visible {
+    background: var(--bs-danger-border-subtle);
+    color: var(--bs-danger-text-emphasis);
+  }
+}
+.finance-archived {
+  color: var(--bs-secondary-color);
+  opacity: 0.7;
+}
+
+.finance-transactions-table {
+  font-size: 0.8rem;
+  margin: 0;
+  table-layout: fixed;
+  width: 100%;
+
+  th {
+    color: var(--bs-secondary-color);
+    font-size: 0.68rem;
+    font-weight: 650;
+    padding: 0.6rem 0.4rem;
+  }
+
+  td {
+    padding: 0.55rem 0.4rem;
+    vertical-align: middle;
+    overflow-wrap: anywhere;
+  }
+
+  th:first-child,
+  td:first-child {
+    padding-left: 0.9rem;
+    width: 26%;
+  }
+
+  th:nth-child(2) {
+    width: 33%;
+  }
+
+  th:last-child {
+    width: 2.5rem;
+  }
+
+  td:last-child {
+    padding-right: 0.7rem;
+  }
+
+  small {
+    color: var(--bs-secondary-color);
+    display: block;
+    font-size: 0.72rem;
+  }
+
+  .finance-amount-cell {
+    white-space: normal;
+  }
+}
+
+.finance-transaction-edit {
+  background: transparent;
+  border: 0;
+  border-radius: 0.3rem;
+  color: inherit;
+  display: block;
+  padding: 0.2rem;
+  text-align: left;
+  width: 100%;
+  overflow-wrap: anywhere;
+
+  strong,
+  span {
+    display: block;
+  }
+
+  strong {
+    font-weight: 550;
+  }
+
+  span {
+    color: var(--bs-secondary-color);
+    font-size: 0.75rem;
+    margin-top: 0.2rem;
+  }
+
+  &:hover:not(:disabled),
+  &:focus-visible {
+    background: var(--bs-tertiary-bg);
+    outline-color: var(--accent-color);
+  }
+}
+
+.finance-history-button {
+  font-size: 1rem;
+
+  &.active {
+    background: var(--bs-tertiary-bg);
+    color: var(--accent-color);
+  }
+}
+
+.finance-transactions-empty {
+  font-size: 0.8rem;
+}

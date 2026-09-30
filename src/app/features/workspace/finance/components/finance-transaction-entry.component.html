@@ -1,0 +1,97 @@
+<form class="finance-entry" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <div class="finance-entry-date">
+    <label [for]="inputId() + '-date'"
+      >{{ 'finance.dateTime.label' | t }}
+      <span class="required-marker text-danger" aria-hidden="true">*</span></label
+    >
+    <ds-localized-datetime-picker
+      [inputId]="inputId() + '-date'"
+      formControlName="dateTime"
+      controlSize="small"
+      [dateLocale]="i18n.dateLocale()"
+      [labels]="dateTimeLabels()"
+      [required]="true"
+      [invalid]="form.controls.dateTime.touched && form.controls.dateTime.invalid"
+      [controlDisabled]="saving()"
+      [readonly]="false"
+      [min]="min()"
+      [max]="max()"
+    />
+  </div>
+  <div class="finance-entry-category">
+    <label [for]="inputId() + '-category'"
+      >{{ 'finance.category.name' | t }}
+      <span class="required-marker text-danger" aria-hidden="true">*</span></label
+    >
+    <ds-site-select
+      [inputId]="inputId() + '-category'"
+      formControlName="categoryId"
+      [options]="categoryOptions()"
+      controlSize="small"
+      appearance="default"
+      [required]="true"
+      [invalid]="form.controls.categoryId.touched && form.controls.categoryId.invalid"
+      [controlDisabled]="saving()"
+    />
+  </div>
+  <div class="finance-entry-amount">
+    <div>
+      <label [for]="inputId() + '-amount'"
+        >{{ 'finance.transaction.amount' | t }}
+        <span class="required-marker text-danger" aria-hidden="true">*</span></label
+      >
+      <input
+        [id]="inputId() + '-amount'"
+        class="form-control form-control-sm"
+        [class.is-invalid]="form.controls.amount.touched && form.controls.amount.invalid"
+        type="text"
+        inputmode="decimal"
+        formControlName="amount"
+        required
+        [attr.aria-invalid]="form.controls.amount.touched && form.controls.amount.invalid"
+      />
+    </div>
+    <div>
+      <label [for]="inputId() + '-currency'"
+        >{{ 'finance.currency' | t }}
+        <span class="required-marker text-danger" aria-hidden="true">*</span></label
+      >
+      <ds-site-select
+        [inputId]="inputId() + '-currency'"
+        formControlName="currency"
+        [options]="currencyOptions"
+        controlSize="small"
+        appearance="default"
+        [required]="true"
+        [invalid]="false"
+        [controlDisabled]="saving()"
+      />
+    </div>
+  </div>
+  <div class="finance-entry-description">
+    <label [for]="inputId() + '-description'">{{ 'finance.transaction.description' | t }}</label>
+    <textarea
+      [id]="inputId() + '-description'"
+      class="form-control form-control-sm"
+      formControlName="description"
+      maxlength="2000"
+      rows="2"
+    ></textarea>
+  </div>
+  @if (form.touched && form.invalid && !saving()) {
+    <p class="finance-entry-error text-danger" role="alert">{{ 'finance.error.entry' | t }}</p>
+  }
+  <div class="finance-entry-actions">
+    <button
+      type="button"
+      class="btn btn-sm btn-outline-secondary"
+      [disabled]="saving()"
+      (click)="cancelled.emit()"
+    >
+      {{ 'shared.cancel' | t }}
+    </button>
+    <button type="submit" class="btn btn-sm btn-primary" [disabled]="saving()">
+      {{ (editing() ? 'shared.save' : 'shared.add') | t }}
+    </button>
+  </div>
+</form>

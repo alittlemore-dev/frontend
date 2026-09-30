@@ -37,4 +37,16 @@ export const WORKSPACE_NAVIGATION_SECTIONS: readonly WorkspaceNavigationSection[
       },
     ],
   },
+  {
+    key: 'finance',
+    labelKey: 'finance.section',
+    pages: [
+      {
+        key: 'finance-overview',
+        labelKey: 'finance.overview',
+        route: '/personal-workspace/finance',
+        badgeTextKey: null,
+      },
+    ],
+  },
 ];

@@ -69,6 +69,15 @@ export const workspaceRoutes: Routes = [
           import('./pages/events-page/events-page.component').then((m) => m.EventsPageComponent),
       },
       {
+        path: 'finance',
+        title: 'finance.overview',
+        canDeactivate: [unsavedChangesGuard],
+        loadComponent: () =>
+          import('./finance/pages/finance-overview-page.component').then(
+            (m) => m.FinanceOverviewPageComponent,
+          ),
+      },
+      {
         path: 'resumes/:id',
         title: 'resumeWorkspace.detailTitle',
         canDeactivate: [unsavedChangesGuard],

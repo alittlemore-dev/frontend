@@ -1,0 +1,165 @@
+<section
+  class="finance-budget"
+  [attr.aria-label]="kind() === 'expense' ? ('finance.expenses' | t) : ('finance.income' | t)"
+>
+  <header class="finance-budget-heading">
+    <h2>{{ (kind() === 'expense' ? 'finance.expenses' : 'finance.income') | t }}</h2>
+    <div class="finance-budget-totals">
+      <span
+        >{{ 'finance.plan' | t }}
+        <strong>{{
+          (kind() === 'expense' ? month().plannedExpense : month().plannedIncome) === null
+            ? ('finance.notSet' | t)
+            : money(
+                (kind() === 'expense' ? month().plannedExpense : month().plannedIncome)!,
+                month().currency
+              )
+        }}</strong>
+      </span>
+      <span
+        >{{ 'finance.actual' | t }}
+        <strong>{{
+          money(
+            kind() === 'expense' ? month().actualExpense : month().actualIncome,
+            month().currency
+          )
+        }}</strong>
+      </span>
+    </div>
+  </header>
+  <div class="table-responsive">
+    <table class="table finance-category-table">
+      <thead>
+        <tr>
+          <th scope="col">{{ 'finance.category.name' | t }}</th>
+          <th scope="col" class="text-end">{{ 'finance.plan' | t }}</th>
+          <th scope="col" class="text-end">{{ 'finance.actual' | t }}</th>
+          <th scope="col" class="text-end">{{ 'finance.difference' | t }}</th>
+          <th scope="col">
+            <span class="visually-hidden">{{ 'finance.actions' | t }}</span>
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (category of categories(); track category.id) {
+          <tr [class.finance-archived]="category.archived">
+            <td>
+              @if (category.archived) {
+                <span>{{ category.name }}</span>
+              } @else {
+                <input
+                  class="finance-inline-input finance-name-input"
+                  [attr.aria-label]="'finance.category.name' | t"
+                  maxlength="255"
+                  [ngModel]="categoryDraft(category).name"
+                  (ngModelChange)="draftChanged.emit({ category, field: 'name', value: $event })"
+                  (blur)="saved.emit(category)"
+                  (keydown.enter)="saved.emit(category)"
+                  [disabled]="saving()"
+                />
+              }
+            </td>
+            <td>
+              @if (category.archived) {
+                <span>{{
+                  category.plannedAmount === null
+                    ? ('finance.notSet' | t)
+                    : money(category.plannedAmount, month().currency)
+                }}</span>
+              } @else {
+                <input
+                  type="number"
+                  min="0"
+                  class="finance-inline-input finance-amount-input"
+                  [attr.aria-label]="'finance.plan' | t"
+                  [step]="month().currency === 'AMD' ? '1' : '0.01'"
+                  [placeholder]="'finance.notSet' | t"
+                  [ngModel]="categoryDraft(category).plan"
+                  (ngModelChange)="
+                    draftChanged.emit({ category, field: 'plan', value: inputText($event) })
+                  "
+                  (blur)="saved.emit(category)"
+                  (keydown.enter)="saved.emit(category)"
+                  [disabled]="saving()"
+                />
+              }
+            </td>
+            <td class="text-end finance-amount-cell">
+              {{ money(category.actualAmount, month().currency) }}
+            </td>
+            <td class="text-end finance-amount-cell" [class.finance-overrun]="overrun(category)">
+              {{
+                category.difference === null ? '—' : money(category.difference, month().currency)
+              }}
+            </td>
+            <td class="finance-icon-cell">
+              @if (category.archived) {
+                <button
+                  type="button"
+                  class="finance-icon-button"
+                  [attr.aria-label]="'finance.restore' | t"
+                  [attr.title]="'finance.restore' | t"
+                  (click)="restorationRequested.emit(category)"
+                  [disabled]="saving()"
+                >
+                  +
+                </button>
+              }
+              <button
+                type="button"
+                class="finance-icon-button finance-icon-button-danger"
+                [attr.aria-label]="'finance.category.remove' | t"
+                [attr.title]="'finance.category.remove' | t"
+                (click)="removalRequested.emit(category)"
+                [disabled]="saving()"
+              >
+                −
+              </button>
+            </td>
+          </tr>
+        }
+        <tr class="finance-new-category">
+          <td>
+            <input
+              class="finance-inline-input finance-name-input"
+              maxlength="255"
+              [attr.aria-label]="'finance.category.add' | t"
+              [placeholder]="'finance.category.add' | t"
+              [ngModel]="newCategoryDraft().name"
+              (ngModelChange)="newDraftChanged.emit({ field: 'name', value: $event })"
+              (keydown.enter)="created.emit()"
+              [disabled]="saving()"
+            />
+          </td>
+          <td>
+            <input
+              type="number"
+              min="0"
+              class="finance-inline-input finance-amount-input"
+              [attr.aria-label]="'finance.plan' | t"
+              [step]="month().currency === 'AMD' ? '1' : '0.01'"
+              [placeholder]="'finance.notSet' | t"
+              [ngModel]="newCategoryDraft().plan"
+              (ngModelChange)="newDraftChanged.emit({ field: 'plan', value: inputText($event) })"
+              (keydown.enter)="created.emit()"
+              [disabled]="saving()"
+            />
+          </td>
+          <td colspan="2"></td>
+          <td class="finance-icon-cell">
+            <button
+              type="button"
+              class="finance-icon-button"
+              [attr.aria-label]="'finance.category.add' | t"
+              [attr.title]="'finance.category.add' | t"
+              (click)="created.emit()"
+              [disabled]="saving() || !newCategoryDraft().name.trim()"
+            >
+              +
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>

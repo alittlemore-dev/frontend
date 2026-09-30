@@ -95,8 +95,10 @@ Never violate these boundaries:
 - Keep shared components standalone and `OnPush`, with explicit inputs/outputs and UI-local logic.
   They may inject Angular infrastructure or a domain-independent cross-cutting i18n/rendering
   service, but never a feature service, domain workflow, or application data/state service.
-- Use `LocalizedDatePickerComponent` for calendar-date fields because native date-picker popovers
-  cannot be themed consistently with the site. Keep values as ISO `YYYY-MM-DD`, pass all labels
+- Use design-system date, date-time, and date-range controls for the corresponding fields,
+  including compact calendar navigation pickers. Use `LocalizedDatePickerComponent` for
+  calendar-date fields because native date-picker popovers cannot be themed consistently with
+  the site. Keep calendar-date values as ISO `YYYY-MM-DD`, pass all labels
   from backend i18n, and use `controlSize="small"` when the picker sits beside compact inline
   controls. Preserve its modal dialog/grid semantics, roving focus, keyboard navigation, Angular
   Forms validation, and stylesheet-owned positioning; do not replace the native dialog top layer

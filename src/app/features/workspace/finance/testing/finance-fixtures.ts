@@ -1,0 +1,53 @@
+import { FinanceMonth, FinanceTransaction } from '../models/finance.model';
+
+export const FINANCE_TEST_MONTH: FinanceMonth = {
+  id: 'month',
+  periodStart: '2026-09-01',
+  timezoneName: 'Asia/Yerevan',
+  currency: 'RUB',
+  openingBalance: '0E-12',
+  actualIncome: '0',
+  actualExpense: '0',
+  plannedIncome: null,
+  plannedExpense: null,
+  closingBalance: '0',
+  categories: [
+    {
+      id: 'food',
+      stableId: 'stable-food',
+      kind: 'expense',
+      name: 'Еда',
+      plannedAmount: null,
+      actualAmount: '0',
+      difference: null,
+      position: 0,
+      archived: false,
+    },
+    {
+      id: 'salary',
+      stableId: 'stable-salary',
+      kind: 'income',
+      name: 'Зарплата',
+      plannedAmount: null,
+      actualAmount: '0',
+      difference: null,
+      position: 0,
+      archived: false,
+    },
+  ],
+};
+
+export const FINANCE_TEST_TRANSACTION: FinanceTransaction = {
+  id: 'transaction',
+  categoryId: 'food',
+  categoryName: 'Еда',
+  kind: 'expense',
+  amount: '10',
+  currency: 'RUB',
+  convertedAmount: '10',
+  occurredAt: '2026-09-15T12:00:00Z',
+  description: 'Обед',
+  rateEffectiveOn: '2026-09-15',
+  version: 1,
+  deleted: false,
+};

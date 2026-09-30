@@ -1,0 +1,310 @@
+<section class="finance-page" [attr.aria-busy]="loading() || saving()">
+  <header class="finance-heading">
+    <div>
+      <h1>
+        {{ 'finance.overview' | t }}
+        @if (month()) {
+          <span class="finance-month-separator" aria-hidden="true">·</span>
+          <span class="finance-month-label">{{ monthLabel() }}</span>
+        }
+      </h1>
+      @if (month(); as currentMonth) {
+        <p>{{ currentMonth.timezoneName }}</p>
+      }
+    </div>
+  </header>
+
+  @if (errorKey(); as messageKey) {
+    <div
+      class="alert alert-danger d-flex align-items-center justify-content-between gap-2"
+      role="alert"
+    >
+      <span>{{ messageKey | t }}</span>
+      <button
+        type="button"
+        class="btn btn-sm btn-outline-danger"
+        [disabled]="saving()"
+        (click)="initialize()"
+      >
+        {{ 'shared.retry' | t }}
+      </button>
+    </div>
+  }
+
+  @if (loading() && !month()) {
+    <p role="status">{{ 'shared.loading' | t }}</p>
+  } @else if (month(); as currentMonth) {
+    <ul class="nav nav-tabs finance-tabs" role="tablist" [attr.aria-label]="'finance.overview' | t">
+      <li class="nav-item" role="presentation">
+        <button
+          type="button"
+          class="nav-link"
+          role="tab"
+          id="finance-tab-summary"
+          [class.active]="tab() === 'summary'"
+          [attr.aria-selected]="tab() === 'summary'"
+          aria-controls="finance-panel-summary"
+          (click)="setTab('summary')"
+        >
+          {{ 'finance.tab.summary' | t }}
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button
+          type="button"
+          class="nav-link"
+          role="tab"
+          id="finance-tab-transactions"
+          [class.active]="tab() === 'transactions'"
+          [attr.aria-selected]="tab() === 'transactions'"
+          aria-controls="finance-panel-transactions"
+          (click)="setTab('transactions')"
+        >
+          {{ 'finance.tab.transactions' | t }}
+        </button>
+      </li>
+    </ul>
+
+    <div
+      id="finance-panel-summary"
+      role="tabpanel"
+      aria-labelledby="finance-tab-summary"
+      [hidden]="tab() !== 'summary'"
+    >
+      <section class="finance-balance" [attr.aria-label]="'finance.closingBalance' | t">
+        <div class="finance-balance-item">
+          <label for="finance-opening">{{ 'finance.openingBalance' | t }}</label>
+          <div class="finance-balance-value d-flex align-items-baseline">
+            <input
+              id="finance-opening"
+              type="text"
+              inputmode="decimal"
+              class="finance-inline-input finance-balance-input"
+              [size]="openingDraft().length || 1"
+              [ngModel]="openingDraft()"
+              (ngModelChange)="openingDraft.set(inputText($event))"
+              (blur)="saveOpeningBalance()"
+              (keydown.enter)="saveOpeningBalance()"
+              [disabled]="saving()"
+              aria-describedby="finance-opening-currency"
+            />
+            <span id="finance-opening-currency" class="finance-balance-symbol flex-shrink-0">{{
+              currencySymbols[currentMonth.currency]
+            }}</span>
+          </div>
+        </div>
+        <div class="finance-balance-item finance-balance-final">
+          <span>{{ 'finance.closingBalance' | t }}</span>
+          <div class="finance-balance-value d-flex align-items-baseline">
+            <strong class="finance-balance-number">{{
+              balanceAmount(currentMonth.closingBalance, currentMonth.currency)
+            }}</strong>
+            <span class="finance-balance-symbol flex-shrink-0">{{
+              currencySymbols[currentMonth.currency]
+            }}</span>
+          </div>
+        </div>
+        <div class="finance-balance-item finance-balance-currency">
+          <label for="finance-currency">{{ 'finance.currency' | t }}</label>
+          <ds-site-select
+            inputId="finance-currency"
+            [options]="currencyOptions"
+            controlSize="small"
+            appearance="default"
+            [required]="true"
+            [invalid]="false"
+            [controlDisabled]="saving()"
+            [value]="currencyDraft()"
+            (valueChange)="selectCurrency($event)"
+          />
+        </div>
+      </section>
+
+      <div class="finance-budget-grid">
+        @for (kind of kinds; track kind) {
+          <app-finance-budget-column
+            [kind]="kind"
+            [month]="currentMonth"
+            [categories]="kind === 'expense' ? expenseCategories() : incomeCategories()"
+            [drafts]="categoryDrafts()"
+            [newCategoryDraft]="newCategoryDrafts()[kind]"
+            [saving]="saving()"
+            (draftChanged)="updateCategoryDraft($event.category, $event.field, $event.value)"
+            (newDraftChanged)="updateNewCategoryDraft(kind, $event.field, $event.value)"
+            (saved)="saveCategoryInline($event)"
+            (created)="createCategoryInline(kind)"
+            (removalRequested)="openCategoryRemoval($event)"
+            (restorationRequested)="setCategoryArchived($event, false)"
+          />
+        }
+      </div>
+    </div>
+
+    <div
+      id="finance-panel-transactions"
+      role="tabpanel"
+      aria-labelledby="finance-tab-transactions"
+      [hidden]="tab() !== 'transactions'"
+    >
+      <div class="finance-transactions-toolbar">
+        <label class="form-check-label d-flex align-items-center gap-2">
+          <input
+            type="checkbox"
+            class="form-check-input m-0"
+            [ngModel]="includeDeleted()"
+            (ngModelChange)="setIncludeDeleted($event)"
+          />
+          {{ 'finance.transaction.showDeleted' | t }}
+        </label>
+      </div>
+
+      <div class="finance-budget-grid finance-transactions-grid">
+        @for (kind of kinds; track kind) {
+          <app-finance-transactions-column
+            [kind]="kind"
+            [month]="currentMonth"
+            [transactions]="kind === 'expense' ? expenseTransactions() : incomeTransactions()"
+            [historyTransactionId]="revisionsFor()?.id ?? null"
+            [saving]="saving()"
+            (creationRequested)="openTransactionCreation(kind)"
+            (editRequested)="openTransactionEdit($event)"
+            (deletionRequested)="setTransactionDeleted($event, !$event.deleted)"
+            (historyRequested)="showRevisions($event)"
+          />
+        }
+      </div>
+
+      @if (revisionsFor(); as transaction) {
+        <section
+          id="finance-history"
+          class="finance-history"
+          aria-labelledby="finance-history-heading"
+          [attr.aria-busy]="revisionsLoading()"
+        >
+          <div class="d-flex align-items-center justify-content-between gap-2">
+            <h2 id="finance-history-heading">
+              {{ 'finance.history' | t }} ·
+              {{ transaction.categoryName || ('finance.category.none' | t) }}
+            </h2>
+            <button
+              type="button"
+              class="finance-icon-button"
+              [attr.aria-label]="'shared.close' | t"
+              (click)="closeRevisions()"
+            >
+              ×
+            </button>
+          </div>
+          @if (revisionsLoading()) {
+            <p class="text-body-secondary mb-0" role="status">{{ 'shared.loading' | t }}</p>
+          } @else if (revisionsErrorKey(); as key) {
+            <p class="text-danger mb-0" role="alert">{{ key | t }}</p>
+          } @else if (revisions().length === 0) {
+            <p class="text-body-secondary mb-0">{{ 'finance.history.empty' | t }}</p>
+          }
+          @for (revision of revisions(); track revision.number) {
+            <div class="finance-history-item">
+              <strong
+                >{{ 'finance.history.' + revision.action | t }} ·
+                {{ dateTime(revision.changedAt) }}</strong
+              >
+              <span>{{ previousAmount(revision) }} · {{ previousDescription(revision) }}</span>
+            </div>
+          }
+        </section>
+      }
+    </div>
+  }
+  <dialog
+    #removalDialog="dsModalDialog"
+    dsModalDialog
+    [dismissible]="!saving()"
+    (dismissed)="categoryToRemove.set(null)"
+    class="finance-removal-dialog"
+    aria-modal="true"
+    aria-labelledby="finance-removal-title"
+    aria-describedby="finance-removal-warning"
+  >
+    <div class="d-flex align-items-center justify-content-between gap-3">
+      <h2 id="finance-removal-title" class="finance-dialog-title m-0">
+        {{ 'finance.category.remove' | t }}
+      </h2>
+      <button
+        type="button"
+        class="finance-icon-button"
+        [attr.aria-label]="'shared.close' | t"
+        [disabled]="saving()"
+        (click)="closeCategoryRemoval()"
+      >
+        ×
+      </button>
+    </div>
+    <p class="finance-removal-name">{{ categoryToRemove()?.name }}</p>
+    <p id="finance-removal-warning">{{ 'finance.category.removeWarning' | t }}</p>
+    @if (errorKey(); as key) {
+      <p class="text-danger" role="alert">{{ key | t }}</p>
+    }
+    <div class="finance-removal-actions d-flex flex-wrap gap-2 justify-content-end">
+      <button
+        type="button"
+        class="btn btn-sm btn-outline-secondary"
+        [disabled]="saving() || categoryToRemove()?.archived"
+        (click)="removeCategory(false)"
+      >
+        {{ 'finance.archive' | t }}
+      </button>
+      <button
+        type="button"
+        class="btn btn-sm btn-outline-danger"
+        [disabled]="saving()"
+        (click)="removeCategory(true)"
+      >
+        {{ 'finance.category.deletePermanently' | t }}
+      </button>
+    </div>
+  </dialog>
+  <dialog
+    #transactionDialog="dsModalDialog"
+    dsModalDialog
+    class="finance-transaction-dialog"
+    [dismissible]="!saving()"
+    (dismissed)="transactionEditor.set(null)"
+    aria-modal="true"
+    aria-labelledby="finance-transaction-title"
+  >
+    @if (transactionEditor(); as editor) {
+      <div class="d-flex align-items-start justify-content-between gap-3 mb-4">
+        <h2 id="finance-transaction-title" class="finance-dialog-title m-0">
+          {{ (editor.transaction ? 'finance.transaction.edit' : 'finance.transaction.add') | t }}
+          <span class="text-body-secondary fw-medium"
+            >· {{ (editor.kind === 'expense' ? 'finance.expenses' : 'finance.income') | t }}</span
+          >
+        </h2>
+        <button
+          type="button"
+          class="finance-icon-button"
+          [attr.aria-label]="'shared.close' | t"
+          [disabled]="saving()"
+          (click)="closeTransactionEditor()"
+        >
+          ×
+        </button>
+      </div>
+      @if (errorKey(); as key) {
+        <p class="text-danger" role="alert">{{ key | t }}</p>
+      }
+      <app-finance-transaction-entry
+        inputId="finance-transaction"
+        [initialValue]="editor.entry"
+        [categories]="transactionEditorCategories()"
+        [min]="earliestTime()"
+        [max]="latestTime()"
+        [timeZone]="month()?.timezoneName ?? ''"
+        [saving]="saving()"
+        [editing]="editor.transaction !== null"
+        (submitted)="saveTransaction($event)"
+        (cancelled)="closeTransactionEditor()"
+      />
+    }
+  </dialog>
+</section>
