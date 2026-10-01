@@ -1,7 +1,7 @@
 import { NotificationService } from '@alittlemore.dev/design-system';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
-import { CdkDragDrop, CdkDropList } from '@angular/cdk/drag-drop';
+import { CdkDrag, CdkDragDrop, CdkDropList } from '@angular/cdk/drag-drop';
 import { of, Subject } from 'rxjs';
 import { provideI18nTesting } from '../../../../testing/i18n-testing';
 import { UnsavedChangesService } from '../../../../core/unsaved-changes/unsaved-changes.service';
@@ -42,13 +42,13 @@ describe('ImportantInfoComponent', () => {
     TestBed.resetTestingModule();
   });
 
-  function startEdit(id = 'a'): HTMLInputElement {
+  function startEdit(id = 'a'): HTMLTextAreaElement {
     const root = fixture.nativeElement as HTMLElement;
     (
       root.querySelector(`[data-info-id="${id}"] .important-info-display`) as HTMLButtonElement
     ).click();
     fixture.detectChanges();
-    return root.querySelector(`#important-info-edit-${id}`) as HTMLInputElement;
+    return root.querySelector(`#important-info-edit-${id}`) as HTMLTextAreaElement;
   }
 
   it('creates a blank item from the plus in the grid and edits it in place', () => {
@@ -72,7 +72,7 @@ describe('ImportantInfoComponent', () => {
     const add = root.querySelector('.important-info-add') as HTMLButtonElement;
     add.click();
     fixture.detectChanges();
-    (root.querySelector('#important-info-edit-c') as HTMLInputElement).dispatchEvent(
+    (root.querySelector('#important-info-edit-c') as HTMLTextAreaElement).dispatchEvent(
       new Event('blur'),
     );
     fixture.detectChanges();
@@ -118,6 +118,35 @@ describe('ImportantInfoComponent', () => {
     ).toBe('Changed');
   });
 
+  it('keeps editing when replacing the focused display button emits focusout', () => {
+    const root = fixture.nativeElement as HTMLElement;
+    const display = root.querySelector(
+      '[data-info-id="a"] .important-info-display',
+    ) as HTMLButtonElement;
+    display.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0 }));
+    display.focus();
+    display.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, button: 0 }));
+    display.click();
+    display.dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: null }));
+    fixture.detectChanges();
+    expect(root.querySelector('#important-info-edit-a')).not.toBeNull();
+    expect(service.update).not.toHaveBeenCalled();
+  });
+
+  it('ignores the click after a CDK drag and accepts the next ordinary click', () => {
+    const row = fixture.debugElement.query(By.directive(CdkDrag));
+    const drag = row.injector.get(CdkDrag);
+    const display = row.nativeElement.querySelector('.important-info-display') as HTMLButtonElement;
+    drag.started.emit({ source: drag });
+    display.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#important-info-edit-a')).toBeNull();
+    display.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+    display.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#important-info-edit-a')).not.toBeNull();
+  });
+
   it('keeps an unchanged note without sending an update', () => {
     const input = startEdit();
     input.dispatchEvent(new Event('blur'));
@@ -138,38 +167,7 @@ describe('ImportantInfoComponent', () => {
     expect(root.querySelectorAll('.important-info-item')).toHaveLength(1);
   });
 
-  it('keeps accessible move buttons disabled at the edges and sends full order', () => {
-    const root = fixture.nativeElement as HTMLElement;
-    const rows = root.querySelectorAll('.important-info-item');
-    const firstUp = rows[0]!.querySelectorAll('button')[1] as HTMLButtonElement;
-    const firstDown = rows[0]!.querySelectorAll('button')[2] as HTMLButtonElement;
-    expect(firstUp.disabled).toBe(true);
-    expect(firstDown.getAttribute('aria-label')).toBeTruthy();
-    firstDown.click();
-    fixture.detectChanges();
-    expect(service.reorder).toHaveBeenCalledWith(['b', 'a']);
-  });
-
-  it('saves an active inline edit before reordering through a card action', () => {
-    const pending = new Subject<(typeof ITEMS)[number]>();
-    service.update.mockReturnValueOnce(pending.asObservable());
-    const root = fixture.nativeElement as HTMLElement;
-    const input = startEdit();
-    const down = root.querySelectorAll('.important-info-item button')[1] as HTMLButtonElement;
-    input.value = 'Changed';
-    input.dispatchEvent(new Event('input'));
-    const pointerDown = new Event('pointerdown', { bubbles: true, cancelable: true });
-    down.dispatchEvent(pointerDown);
-    expect(pointerDown.defaultPrevented).toBe(true);
-    down.click();
-    expect(service.update).toHaveBeenCalledWith('a', 'Changed');
-    expect(service.reorder).not.toHaveBeenCalled();
-    pending.next({ id: 'a', text: 'Changed', position: 1 });
-    pending.complete();
-    expect(service.reorder).toHaveBeenCalledWith(['b', 'a']);
-  });
-
-  it('does not let move or delete controls start a row drag', () => {
+  it('does not let delete controls start a row drag', () => {
     const row = (fixture.nativeElement as HTMLElement).querySelector(
       '[data-info-id="a"]',
     ) as HTMLElement;
@@ -300,12 +298,9 @@ describe('ImportantInfoComponent', () => {
   it('does not create another item while reordering is busy', () => {
     const pending = new Subject<readonly (typeof ITEMS)[number][]>();
     service.reorder.mockReturnValueOnce(pending.asObservable());
-    const root = fixture.nativeElement as HTMLElement;
-    (
-      root
-        .querySelectorAll('.important-info-item')[0]!
-        .querySelectorAll('button')[2] as HTMLButtonElement
-    ).click();
+    fixture.componentInstance.drop({ previousIndex: 0, currentIndex: 1 } as CdkDragDrop<
+      readonly (typeof ITEMS)[number][]
+    >);
     fixture.componentInstance.add();
     fixture.detectChanges();
     expect(service.create).not.toHaveBeenCalled();

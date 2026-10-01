@@ -286,7 +286,7 @@ describe('workspace access', () => {
             provide: AuthService,
             useValue: {
               ensureCurrentUserLoaded: () => of(void 0),
-              isOwner: () => false,
+              canManageContent: () => false,
               isLoggedIn: () => false,
             },
           },
@@ -308,9 +308,10 @@ describe('workspace access', () => {
   );
   it.each([
     ['owner', true],
-    ['admin', false],
+    ['admin', true],
+    ['moderator', true],
     ['user', false],
-  ])('applies owner access to role %s', async (role, permitted) => {
+  ])('applies workspace access to role %s', async (role, permitted) => {
     TestBed.configureTestingModule({
       providers: [
         provideRouter([]),
@@ -318,7 +319,7 @@ describe('workspace access', () => {
           provide: AuthService,
           useValue: {
             ensureCurrentUserLoaded: () => of(void 0),
-            isOwner: () => role === 'owner',
+            canManageContent: () => ['owner', 'admin', 'moderator'].includes(role),
             isLoggedIn: () => true,
           },
         },

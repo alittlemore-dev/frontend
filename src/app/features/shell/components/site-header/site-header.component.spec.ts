@@ -144,15 +144,18 @@ describe('Shared site header', () => {
     expect(el.querySelector('dialog')!.open).toBe(false);
   });
 
-  it('hides owner-only workspace from other authenticated roles', () => {
-    currentUser.set({ username: 'moderator', role: 'moderator' });
-    fixture.detectChanges();
-    expect(el.querySelector('a[href="/personal-workspace"]')).toBeNull();
-    expect(el.querySelector('a[href="/admin-panel"]')).not.toBeNull();
-    currentUser.set({ username: 'reader', role: 'user' });
-    fixture.detectChanges();
-    expect(el.querySelector('a[href="/admin-panel"]')).toBeNull();
-  });
+  it.each(['owner', 'admin', 'moderator'] as const)(
+    'shows workspace for %s and hides it for regular users',
+    (role) => {
+      currentUser.set({ username: role, role });
+      fixture.detectChanges();
+      expect(el.querySelector('a[href="/personal-workspace"]')).not.toBeNull();
+      currentUser.set({ username: 'reader', role: 'user' });
+      fixture.detectChanges();
+      expect(el.querySelector('a[href="/personal-workspace"]')).toBeNull();
+      expect(el.querySelector('a[href="/admin-panel"]')).toBeNull();
+    },
+  );
 
   it('retains one header and changes its service icon on route changes', async () => {
     await TestBed.inject(Router).navigateByUrl('/admin-panel');

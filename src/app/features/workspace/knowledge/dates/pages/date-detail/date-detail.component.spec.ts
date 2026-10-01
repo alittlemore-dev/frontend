@@ -157,13 +157,34 @@ describe('DateDetailComponent', () => {
     fixture.detectChanges();
   });
 
+  it('saves numeric years and clearing through the native number input', () => {
+    const component = fixture.componentInstance;
+    for (const year of [2024, 2020, null, 2024]) {
+      const input = fixture.nativeElement.querySelector('#date-year') as HTMLInputElement;
+      input.value = year === null ? '' : String(year);
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      fixture.detectChanges();
+      datesService.updateDate.mockReturnValue(of({ ...DATE, date: { day: 29, month: 2, year } }));
+      component.saveDate();
+      fixture.detectChanges();
+      expect(datesService.updateDate).toHaveBeenLastCalledWith(
+        DATE.id,
+        expect.objectContaining({ date: { day: 29, month: 2, year } }),
+      );
+      expect(component.dateForm.controls.date.valid).toBe(true);
+      expect((fixture.nativeElement.querySelector('#date-year') as HTMLInputElement).value).toBe(
+        year === null ? '' : String(year),
+      );
+    }
+  });
+
   afterEach(() => fixture.destroy());
 
   it('loads a yearless leap date and binds inline image uploads', () => {
     expect(fixture.componentInstance.dateForm.controls.date.getRawValue()).toEqual({
       day: '29',
       month: '2',
-      year: '',
+      year: null,
     });
     const editor = fixture.debugElement.query(By.directive(MarkdownEditorStubComponent))
       .componentInstance as MarkdownEditorStubComponent;
@@ -404,7 +425,7 @@ describe('DateDetailComponent', () => {
     fixture.componentInstance.dateForm.controls.date.setValue({
       day: '1',
       month: '1',
-      year: '9999',
+      year: 9999,
     });
     fixture.componentInstance.saveDate();
 

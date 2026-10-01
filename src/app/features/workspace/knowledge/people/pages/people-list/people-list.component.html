@@ -106,7 +106,6 @@
             <th scope="col">{{ 'knowledgePeople.contacts' | t }}</th>
             <th scope="col">{{ 'knowledgePeople.birthday' | t }}</th>
             <th scope="col">{{ 'knowledgePeople.tags.title' | t }}</th>
-            <th scope="col">{{ 'knowledgePeople.updatedAt' | t }}</th>
             <th scope="col">{{ 'shared.actions' | t }}</th>
           </tr>
         </thead>
@@ -159,9 +158,6 @@
                     <span class="text-body-secondary">{{ 'shared.notSet' | t }}</span>
                   }
                 </div>
-              </td>
-              <td>
-                <time [attr.datetime]="person.updatedAt">{{ formatDate(person.updatedAt) }}</time>
               </td>
               <td class="text-end">
                 <app-actions-dropdown

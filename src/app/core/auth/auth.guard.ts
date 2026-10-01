@@ -70,7 +70,8 @@ export const workspaceGuard: CanActivateFn = (_route, state) => {
   return auth.ensureCurrentUserLoaded().pipe(
     map(
       () =>
-        auth.isOwner() || (auth.isLoggedIn() ? currentPublicHomeUrlTree(router, i18n) : login()),
+        auth.canManageContent() ||
+        (auth.isLoggedIn() ? currentPublicHomeUrlTree(router, i18n) : login()),
     ),
     catchError(() => {
       auth.clearLocalSession();

@@ -22,3 +22,22 @@
   z-index: 2;
   background-color: var(--bs-body-bg);
 }
+
+.relationship-dialog {
+  width: min(36rem, calc(100vw - 2rem));
+  max-height: calc(100dvh - 2rem);
+  padding: 0;
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius-lg);
+  color: var(--bs-body-color);
+  background: var(--bs-body-bg);
+}
+
+.relationship-dialog::backdrop {
+  background: rgba(var(--bs-dark-rgb), 0.5);
+}
+
+.relationship-person-link {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}

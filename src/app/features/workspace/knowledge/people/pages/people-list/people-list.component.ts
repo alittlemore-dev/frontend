@@ -5,7 +5,6 @@ import {
   LoadingSpinnerComponent,
   SiteSelectComponent,
   SiteSelectOption,
-  formatLocalizedDate,
   ControlValidationStateDirective,
 } from '@alittlemore.dev/design-system';
 import { DOCUMENT } from '@angular/common';
@@ -41,6 +40,7 @@ import {
   trimRequired,
   validationMessage,
 } from '../../../../utils/validation';
+import { formatAnnualDate } from '../../../shared/annual-date';
 import { formatFileSize } from '../../../shared/file-size';
 import {
   KnowledgeTag,
@@ -439,16 +439,11 @@ export class PeopleListComponent implements OnInit, OnDestroy {
     return validationMessage(this.createForm.controls[field], this.i18n);
   }
 
-  formatDate(value: string): string {
-    return formatLocalizedDate(value, this.i18n.dateLocale(), 'dateTime');
-  }
-
   birthdayLabel(birthday: PersonBirthday | null): string {
     if (birthday === null) {
       return this.i18n.translate('shared.notSet');
     }
-    const year = birthday.year === null ? '' : `.${birthday.year}`;
-    return `${String(birthday.day).padStart(2, '0')}.${String(birthday.month).padStart(2, '0')}${year}`;
+    return formatAnnualDate(birthday, this.i18n.dateLocale());
   }
 
   fileSize(sizeBytes: number): string {

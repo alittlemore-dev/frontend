@@ -107,6 +107,29 @@ describe('DatesListComponent', () => {
 
   afterEach(() => fixture?.destroy());
 
+  it.each([2024, null])('creates a leap date with a numeric or cleared year %s', (year) => {
+    fixture = TestBed.createComponent(DatesListComponent);
+    fixture.detectChanges();
+    fixture.componentInstance.openCreateDialog();
+    fixture.componentInstance.createForm.patchValue({
+      displayName: 'Leap date',
+      date: { day: '29', month: '2' },
+    });
+    fixture.detectChanges();
+    const input = fixture.nativeElement.querySelector('#date-create-year') as HTMLInputElement;
+    input.value = '2024';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    if (year === null) {
+      input.value = '';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    fixture.componentInstance.createDate();
+    expect(datesService.createDate).toHaveBeenCalledWith({
+      displayName: 'Leap date',
+      date: { day: 29, month: 2, year },
+    });
+  });
+
   it('restores URL filters, deduplicates tags, and renders date relationships', () => {
     fixture = TestBed.createComponent(DatesListComponent);
     fixture.detectChanges();
@@ -180,7 +203,7 @@ describe('DatesListComponent', () => {
     component.openCreateDialog();
     component.createForm.setValue({
       displayName: ' Неверная ',
-      date: { day: '31', month: '4', year: '2020' },
+      date: { day: '31', month: '4', year: 2020 },
     });
     component.createDate();
     expect(datesService.createDate).not.toHaveBeenCalled();
@@ -188,7 +211,7 @@ describe('DatesListComponent', () => {
 
     component.createForm.setValue({
       displayName: ' Годовщина ',
-      date: { day: '29', month: '2', year: '' },
+      date: { day: '29', month: '2', year: null },
     });
     component.createDate();
 

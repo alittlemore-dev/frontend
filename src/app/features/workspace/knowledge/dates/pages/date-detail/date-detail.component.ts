@@ -16,7 +16,12 @@ import {
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  FormControl,
+  NonNullableFormBuilder,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
   MarkdownEditorComponent,
@@ -58,7 +63,7 @@ interface DateFormValue {
   date: {
     day: string;
     month: string;
-    year: string;
+    year: number | null;
   };
   description: string;
   notificationsEnabled: boolean;
@@ -133,7 +138,7 @@ export class DateDetailComponent implements OnInit {
       {
         day: [''],
         month: [''],
-        year: [''],
+        year: new FormControl<number | null>(null),
       },
       { validators: annualDateValidator },
     ),
@@ -693,7 +698,7 @@ export class DateDetailComponent implements OnInit {
       date: {
         day: String(value.date.day),
         month: String(value.date.month),
-        year: value.date.year === null ? '' : String(value.date.year),
+        year: value.date.year,
       },
       description: value.description,
       notificationsEnabled: value.notificationsEnabled,
@@ -721,7 +726,7 @@ export class DateDetailComponent implements OnInit {
       date: {
         day: Number(value.date.day),
         month: Number(value.date.month),
-        year: value.date.year === '' ? null : Number(value.date.year),
+        year: value.date.year,
       },
       description: value.description,
       notificationsEnabled: value.notificationsEnabled,
@@ -734,7 +739,7 @@ export class DateDetailComponent implements OnInit {
 function emptyDateFormValue(): DateFormValue {
   return {
     displayName: '',
-    date: { day: '', month: '', year: '' },
+    date: { day: '', month: '', year: null },
     description: '',
     notificationsEnabled: true,
   };

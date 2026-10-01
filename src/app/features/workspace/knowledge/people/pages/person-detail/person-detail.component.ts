@@ -5,6 +5,7 @@ import {
   SiteSelectComponent,
   SiteSelectOption,
   ControlValidationStateDirective,
+  ModalDialogDirective,
 } from '@alittlemore.dev/design-system';
 import { DOCUMENT } from '@angular/common';
 import {
@@ -16,6 +17,7 @@ import {
   computed,
   inject,
   signal,
+  viewChild,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
@@ -29,6 +31,7 @@ import {
   Validators,
 } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { distinctUntilChanged, map, Subject, Subscription, takeUntil } from 'rxjs';
 import { ApiError } from '../../../../../../core/models/api-error.model';
 import { I18nService } from '../../../../../../core/i18n/i18n.service';
 import { TranslatePipe } from '../../../../../../core/i18n/translate.pipe';
@@ -37,7 +40,7 @@ import {
   MarkdownEditorImageCapability,
 } from '../../../../../../core/editor/workspace-markdown-editor.component';
 
-import { formatAnnualDate } from '../../../shared/annual-date';
+import { annualDateValidator, formatAnnualDate } from '../../../shared/annual-date';
 import { formatFileSize } from '../../../shared/file-size';
 
 import {
@@ -80,10 +83,18 @@ interface PersonFormValue {
   birthday: {
     day: string;
     month: string;
-    year: string;
+    year: number | null;
   };
   description: string;
   notificationsEnabled: boolean;
+}
+
+interface RelationshipFormValue {
+  persistedId: string;
+  relatedPersonId: string;
+  relationshipTypeId: string;
+  direction: PersonRelationshipDirection;
+  note: string;
 }
 
 interface RelationshipFormControls {
@@ -96,7 +107,7 @@ interface RelationshipFormControls {
 
 type RelationshipFormGroup = FormGroup<RelationshipFormControls>;
 
-const RELATIONSHIP_PREVIEW_LIMIT = 5;
+const RELATIONSHIP_PREVIEW_LIMIT = 10;
 const RELATED_DATE_PREVIEW_LIMIT = 10;
 
 @Component({
@@ -111,6 +122,7 @@ const RELATED_DATE_PREVIEW_LIMIT = 10;
     SiteSelectComponent,
     ActionsDropdownComponent,
     ControlValidationStateDirective,
+    ModalDialogDirective,
     RouterLink,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -131,7 +143,13 @@ export class PersonDetailComponent implements OnInit, OnDestroy {
   private readonly mainUnsavedSource: UnsavedChangesSource;
   private readonly tagDraftUnsavedSource: UnsavedChangesSource;
   private readonly typeDraftUnsavedSource: UnsavedChangesSource;
+  private readonly relationshipDialog = viewChild(ModalDialogDirective);
+  private readonly relationshipDraftUnsavedSource: UnsavedChangesSource;
+  private readonly knownPeople = signal<Record<string, string>>({});
+  private relationshipEditingForm: RelationshipFormGroup | null = null;
+  private readonly personChanged = new Subject<void>();
   private personId = '';
+  private personLoadSubscription: Subscription | null = null;
   private photoObjectUrl: string | null = null;
   private photoLoadGeneration = 0;
   private peopleSearchGeneration = 0;
@@ -149,7 +167,7 @@ export class PersonDetailComponent implements OnInit, OnDestroy {
   readonly selectedTagIds = signal<readonly string[]>([]);
   readonly deletedRelationshipIds = signal<readonly string[]>([]);
   readonly formSnapshot = signal<PersonFormValue>(emptyPersonFormValue());
-  readonly relationshipSnapshot = signal<readonly unknown[]>([]);
+  readonly relationshipSnapshot = signal<readonly RelationshipFormValue[]>([]);
   readonly photoUrl = signal<string | null>(null);
   readonly photoUploading = signal(false);
   readonly photoError = signal<string | null>(null);
@@ -169,6 +187,12 @@ export class PersonDetailComponent implements OnInit, OnDestroy {
     forwardName: '',
     reverseName: '',
   });
+  readonly relationshipDialogOpen = signal(false);
+  readonly relationshipSearchQuery = signal('');
+  readonly relationshipEditing = signal(false);
+  readonly relationshipSubmitted = signal(false);
+  readonly relationshipDraft = this.createRelationshipForm();
+  readonly relationshipDraftSnapshot = signal(this.relationshipDraft.getRawValue());
   readonly relationshipsExpanded = signal(false);
   readonly relatedDatesExpanded = signal(false);
   readonly editorImageCapability = signal<MarkdownEditorImageCapability | null>(null);
@@ -185,7 +209,7 @@ export class PersonDetailComponent implements OnInit, OnDestroy {
       {
         day: [''],
         month: [''],
-        year: [''],
+        year: new FormControl<number | null>(null),
       },
       { validators: birthdayValidator },
     ),
@@ -260,16 +284,14 @@ export class PersonDetailComponent implements OnInit, OnDestroy {
     })),
   );
   readonly personCandidateOptions = computed<readonly SiteSelectOption[]>(() => {
-    const existing = new Map<string, string>();
-    for (const relationship of this.person()?.relationships ?? []) {
-      existing.set(relationship.relatedPersonId, relationship.relatedPersonDisplayName);
+    const currentIds = new Set(this.personCandidates().map((person) => person.id));
+    for (const relationship of this.relationshipSnapshot()) {
+      currentIds.add(relationship.relatedPersonId);
     }
-    for (const person of this.personCandidates()) {
-      if (person.id !== this.personId) {
-        existing.set(person.id, person.displayName);
-      }
-    }
-    return [...existing].map(([value, label]) => ({ value, label }));
+    currentIds.add(this.relationshipDraftSnapshot().relatedPersonId);
+    return Object.entries(this.knownPeople())
+      .filter(([id]) => id !== this.personId && currentIds.has(id))
+      .map(([value, label]) => ({ value, label }));
   });
   readonly directionOptions = computed<readonly SiteSelectOption[]>(() => {
     this.i18n.language();
@@ -306,6 +328,13 @@ export class PersonDetailComponent implements OnInit, OnDestroy {
       this.typeFormSnapshot,
       this.typeDialogOpen,
     );
+    this.relationshipDraftUnsavedSource = this.unsavedScope.registerSource(
+      this.relationshipDraftSnapshot,
+      this.relationshipDialogOpen,
+    );
+    this.relationshipDraft.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      this.relationshipDraftSnapshot.set(this.relationshipDraft.getRawValue());
+    });
     this.personForm.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       this.formSnapshot.set(this.personForm.getRawValue());
     });
@@ -318,19 +347,45 @@ export class PersonDetailComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.personId = this.route.snapshot.paramMap.get('id') ?? '';
-    if (this.personId !== '') {
-      this.editorImageCapability.set(
-        this.knowledgeEditorImages.bind({
-          itemId: this.personId,
-          attachments: () => this.person()?.attachments ?? [],
-          uploaded: (file) => this.addEditorImageAttachment(file),
-        }),
-      );
-    }
-    this.loadPerson();
-    this.loadTaxonomies();
-    this.searchPeople('');
+    this.route.paramMap
+      .pipe(
+        map((params) => params.get('id') ?? ''),
+        distinctUntilChanged(),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((personId) => {
+        this.personChanged.next();
+        this.personId = personId;
+        this.saving.set(false);
+        this.deleting.set(false);
+        this.photoUploading.set(false);
+        this.attachmentUploading.set(false);
+        this.editorImagePending.set(false);
+        this.tagSubmitting.set(false);
+        this.typeSubmitting.set(false);
+        this.tagDialogOpen.set(false);
+        this.typeDialogOpen.set(false);
+        this.finishRelationshipDialog();
+        this.person.set(null);
+        this.revokePhotoUrl();
+        this.photoError.set(null);
+        this.attachmentError.set(null);
+        this.submitted.set(false);
+        this.editorImageCapability.set(
+          personId === ''
+            ? null
+            : this.knowledgeEditorImages.bind({
+                itemId: personId,
+                attachments: () => this.person()?.attachments ?? [],
+                uploaded: (file) => {
+                  if (this.personId === personId) this.addEditorImageAttachment(file);
+                },
+              }),
+        );
+        this.loadPerson();
+        this.loadTaxonomies();
+        this.searchPeople('');
+      });
   }
 
   ngOnDestroy(): void {
@@ -340,9 +395,10 @@ export class PersonDetailComponent implements OnInit, OnDestroy {
   loadPerson(): void {
     this.loading.set(true);
     this.error.set(null);
-    this.peopleService
+    this.personLoadSubscription?.unsubscribe();
+    this.personLoadSubscription = this.peopleService
       .getPerson(this.personId)
-      .pipe(takeUntilDestroyed(this.destroyRef))
+      .pipe(takeUntil(this.personChanged), takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (person) => {
           this.person.set(person);
@@ -362,7 +418,7 @@ export class PersonDetailComponent implements OnInit, OnDestroy {
   loadTaxonomies(): void {
     this.peopleService
       .listTags('')
-      .pipe(takeUntilDestroyed(this.destroyRef))
+      .pipe(takeUntil(this.personChanged), takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (tags) => this.tags.set(tags),
         error: () =>
@@ -370,7 +426,7 @@ export class PersonDetailComponent implements OnInit, OnDestroy {
       });
     this.peopleService
       .listRelationshipTypes()
-      .pipe(takeUntilDestroyed(this.destroyRef))
+      .pipe(takeUntil(this.personChanged), takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (types) => this.relationshipTypes.set(types),
         error: () =>
@@ -381,6 +437,7 @@ export class PersonDetailComponent implements OnInit, OnDestroy {
   }
 
   searchPeople(query: string): void {
+    this.relationshipSearchQuery.set(query);
     const generation = ++this.peopleSearchGeneration;
     this.peopleService
       .listPeople({
@@ -390,13 +447,17 @@ export class PersonDetailComponent implements OnInit, OnDestroy {
         searchQuery: query,
         tagIds: [],
       })
-      .pipe(takeUntilDestroyed(this.destroyRef))
+      .pipe(takeUntil(this.personChanged), takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (page) => {
           if (generation !== this.peopleSearchGeneration) {
             return;
           }
           this.personCandidates.set(page.people);
+          this.knownPeople.update((names) => ({
+            ...names,
+            ...Object.fromEntries(page.people.map((person) => [person.id, person.displayName])),
+          }));
         },
         error: () => {
           if (generation !== this.peopleSearchGeneration) {
@@ -426,7 +487,7 @@ export class PersonDetailComponent implements OnInit, OnDestroy {
     this.saving.set(true);
     this.peopleService
       .updatePerson(this.personId, this.buildPayload())
-      .pipe(takeUntilDestroyed(this.destroyRef))
+      .pipe(takeUntil(this.personChanged), takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (person) => {
           this.person.set(person);
@@ -458,7 +519,7 @@ export class PersonDetailComponent implements OnInit, OnDestroy {
     this.deleting.set(true);
     this.peopleService
       .deletePerson(person.id)
-      .pipe(takeUntilDestroyed(this.destroyRef))
+      .pipe(takeUntil(this.personChanged), takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
           this.mainUnsavedSource.commit();
@@ -509,21 +570,109 @@ export class PersonDetailComponent implements OnInit, OnDestroy {
   }
 
   addRelationship(): void {
-    this.relationshipForms.push(this.createRelationshipForm());
+    if (this.saving()) return;
+    this.relationshipEditingForm = null;
+    this.relationshipEditing.set(false);
+    this.relationshipDraft.reset({
+      persistedId: '',
+      relatedPersonId: '',
+      relationshipTypeId: '',
+      direction: 'forward',
+      note: '',
+    });
+    this.openRelationshipDialog();
+  }
+
+  editRelationship(relationship: RelationshipFormGroup): void {
+    if (this.saving()) return;
+    this.relationshipEditingForm = relationship;
+    this.relationshipEditing.set(true);
+    this.relationshipDraft.reset(relationship.getRawValue());
+    this.openRelationshipDialog();
+  }
+
+  private openRelationshipDialog(): void {
+    this.relationshipSubmitted.set(false);
+    this.relationshipDraftSnapshot.set(this.relationshipDraft.getRawValue());
+    this.relationshipDraftUnsavedSource.commit();
+    this.relationshipDialogOpen.set(true);
+    this.relationshipDialog()?.open();
+    this.searchPeople('');
+  }
+
+  closeRelationshipDialog(): void {
+    if (!this.unsavedScope.confirmDiscardExcept([this.mainUnsavedSource])) return;
+    this.finishRelationshipDialog();
+  }
+
+  private finishRelationshipDialog(): void {
+    this.relationshipDialogOpen.set(false);
+    this.relationshipDialog()?.close();
+    this.relationshipEditingForm = null;
+    ++this.peopleSearchGeneration;
+  }
+
+  applyRelationship(): void {
+    this.relationshipSubmitted.set(true);
+    this.relationshipDraft.markAllAsTouched();
+    if (this.relationshipDraft.invalid) {
+      this.notifications.error(this.i18n.translate('knowledgePeople.validationError'));
+      return;
+    }
+    const value = this.relationshipDraft.getRawValue();
+    if (this.relationshipEditingForm) {
+      this.relationshipEditingForm.setValue(value);
+    } else {
+      this.relationshipForms.push(this.createRelationshipForm(value));
+      this.relationshipsExpanded.set(true);
+    }
     this.relationshipFormsVersion.update((version) => version + 1);
-    this.relationshipsExpanded.set(true);
+    this.relationshipDraftUnsavedSource.commit();
+    this.finishRelationshipDialog();
+    this.notifications.success(this.i18n.translate('knowledgePeople.relationships.applied'));
   }
 
   removeRelationship(index: number): void {
+    if (this.saving()) return;
     const persistedId = this.relationshipForms.at(index).controls.persistedId.value;
     if (persistedId !== '') {
       this.deletedRelationshipIds.update((ids) => [...new Set([...ids, persistedId])]);
     }
     this.relationshipForms.removeAt(index);
     this.relationshipFormsVersion.update((version) => version + 1);
-    if (this.relationshipForms.length <= RELATIONSHIP_PREVIEW_LIMIT) {
+    if (this.relationshipForms.length <= RELATIONSHIP_PREVIEW_LIMIT)
       this.relationshipsExpanded.set(false);
-    }
+    this.notifications.success(this.i18n.translate('knowledgePeople.relationships.removed'));
+  }
+
+  relationshipPersonLabel(relationship: RelationshipFormGroup): string {
+    return (
+      this.knownPeople()[relationship.controls.relatedPersonId.value] ??
+      this.i18n.translate('shared.notSet')
+    );
+  }
+
+  relationshipActions(): DropdownAction[] {
+    return [
+      {
+        id: 'edit',
+        label: this.i18n.translate('shared.edit'),
+        destructive: false,
+        disabled: this.saving(),
+      },
+      {
+        id: 'delete',
+        label: this.i18n.translate('shared.delete'),
+        destructive: true,
+        disabled: this.saving(),
+      },
+    ];
+  }
+
+  handleRelationshipAction(actionId: string, relationship: RelationshipFormGroup): void {
+    if (actionId === 'edit') this.editRelationship(relationship);
+    else if (actionId === 'delete')
+      this.removeRelationship(this.relationshipForms.controls.indexOf(relationship));
   }
 
   toggleRelationshipsExpanded(): void {
@@ -534,8 +683,8 @@ export class PersonDetailComponent implements OnInit, OnDestroy {
     this.relatedDatesExpanded.update((expanded) => !expanded);
   }
 
-  relationshipLabel(index: number): string {
-    const row = this.relationshipForms.at(index).getRawValue();
+  relationshipLabel(): string {
+    const row = this.relationshipDraft.getRawValue();
     const type = this.relationshipTypes().find((value) => value.id === row.relationshipTypeId);
     if (type === undefined) {
       return this.i18n.translate('shared.notSet');
@@ -552,7 +701,7 @@ export class PersonDetailComponent implements OnInit, OnDestroy {
     this.photoError.set(null);
     this.peopleService
       .replacePhoto(this.personId, input.files[0])
-      .pipe(takeUntilDestroyed(this.destroyRef))
+      .pipe(takeUntil(this.personChanged), takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (photo) => {
           this.photoUploading.set(false);
@@ -580,7 +729,7 @@ export class PersonDetailComponent implements OnInit, OnDestroy {
     this.photoUploading.set(true);
     this.peopleService
       .deletePhoto(this.personId)
-      .pipe(takeUntilDestroyed(this.destroyRef))
+      .pipe(takeUntil(this.personChanged), takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
           this.photoUploading.set(false);
@@ -605,7 +754,7 @@ export class PersonDetailComponent implements OnInit, OnDestroy {
     this.attachmentError.set(null);
     this.peopleService
       .uploadAttachment(this.personId, file, file.name)
-      .pipe(takeUntilDestroyed(this.destroyRef))
+      .pipe(takeUntil(this.personChanged), takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (attachment) => {
           input.value = '';
@@ -636,7 +785,7 @@ export class PersonDetailComponent implements OnInit, OnDestroy {
     }
     this.peopleService
       .renameAttachment(this.personId, attachment.id, name.trim())
-      .pipe(takeUntilDestroyed(this.destroyRef))
+      .pipe(takeUntil(this.personChanged), takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (updated) => {
           this.person.update((person) =>
@@ -673,7 +822,7 @@ export class PersonDetailComponent implements OnInit, OnDestroy {
     }
     this.peopleService
       .deleteAttachment(this.personId, attachment.id)
-      .pipe(takeUntilDestroyed(this.destroyRef))
+      .pipe(takeUntil(this.personChanged), takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
           this.person.update((person) =>
@@ -702,7 +851,7 @@ export class PersonDetailComponent implements OnInit, OnDestroy {
     }
     this.peopleService
       .getFileContent(attachment.id)
-      .pipe(takeUntilDestroyed(this.destroyRef))
+      .pipe(takeUntil(this.personChanged), takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (blob) => {
           const url = browserWindow.URL.createObjectURL(blob);
@@ -765,7 +914,7 @@ export class PersonDetailComponent implements OnInit, OnDestroy {
       this.tagEditingId() === null
         ? this.peopleService.createTag(name)
         : this.peopleService.updateTag(this.tagEditingId()!, name);
-    request.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+    request.pipe(takeUntil(this.personChanged), takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.tagSubmitting.set(false);
         this.tagDraft.set('');
@@ -793,7 +942,7 @@ export class PersonDetailComponent implements OnInit, OnDestroy {
     }
     this.peopleService
       .deleteTag(tag.id)
-      .pipe(takeUntilDestroyed(this.destroyRef))
+      .pipe(takeUntil(this.personChanged), takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
           this.selectedTagIds.update((ids) => ids.filter((id) => id !== tag.id));
@@ -856,7 +1005,7 @@ export class PersonDetailComponent implements OnInit, OnDestroy {
       this.typeEditingId() === null
         ? this.peopleService.createRelationshipType(payload)
         : this.peopleService.updateRelationshipType(this.typeEditingId()!, payload);
-    request.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+    request.pipe(takeUntil(this.personChanged), takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.typeSubmitting.set(false);
         this.relationshipTypeForm.reset({
@@ -894,7 +1043,7 @@ export class PersonDetailComponent implements OnInit, OnDestroy {
     }
     this.peopleService
       .deleteRelationshipType(type.id)
-      .pipe(takeUntilDestroyed(this.destroyRef))
+      .pipe(takeUntil(this.personChanged), takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
           this.notifications.success(
@@ -966,14 +1115,20 @@ export class PersonDetailComponent implements OnInit, OnDestroy {
       birthday: {
         day: person.birthday === null ? '' : String(person.birthday.day),
         month: person.birthday === null ? '' : String(person.birthday.month),
-        year:
-          person.birthday === null || person.birthday.year === null
-            ? ''
-            : String(person.birthday.year),
+        year: person.birthday?.year ?? null,
       },
       description: person.description,
       notificationsEnabled: person.notificationsEnabled,
     });
+    this.knownPeople.update((names) => ({
+      ...names,
+      ...Object.fromEntries(
+        person.relationships.map((relationship) => [
+          relationship.relatedPersonId,
+          relationship.relatedPersonDisplayName,
+        ]),
+      ),
+    }));
     this.selectedTagIds.set(person.tags.map((tag) => tag.id));
     this.deletedRelationshipIds.set([]);
     this.relationshipsExpanded.set(false);
@@ -997,13 +1152,7 @@ export class PersonDetailComponent implements OnInit, OnDestroy {
   }
 
   private createRelationshipForm(
-    value: {
-      persistedId: string;
-      relatedPersonId: string;
-      relationshipTypeId: string;
-      direction: PersonRelationshipDirection;
-      note: string;
-    } = {
+    value: RelationshipFormValue = {
       persistedId: '',
       relatedPersonId: '',
       relationshipTypeId: '',
@@ -1048,7 +1197,7 @@ export class PersonDetailComponent implements OnInit, OnDestroy {
           : {
               day: Number(value.birthday.day),
               month: Number(value.birthday.month),
-              year: value.birthday.year === '' ? null : Number(value.birthday.year),
+              year: value.birthday.year,
             },
       description: value.description,
       notificationsEnabled: value.notificationsEnabled,
@@ -1085,7 +1234,7 @@ export class PersonDetailComponent implements OnInit, OnDestroy {
     }
     this.peopleService
       .getFileContent(photo.id)
-      .pipe(takeUntilDestroyed(this.destroyRef))
+      .pipe(takeUntil(this.personChanged), takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (blob) => {
           if (generation !== this.photoLoadGeneration) {
@@ -1123,53 +1272,19 @@ function emptyPersonFormValue(): PersonFormValue {
     email: '',
     phone: '',
     telegram: '',
-    birthday: { day: '', month: '', year: '' },
+    birthday: { day: '', month: '', year: null },
     description: '',
     notificationsEnabled: true,
   };
 }
 
 function birthdayValidator(control: AbstractControl): ValidationErrors | null {
-  const day = control.get('day')?.value;
-  const month = control.get('month')?.value;
-  const year = control.get('year')?.value;
-  if (typeof day !== 'string' || typeof month !== 'string' || typeof year !== 'string') {
-    return { birthday: true };
-  }
-  if (day === '' && month === '' && year === '') {
+  if (
+    control.get('day')?.value === '' &&
+    control.get('month')?.value === '' &&
+    control.get('year')?.value === null
+  ) {
     return null;
   }
-  if (day === '' || month === '') {
-    return { birthday: true };
-  }
-  const numericDay = Number(day);
-  const numericMonth = Number(month);
-  const validationYear = year === '' ? 2000 : Number(year);
-  if (
-    !Number.isInteger(numericDay) ||
-    !Number.isInteger(numericMonth) ||
-    !Number.isInteger(validationYear) ||
-    validationYear < 1 ||
-    validationYear > 9999
-  ) {
-    return { birthday: true };
-  }
-  const date = new Date(0);
-  date.setUTCHours(0, 0, 0, 0);
-  date.setUTCFullYear(validationYear, numericMonth - 1, numericDay);
-  if (
-    date.getUTCFullYear() !== validationYear ||
-    date.getUTCMonth() !== numericMonth - 1 ||
-    date.getUTCDate() !== numericDay
-  ) {
-    return { birthday: true };
-  }
-  if (year !== '') {
-    const today = new Date();
-    const todayUtc = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate());
-    if (date.getTime() > todayUtc) {
-      return { birthdayFuture: true };
-    }
-  }
-  return null;
+  return annualDateValidator(control);
 }

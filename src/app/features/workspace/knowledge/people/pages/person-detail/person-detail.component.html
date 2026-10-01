@@ -314,102 +314,41 @@
             </button>
           </div>
         </div>
-        <div class="mb-3">
-          <label class="form-label" for="relationship-person-search">{{
-            'knowledgePeople.relationships.peopleSearch' | t
-          }}</label>
-          <input
-            id="relationship-person-search"
-            class="form-control form-control-sm"
-            #relationshipSearch
-            (input)="searchPeople(relationshipSearch.value)"
-          />
-        </div>
-        <div id="person-relationships-list">
+        <ul id="person-relationships-list" class="list-group list-group-flush">
           @for (
             relationship of visibleRelationshipForms();
             track relationship;
             let index = $index
           ) {
-            <div
-              class="border rounded p-3 mb-3"
-              [formGroup]="relationship"
+            <li
+              class="list-group-item px-0 py-1 d-flex align-items-center justify-content-between gap-2"
               [attr.data-testid]="'person-relationship-row-' + index"
             >
-              <div class="row g-3">
-                <div class="col-12 col-lg-4">
-                  <label class="form-label" [for]="'relationship-person-' + index">{{
-                    'knowledgePeople.relationships.person' | t
-                  }}</label>
-                  <ds-site-select
-                    [inputId]="'relationship-person-' + index"
-                    [options]="personCandidateOptions()"
-                    controlSize="default"
-                    appearance="default"
-                    [required]="true"
-                    [invalid]="relationship.controls.relatedPersonId.invalid && submitted()"
-                    [controlDisabled]="false"
-                    formControlName="relatedPersonId"
-                  />
-                </div>
-                <div class="col-12 col-lg-3">
-                  <label class="form-label" [for]="'relationship-type-' + index">{{
-                    'knowledgePeople.relationships.type' | t
-                  }}</label>
-                  <ds-site-select
-                    [inputId]="'relationship-type-' + index"
-                    [options]="relationshipTypeOptions()"
-                    controlSize="default"
-                    appearance="default"
-                    [required]="true"
-                    [invalid]="relationship.controls.relationshipTypeId.invalid && submitted()"
-                    [controlDisabled]="false"
-                    formControlName="relationshipTypeId"
-                  />
-                </div>
-                <div class="col-12 col-lg-3">
-                  <label class="form-label" [for]="'relationship-direction-' + index">{{
-                    'knowledgePeople.relationships.direction' | t
-                  }}</label>
-                  <ds-site-select
-                    [inputId]="'relationship-direction-' + index"
-                    [options]="directionOptions()"
-                    controlSize="default"
-                    appearance="default"
-                    [required]="true"
-                    [invalid]="false"
-                    [controlDisabled]="false"
-                    formControlName="direction"
-                  />
-                  <span class="small text-body-secondary">{{ relationshipLabel(index) }}</span>
-                </div>
-                <div class="col-12 col-lg-2 d-flex align-items-end">
-                  <button
-                    type="button"
-                    class="btn btn-outline-danger btn-sm"
-                    (click)="removeRelationship(index)"
-                  >
-                    {{ 'shared.delete' | t }}
-                  </button>
-                </div>
-                <div class="col-12">
-                  <label class="form-label" [for]="'relationship-note-' + index">{{
-                    'knowledgePeople.relationships.note' | t
-                  }}</label>
-                  <textarea
-                    [id]="'relationship-note-' + index"
-                    class="form-control"
-                    rows="2"
-                    formControlName="note"
-                    maxlength="10000"
-                  ></textarea>
-                </div>
-              </div>
-            </div>
+              <a
+                class="relationship-person-link"
+                [routerLink]="[
+                  '/personal-workspace/knowledge/people',
+                  relationship.controls.relatedPersonId.value,
+                ]"
+                queryParamsHandling="preserve"
+              >
+                {{ relationshipPersonLabel(relationship) }}
+              </a>
+              <app-actions-dropdown
+                [actions]="relationshipActions()"
+                [buttonLabel]="'shared.actions' | t"
+                [ariaLabel]="'shared.actions' | t"
+                [destructiveActionLabel]="'shared.destructiveAction' | t"
+                [testId]="'relationship-actions-' + index"
+                (actionSelected)="handleRelationshipAction($event, relationship)"
+              />
+            </li>
           } @empty {
-            <p class="text-body-secondary mb-0">{{ 'knowledgePeople.relationships.empty' | t }}</p>
+            <li class="list-group-item px-0 text-body-secondary">
+              {{ 'knowledgePeople.relationships.empty' | t }}
+            </li>
           }
-        </div>
+        </ul>
         @if (relationshipsCollapsible()) {
           <button
             type="button"
@@ -502,6 +441,133 @@
       </div>
     </form>
   }
+
+  <dialog
+    dsModalDialog
+    [dismissible]="false"
+    class="relationship-dialog"
+    aria-modal="true"
+    aria-labelledby="relationship-dialog-title"
+    data-testid="relationship-dialog"
+    (cancel)="closeRelationshipDialog()"
+  >
+    <form class="modal-content" [formGroup]="relationshipDraft" (ngSubmit)="applyRelationship()">
+      <div class="modal-header">
+        <h3 id="relationship-dialog-title" class="h5 modal-title">
+          {{
+            (relationshipEditing()
+              ? 'knowledgePeople.relationships.edit'
+              : 'knowledgePeople.relationships.add'
+            ) | t
+          }}
+        </h3>
+        <button
+          type="button"
+          class="btn-close"
+          [attr.aria-label]="'shared.close' | t"
+          (click)="closeRelationshipDialog()"
+        ></button>
+      </div>
+      <div class="modal-body vstack gap-3">
+        <div>
+          <label class="form-label" for="relationship-person-search">{{
+            'knowledgePeople.relationships.peopleSearch' | t
+          }}</label>
+          <input
+            id="relationship-person-search"
+            class="form-control form-control-sm"
+            type="search"
+            [value]="relationshipSearchQuery()"
+            #relationshipSearch
+            (input)="searchPeople(relationshipSearch.value)"
+          />
+        </div>
+        <div>
+          <label class="form-label" for="relationship-person"
+            >{{ 'knowledgePeople.relationships.person' | t }}
+            <span class="required-marker text-danger" aria-hidden="true">*</span></label
+          >
+          <ds-site-select
+            inputId="relationship-person"
+            [options]="personCandidateOptions()"
+            controlSize="default"
+            appearance="default"
+            [required]="true"
+            [invalid]="
+              relationshipDraft.controls.relatedPersonId.invalid && relationshipSubmitted()
+            "
+            [controlDisabled]="false"
+            formControlName="relatedPersonId"
+          />
+        </div>
+        <div>
+          <label class="form-label" for="relationship-type"
+            >{{ 'knowledgePeople.relationships.type' | t }}
+            <span class="required-marker text-danger" aria-hidden="true">*</span></label
+          >
+          <ds-site-select
+            inputId="relationship-type"
+            [options]="relationshipTypeOptions()"
+            controlSize="default"
+            appearance="default"
+            [required]="true"
+            [invalid]="
+              relationshipDraft.controls.relationshipTypeId.invalid && relationshipSubmitted()
+            "
+            [controlDisabled]="false"
+            formControlName="relationshipTypeId"
+          />
+        </div>
+        <div>
+          <label class="form-label" for="relationship-direction"
+            >{{ 'knowledgePeople.relationships.direction' | t }}
+            <span class="required-marker text-danger" aria-hidden="true">*</span></label
+          >
+          <ds-site-select
+            inputId="relationship-direction"
+            [options]="directionOptions()"
+            controlSize="default"
+            appearance="default"
+            [required]="true"
+            [invalid]="false"
+            [controlDisabled]="false"
+            formControlName="direction"
+          />
+          <span class="form-text">{{ relationshipLabel() }}</span>
+        </div>
+        <div>
+          <label class="form-label" for="relationship-note">{{
+            'knowledgePeople.relationships.note' | t
+          }}</label>
+          <textarea
+            id="relationship-note"
+            class="form-control"
+            rows="3"
+            maxlength="10000"
+            formControlName="note"
+            dsControlValidationState
+          ></textarea>
+        </div>
+        @if (relationshipSubmitted() && relationshipDraft.invalid) {
+          <p class="text-danger mb-0" role="alert">{{ 'knowledgePeople.validationError' | t }}</p>
+        }
+        <p class="form-text mb-0">{{ 'knowledgePeople.relationships.saveHint' | t }}</p>
+      </div>
+      <div class="modal-footer">
+        <button
+          type="button"
+          class="btn btn-outline-secondary"
+          data-testid="relationship-cancel"
+          (click)="closeRelationshipDialog()"
+        >
+          {{ 'shared.cancel' | t }}
+        </button>
+        <button type="submit" class="btn btn-success" data-testid="relationship-apply">
+          {{ 'knowledgePeople.relationships.apply' | t }}
+        </button>
+      </div>
+    </form>
+  </dialog>
 
   @if (tagDialogOpen()) {
     <div

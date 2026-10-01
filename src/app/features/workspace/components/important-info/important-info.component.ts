@@ -24,6 +24,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, Validators } from '@angular/forms';
+import { CdkTextareaAutosize } from '@angular/cdk/text-field';
 import { I18nService } from '../../../../core/i18n/i18n.service';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
 import { ApiError } from '../../../../core/models/api-error.model';
@@ -39,6 +40,7 @@ import { ImportantInfoService } from '../../services/important-info.service';
   standalone: true,
   imports: [
     CdkDrag,
+    CdkTextareaAutosize,
     CdkDragPlaceholder,
     CdkDropList,
     ErrorMessageComponent,
@@ -58,6 +60,7 @@ export class ImportantInfoComponent implements OnInit {
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly unsavedScope = inject(UnsavedChangesService).createScope(this.destroyRef);
   private readonly editUnsavedSource: UnsavedChangesSource;
+  private draggedId: string | null = null;
   private nextEditId: string | null = null;
   private afterSaveAction: (() => void) | null = null;
 
@@ -134,6 +137,19 @@ export class ImportantInfoComponent implements OnInit {
     if (this.editingId()) event.preventDefault();
   }
 
+  onItemPointerDown(): void {
+    this.draggedId = null;
+  }
+
+  onDragStarted(id: string): void {
+    this.draggedId = id;
+  }
+
+  onDisplayClick(item: ImportantInfoItem, event: MouseEvent): void {
+    if (event.detail !== 0 && this.draggedId === item.id) return;
+    this.edit(item);
+  }
+
   edit(item: ImportantInfoItem): void {
     if (this.editingId() === item.id) return;
     if (this.busy()) {
@@ -153,7 +169,7 @@ export class ImportantInfoComponent implements OnInit {
       () => {
         if (this.editingId() === item.id) {
           this.host.nativeElement
-            .querySelector<HTMLInputElement>(`#important-info-edit-${item.id}`)
+            .querySelector<HTMLTextAreaElement>(`#important-info-edit-${item.id}`)
             ?.focus();
         }
       },
@@ -161,7 +177,7 @@ export class ImportantInfoComponent implements OnInit {
     );
   }
 
-  cancel(input?: HTMLInputElement): void {
+  cancel(input?: HTMLTextAreaElement): void {
     const id = this.editingId();
     const current = this.items().find((item) => item.id === id);
     this.editText.setValue(current?.text ?? '');
@@ -176,7 +192,7 @@ export class ImportantInfoComponent implements OnInit {
 
   onEditInput(id: string, event: Event): void {
     if (this.editingId() !== id) return;
-    this.editText.setValue((event.target as HTMLInputElement).value);
+    this.editText.setValue((event.target as HTMLTextAreaElement).value);
     this.editError.set(false);
   }
 
@@ -186,6 +202,8 @@ export class ImportantInfoComponent implements OnInit {
   }
 
   onGridFocusOut(event: FocusEvent): void {
+    // Replacing the focused display button emits focusout before the editor receives focus.
+    if ((event.target as HTMLElement).closest('.important-info-display')) return;
     const grid = event.currentTarget as HTMLElement;
     if (event.relatedTarget && grid.contains(event.relatedTarget as Node)) return;
     if (this.editingId()) this.save();
@@ -204,7 +222,7 @@ export class ImportantInfoComponent implements OnInit {
     if (event.key === 'Escape') {
       event.preventDefault();
       event.stopPropagation();
-      this.cancel(event.target as HTMLInputElement);
+      this.cancel(event.target as HTMLTextAreaElement);
     } else if (event.key === 'Enter') {
       event.preventDefault();
       this.save(true);
@@ -330,17 +348,6 @@ export class ImportantInfoComponent implements OnInit {
           );
         },
       });
-  }
-
-  move(id: string, offset: -1 | 1): void {
-    if (this.busy()) return;
-    if (this.editingId()) {
-      this.afterSaveAction = () => this.move(id, offset);
-      this.save();
-      return;
-    }
-    const index = this.items().findIndex((item) => item.id === id);
-    this.reorder(index, index + offset);
   }
 
   drop(event: CdkDragDrop<readonly ImportantInfoItem[]>): void {

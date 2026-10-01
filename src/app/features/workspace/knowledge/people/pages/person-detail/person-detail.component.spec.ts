@@ -4,6 +4,8 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { ActivatedRoute, convertToParamMap, Router, provideRouter } from '@angular/router';
 import { of, Subject } from 'rxjs';
+import { RouterTestingHarness } from '@angular/router/testing';
+import { unsavedChangesGuard } from '../../../../guards/unsaved-changes.guard';
 import {
   MarkdownEditorComponent,
   MarkdownEditorImageCapability,
@@ -109,7 +111,7 @@ describe('PersonDetailComponent', () => {
         {
           provide: ActivatedRoute,
           useValue: {
-            snapshot: { paramMap: convertToParamMap({ id: 'person-1' }) },
+            paramMap: of(convertToParamMap({ id: 'person-1' })),
           },
         },
         { provide: PeopleService, useValue: peopleService },
@@ -126,6 +128,109 @@ describe('PersonDetailComponent', () => {
     router = TestBed.inject(Router);
     fixture = TestBed.createComponent(PersonDetailComponent);
     fixture.detectChanges();
+    const dialog = fixture.nativeElement.querySelector(
+      '[data-testid="relationship-dialog"]',
+    ) as HTMLDialogElement;
+    dialog.showModal = () => dialog.setAttribute('open', '');
+    dialog.close = () => {
+      dialog.removeAttribute('open');
+      dialog.dispatchEvent(new Event('close'));
+    };
+  });
+
+  it('reloads a reused card on relationship navigation and protects its unsaved draft', async () => {
+    fixture.destroy();
+    TestBed.resetTestingModule();
+    const secondPerson = {
+      ...PERSON,
+      id: 'person-2',
+      firstName: 'Пётр',
+      displayName: 'Иванов Пётр',
+    };
+    peopleService.getPerson.mockImplementation((id: string) =>
+      of(id === PERSON.id ? PERSON : secondPerson),
+    );
+    await TestBed.configureTestingModule({
+      imports: [PersonDetailComponent],
+      providers: [
+        provideRouter([
+          {
+            path: 'personal-workspace/knowledge/people/:id',
+            component: PersonDetailComponent,
+            canDeactivate: [unsavedChangesGuard],
+          },
+        ]),
+        provideI18nTesting(),
+        { provide: PeopleService, useValue: peopleService },
+        { provide: KnowledgeEditorImagesService, useValue: knowledgeEditorImages },
+        { provide: NotificationService, useValue: notifications },
+      ],
+    })
+      .overrideComponent(PersonDetailComponent, {
+        remove: { imports: [MarkdownEditorComponent] },
+        add: { imports: [MarkdownEditorStubComponent] },
+      })
+      .compileComponents();
+    const harness = await RouterTestingHarness.create();
+    const component = await harness.navigateByUrl(
+      '/personal-workspace/knowledge/people/person-1',
+      PersonDetailComponent,
+    );
+    component.setDescription('Unsaved first card');
+    const confirm = jest.spyOn(window, 'confirm').mockReturnValue(false);
+    try {
+      expect(
+        await TestBed.inject(Router).navigateByUrl('/personal-workspace/knowledge/people/person-2'),
+      ).toBe(false);
+      expect(component.person()?.id).toBe(PERSON.id);
+      confirm.mockReturnValue(true);
+      const pendingSave = new Subject<PersonDetail>();
+      peopleService.updatePerson.mockReturnValue(pendingSave.asObservable());
+      component.savePerson();
+      const reused = await harness.navigateByUrl(
+        '/personal-workspace/knowledge/people/person-2',
+        PersonDetailComponent,
+      );
+      pendingSave.next(PERSON);
+      pendingSave.complete();
+      expect(reused).toBe(component);
+      expect(component.person()?.id).toBe(secondPerson.id);
+      expect(component.personForm.controls.firstName.value).toBe('Пётр');
+      expect(knowledgeEditorImages.bind).toHaveBeenLastCalledWith(
+        expect.objectContaining({ itemId: secondPerson.id }),
+      );
+      peopleService.updatePerson.mockReturnValue(of(secondPerson));
+      component.savePerson();
+      expect(peopleService.updatePerson).toHaveBeenLastCalledWith(
+        secondPerson.id,
+        expect.objectContaining({ firstName: 'Пётр', description: PERSON.description }),
+      );
+    } finally {
+      confirm.mockRestore();
+    }
+  });
+
+  it('saves numeric years and clearing through the native number input', () => {
+    const component = fixture.componentInstance;
+    for (const year of [2024, 2020, null, 2024]) {
+      const input = fixture.nativeElement.querySelector('#birthday-year') as HTMLInputElement;
+      input.value = year === null ? '' : String(year);
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      fixture.detectChanges();
+      peopleService.updatePerson.mockReturnValue(
+        of({ ...PERSON, birthday: { day: 29, month: 2, year } }),
+      );
+      component.savePerson();
+      fixture.detectChanges();
+      expect(peopleService.updatePerson).toHaveBeenLastCalledWith(
+        PERSON.id,
+        expect.objectContaining({ birthday: { day: 29, month: 2, year } }),
+      );
+      expect(component.personForm.controls.birthday.valid).toBe(true);
+      expect(
+        (fixture.nativeElement.querySelector('#birthday-year') as HTMLInputElement).value,
+      ).toBe(year === null ? '' : String(year));
+    }
   });
 
   afterEach(() => fixture.destroy());
@@ -134,7 +239,7 @@ describe('PersonDetailComponent', () => {
     expect(fixture.componentInstance.personForm.controls.birthday.getRawValue()).toEqual({
       day: '29',
       month: '2',
-      year: '',
+      year: null,
     });
     const editor = fixture.debugElement.query(By.directive(MarkdownEditorStubComponent))
       .componentInstance as MarkdownEditorStubComponent;
@@ -263,7 +368,7 @@ describe('PersonDetailComponent', () => {
     peopleService['getPerson'].mockReturnValue(
       of({
         ...PERSON,
-        relationships: Array.from({ length: 6 }, (_, index) => ({
+        relationships: Array.from({ length: 11 }, (_, index) => ({
           id: `relationship-${index + 1}`,
           relatedPersonId: `related-person-${index + 1}`,
           relatedPersonDisplayName: `Человек ${index + 1}`,
@@ -287,7 +392,7 @@ describe('PersonDetailComponent', () => {
 
     expect(
       fixture.nativeElement.querySelectorAll('[data-testid^="person-relationship-row-"]'),
-    ).toHaveLength(5);
+    ).toHaveLength(10);
     expect(
       fixture.nativeElement.querySelectorAll('[data-testid^="person-related-date-"]'),
     ).toHaveLength(10);
@@ -306,7 +411,7 @@ describe('PersonDetailComponent', () => {
     expect(relatedDatesToggle.getAttribute('aria-expanded')).toBe('true');
     expect(
       fixture.nativeElement.querySelectorAll('[data-testid^="person-relationship-row-"]'),
-    ).toHaveLength(6);
+    ).toHaveLength(11);
     expect(
       fixture.nativeElement.querySelectorAll('[data-testid^="person-related-date-"]'),
     ).toHaveLength(11);
@@ -371,12 +476,150 @@ describe('PersonDetailComponent', () => {
     });
   });
 
+  it('opens relationship creation as an isolated modal draft and cancels it', () => {
+    fixture.componentInstance.addRelationship();
+    fixture.detectChanges();
+    const dialog = fixture.nativeElement.querySelector(
+      '[data-testid="relationship-dialog"]',
+    ) as HTMLDialogElement;
+    expect(dialog?.open).toBe(true);
+    expect(
+      fixture.nativeElement.querySelectorAll('[data-testid^="person-relationship-row-"]'),
+    ).toHaveLength(0);
+    expect(peopleService.updatePerson).not.toHaveBeenCalled();
+    (dialog.querySelector('[data-testid="relationship-cancel"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(dialog.open).toBe(false);
+    expect(fixture.componentInstance.relationshipForms.length).toBe(0);
+  });
+
+  it('applies relationships to the card draft, preserves names across searches and saves a batch', () => {
+    const component = fixture.componentInstance;
+    peopleService.listPeople.mockReturnValueOnce(
+      of({ people: [{ ...PERSON, id: 'person-2', displayName: 'Alice' }] }),
+    );
+    component.addRelationship();
+    component.applyRelationship();
+    expect(component.relationshipForms.length).toBe(0);
+    expect(notifications.error).toHaveBeenCalled();
+    component.relationshipDraft.patchValue({
+      relatedPersonId: 'person-2',
+      relationshipTypeId: 'type-1',
+      note: 'Friend',
+    });
+    component.applyRelationship();
+    fixture.detectChanges();
+    expect(peopleService.updatePerson).not.toHaveBeenCalled();
+    expect(
+      fixture.nativeElement.querySelector('a[href="/personal-workspace/knowledge/people/person-2"]')
+        ?.textContent,
+    ).toContain('Alice');
+    component.searchPeople('Nobody');
+    fixture.detectChanges();
+    expect(
+      fixture.nativeElement.querySelector('a[href="/personal-workspace/knowledge/people/person-2"]')
+        ?.textContent,
+    ).toContain('Alice');
+    const row = component.relationshipForms.at(0);
+    component.editRelationship(row);
+    component.relationshipDraft.controls.note.setValue('Updated');
+    expect(row.controls.note.value).toBe('Friend');
+    component.applyRelationship();
+    component.savePerson();
+    expect(peopleService.updatePerson).toHaveBeenLastCalledWith(
+      PERSON.id,
+      expect.objectContaining({
+        relationshipChanges: {
+          create: [
+            {
+              relatedPersonId: 'person-2',
+              relationshipTypeId: 'type-1',
+              direction: 'forward',
+              note: 'Updated',
+            },
+          ],
+          update: [],
+          deleteIds: [],
+        },
+      }),
+    );
+  });
+
+  it('guards modal cancel and Escape without changing a persisted relationship or the main draft', () => {
+    const component = fixture.componentInstance;
+    component.personForm.controls.description.setValue('Main draft');
+    component.addRelationship();
+    component.relationshipDraft.patchValue({
+      relatedPersonId: 'person-2',
+      relationshipTypeId: 'type-1',
+      note: 'Stored',
+    });
+    component.applyRelationship();
+    const row = component.relationshipForms.at(0);
+    row.controls.persistedId.setValue('relation-1');
+    component.editRelationship(row);
+    component.relationshipDraft.controls.note.setValue('Unsaved');
+    const confirm = jest.spyOn(window, 'confirm').mockReturnValue(false);
+    const dialog = fixture.nativeElement.querySelector(
+      '[data-testid="relationship-dialog"]',
+    ) as HTMLDialogElement;
+    dialog.dispatchEvent(new Event('cancel', { cancelable: true }));
+    expect(dialog.open).toBe(true);
+    expect(row.controls.note.value).toBe('Stored');
+    confirm.mockReturnValue(true);
+    component.closeRelationshipDialog();
+    expect(dialog.open).toBe(false);
+    expect(component.personForm.controls.description.value).toBe('Main draft');
+    component.editRelationship(row);
+    component.relationshipDraft.controls.note.setValue('Applied');
+    component.applyRelationship();
+    component.savePerson();
+    expect(peopleService.updatePerson).toHaveBeenLastCalledWith(
+      PERSON.id,
+      expect.objectContaining({
+        relationshipChanges: {
+          create: [],
+          update: [
+            {
+              id: 'relation-1',
+              relatedPersonId: 'person-2',
+              relationshipTypeId: 'type-1',
+              direction: 'forward',
+              note: 'Applied',
+            },
+          ],
+          deleteIds: [],
+        },
+      }),
+    );
+  });
+
+  it('removes persisted relationships in the next card batch', () => {
+    const component = fixture.componentInstance;
+    component.addRelationship();
+    component.relationshipDraft.patchValue({
+      persistedId: 'relation-1',
+      relatedPersonId: 'person-2',
+      relationshipTypeId: 'type-1',
+    });
+    component.applyRelationship();
+    component.removeRelationship(0);
+    expect(peopleService.updatePerson).not.toHaveBeenCalled();
+    component.savePerson();
+    expect(peopleService.updatePerson).toHaveBeenLastCalledWith(
+      PERSON.id,
+      expect.objectContaining({
+        relationshipChanges: { create: [], update: [], deleteIds: ['relation-1'] },
+      }),
+    );
+  });
+
   it('blocks an invalid future birthday and sends explicit relationship batches', () => {
     const component = fixture.componentInstance;
     component.personForm.controls.birthday.setValue({
       day: '1',
       month: '1',
-      year: '9999',
+      year: 9999,
     });
     component.savePerson();
     expect(peopleService.updatePerson).not.toHaveBeenCalled();
@@ -385,10 +628,10 @@ describe('PersonDetailComponent', () => {
     component.personForm.controls.birthday.setValue({
       day: '29',
       month: '2',
-      year: '',
+      year: null,
     });
     component.addRelationship();
-    const relationship = component.relationshipForms.at(0);
+    const relationship = component.relationshipDraft;
     relationship.setValue({
       persistedId: '',
       relatedPersonId: 'person-2',
@@ -396,6 +639,7 @@ describe('PersonDetailComponent', () => {
       direction: 'forward',
       note: 'Работали вместе',
     });
+    component.applyRelationship();
     component.savePerson();
 
     expect(peopleService.updatePerson).toHaveBeenCalledWith(

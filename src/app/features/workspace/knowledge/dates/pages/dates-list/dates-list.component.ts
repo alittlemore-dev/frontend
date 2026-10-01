@@ -5,7 +5,6 @@ import {
   LoadingSpinnerComponent,
   SiteSelectComponent,
   SiteSelectOption,
-  formatLocalizedDate,
 } from '@alittlemore.dev/design-system';
 import { DOCUMENT } from '@angular/common';
 import {
@@ -18,7 +17,12 @@ import {
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  FormControl,
+  NonNullableFormBuilder,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { I18nService } from '../../../../../../core/i18n/i18n.service';
 import { TranslatePipe } from '../../../../../../core/i18n/translate.pipe';
@@ -40,7 +44,11 @@ import {
 } from '../../../../utils/validation';
 import { KnowledgeTag, PersonSummary } from '../../../people/models/people.model';
 import { PeopleService } from '../../../people/services/people.service';
-import { annualDateValidator, formatAnnualDate } from '../../../shared/annual-date';
+import {
+  AnnualDateFormValue,
+  annualDateValidator,
+  formatAnnualDate,
+} from '../../../shared/annual-date';
 import {
   KnowledgeDateListFilters,
   KnowledgeDateListSort,
@@ -105,9 +113,9 @@ export class DatesListComponent implements OnInit {
   readonly createError = signal<ApiError | null>(null);
   readonly deletePendingId = signal<string | null>(null);
   readonly expandedRelatedPeopleDateIds = signal<ReadonlySet<string>>(new Set());
-  readonly createSnapshot = signal({
+  readonly createSnapshot = signal<{ displayName: string; date: AnnualDateFormValue }>({
     displayName: '',
-    date: { day: '', month: '', year: '' },
+    date: { day: '', month: '', year: null },
   });
 
   readonly filtersForm = this.formBuilder.group({
@@ -126,7 +134,7 @@ export class DatesListComponent implements OnInit {
       {
         day: [''],
         month: [''],
-        year: [''],
+        year: new FormControl<number | null>(null),
       },
       { validators: annualDateValidator },
     ),
@@ -310,7 +318,7 @@ export class DatesListComponent implements OnInit {
   openCreateDialog(): void {
     this.createForm.reset({
       displayName: '',
-      date: { day: '', month: '', year: '' },
+      date: { day: '', month: '', year: null },
     });
     this.createSnapshot.set(this.createForm.getRawValue());
     this.createUnsavedSource.commit();
@@ -340,7 +348,7 @@ export class DatesListComponent implements OnInit {
         date: {
           day: Number(value.date.day),
           month: Number(value.date.month),
-          year: value.date.year === '' ? null : Number(value.date.year),
+          year: value.date.year,
         },
       })
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -460,10 +468,6 @@ export class DatesListComponent implements OnInit {
 
   annualDateLabel(value: KnowledgeDateSummary['date']): string {
     return formatAnnualDate(value, this.i18n.dateLocale());
-  }
-
-  updatedAtLabel(value: string): string {
-    return formatLocalizedDate(value, this.i18n.dateLocale(), 'dateTime');
   }
 
   private appliedFilters(): KnowledgeDateListFilters {
