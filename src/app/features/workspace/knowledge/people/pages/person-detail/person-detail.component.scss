@@ -37,6 +37,16 @@
   background: rgba(var(--bs-dark-rgb), 0.5);
 }
 
+.relationship-dialog-content {
+  max-height: calc(100dvh - 2rem - 2px);
+}
+
+.relationship-dialog-body {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
 .relationship-person-link {
   min-width: 0;
   overflow-wrap: anywhere;

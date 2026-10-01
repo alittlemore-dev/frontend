@@ -451,9 +451,15 @@
     data-testid="relationship-dialog"
     (cancel)="closeRelationshipDialog()"
   >
-    <form class="modal-content" [formGroup]="relationshipDraft" (ngSubmit)="applyRelationship()">
-      <div class="modal-header">
-        <h3 id="relationship-dialog-title" class="h5 modal-title">
+    <form
+      class="relationship-dialog-content d-flex flex-column"
+      [formGroup]="relationshipDraft"
+      (ngSubmit)="applyRelationship()"
+    >
+      <div
+        class="d-flex align-items-center justify-content-between gap-3 p-3 border-bottom flex-shrink-0"
+      >
+        <h3 id="relationship-dialog-title" class="h5 mb-0">
           {{
             (relationshipEditing()
               ? 'knowledgePeople.relationships.edit'
@@ -463,19 +469,19 @@
         </h3>
         <button
           type="button"
-          class="btn-close"
+          class="btn-close flex-shrink-0"
           [attr.aria-label]="'shared.close' | t"
           (click)="closeRelationshipDialog()"
         ></button>
       </div>
-      <div class="modal-body vstack gap-3">
+      <div class="relationship-dialog-body vstack gap-3 p-3">
         <div>
           <label class="form-label" for="relationship-person-search">{{
             'knowledgePeople.relationships.peopleSearch' | t
           }}</label>
           <input
             id="relationship-person-search"
-            class="form-control form-control-sm"
+            class="form-control"
             type="search"
             [value]="relationshipSearchQuery()"
             #relationshipSearch
@@ -533,7 +539,9 @@
             [controlDisabled]="false"
             formControlName="direction"
           />
-          <span class="form-text">{{ relationshipLabel() }}</span>
+          @if (relationshipDraftSnapshot().relationshipTypeId) {
+            <span class="form-text">{{ relationshipLabel() }}</span>
+          }
         </div>
         <div>
           <label class="form-label" for="relationship-note">{{
@@ -553,7 +561,7 @@
         }
         <p class="form-text mb-0">{{ 'knowledgePeople.relationships.saveHint' | t }}</p>
       </div>
-      <div class="modal-footer">
+      <div class="d-flex flex-wrap justify-content-end gap-2 p-3 border-top flex-shrink-0">
         <button
           type="button"
           class="btn btn-outline-secondary"
