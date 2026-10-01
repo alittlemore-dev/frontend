@@ -12,6 +12,7 @@ import {
   inject,
   input,
   output,
+  signal,
   untracked,
 } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -48,6 +49,7 @@ export class FinanceTransactionEntryComponent {
   readonly timeZone = input.required<string>();
   readonly saving = input.required<boolean>();
   readonly editing = input(false);
+  readonly saveAttempted = signal(false);
   readonly submitted = output<FinanceTransactionEntry>();
   readonly cancelled = output<void>();
 
@@ -107,7 +109,10 @@ export class FinanceTransactionEntryComponent {
   constructor() {
     effect(() => {
       const value = this.initialValue();
-      untracked(() => this.form.reset(value));
+      untracked(() => {
+        this.form.reset(value);
+        this.saveAttempted.set(false);
+      });
     });
     effect(() => {
       const saving = this.saving();
@@ -120,6 +125,7 @@ export class FinanceTransactionEntryComponent {
 
   submit(): void {
     if (this.saving()) return;
+    this.saveAttempted.set(true);
     this.form.markAllAsTouched();
     if (
       !this.categories().some((category) => category.id === this.form.controls.categoryId.value)
