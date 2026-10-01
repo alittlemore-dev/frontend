@@ -652,6 +652,16 @@ export class PersonDetailComponent implements OnInit, OnDestroy {
     );
   }
 
+  relationshipPersonRole(relationship: RelationshipFormGroup): string {
+    const { relationshipTypeId, direction } = relationship.getRawValue();
+    const type =
+      this.relationshipTypes().find((value) => value.id === relationshipTypeId) ??
+      this.person()?.relationships.find((value) => value.relationshipType.id === relationshipTypeId)
+        ?.relationshipType;
+    if (type === undefined) return this.i18n.translate('shared.notSet');
+    return type.isSymmetric || direction === 'reverse' ? type.forwardName : type.reverseName;
+  }
+
   relationshipActions(): DropdownAction[] {
     return [
       {

@@ -324,17 +324,22 @@
               class="list-group-item px-0 py-1 d-flex align-items-center justify-content-between gap-2"
               [attr.data-testid]="'person-relationship-row-' + index"
             >
-              <a
-                class="relationship-person-link"
-                [routerLink]="[
-                  '/personal-workspace/knowledge/people',
-                  relationship.controls.relatedPersonId.value,
-                ]"
-                queryParamsHandling="preserve"
-              >
-                {{ relationshipPersonLabel(relationship) }}
-              </a>
+              <div class="relationship-person-summary">
+                <a
+                  [routerLink]="[
+                    '/personal-workspace/knowledge/people',
+                    relationship.controls.relatedPersonId.value,
+                  ]"
+                  queryParamsHandling="preserve"
+                >
+                  {{ relationshipPersonLabel(relationship) }}
+                </a>
+                <span class="text-body-secondary">
+                  · {{ relationshipPersonRole(relationship) }}</span
+                >
+              </div>
               <app-actions-dropdown
+                class="flex-shrink-0"
                 [actions]="relationshipActions()"
                 [buttonLabel]="'shared.actions' | t"
                 [ariaLabel]="'shared.actions' | t"

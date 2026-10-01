@@ -356,6 +356,91 @@ describe('PersonDetailComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('29');
   });
 
+  it.each([
+    { direction: 'forward' as const, symmetric: false, role: 'ребёнок' },
+    { direction: 'reverse' as const, symmetric: false, role: 'родитель' },
+    { direction: 'reverse' as const, symmetric: true, role: 'друг' },
+  ])('shows the other person’s role for $direction, symmetric=$symmetric', (testCase) => {
+    const relationshipType = {
+      id: 'family-type',
+      isSymmetric: testCase.symmetric,
+      forwardName: testCase.symmetric ? 'друг' : 'родитель',
+      reverseName: testCase.symmetric ? 'друг' : 'ребёнок',
+      createdAt: PERSON.createdAt,
+      updatedAt: PERSON.updatedAt,
+    };
+    peopleService.getPerson.mockReturnValue(
+      of({
+        ...PERSON,
+        relationships: [
+          {
+            id: 'family-relationship',
+            relatedPersonId: 'person-2',
+            relatedPersonDisplayName: 'Петров Пётр',
+            relationshipType,
+            direction: testCase.direction,
+            label:
+              testCase.direction === 'forward'
+                ? relationshipType.forwardName
+                : relationshipType.reverseName,
+            note: '',
+            createdAt: PERSON.createdAt,
+            updatedAt: PERSON.updatedAt,
+          },
+        ],
+      } satisfies PersonDetail),
+    );
+    fixture.componentInstance.loadPerson();
+    fixture.detectChanges();
+
+    const row = fixture.nativeElement.querySelector('[data-testid="person-relationship-row-0"]');
+    expect(row?.textContent).toContain('Петров Пётр');
+    expect(row?.textContent).toContain(testCase.role);
+    expect(row?.querySelector('a')?.getAttribute('href')).toBe(
+      '/personal-workspace/knowledge/people/person-2',
+    );
+  });
+
+  it('updates the visible role only after applying a relationship draft', () => {
+    const component = fixture.componentInstance;
+    peopleService.listRelationshipTypes.mockReturnValue(
+      of([
+        {
+          id: 'family-type',
+          isSymmetric: false,
+          forwardName: 'родитель',
+          reverseName: 'ребёнок',
+          createdAt: PERSON.createdAt,
+          updatedAt: PERSON.updatedAt,
+        },
+      ]),
+    );
+    peopleService.listPeople.mockReturnValue(
+      of({ people: [{ ...PERSON, id: 'person-2', displayName: 'Петров Пётр' }] }),
+    );
+    component.loadTaxonomies();
+    component.addRelationship();
+    component.relationshipDraft.patchValue({
+      relatedPersonId: 'person-2',
+      relationshipTypeId: 'family-type',
+      direction: 'forward',
+    });
+    component.applyRelationship();
+    fixture.detectChanges();
+    const row = fixture.nativeElement.querySelector('[data-testid="person-relationship-row-0"]');
+    expect(row?.textContent).toContain('ребёнок');
+
+    component.editRelationship(component.relationshipForms.at(0));
+    component.relationshipDraft.controls.direction.setValue('reverse');
+    fixture.detectChanges();
+    expect(row?.textContent).toContain('ребёнок');
+    component.applyRelationship();
+    fixture.detectChanges();
+    expect(row?.textContent).toContain('родитель');
+    expect(row?.textContent).not.toContain('ребёнок');
+    expect(peopleService.updatePerson).not.toHaveBeenCalled();
+  });
+
   it('collapses long relationship and memorable-date lists and can reveal every item', () => {
     const relationshipType = {
       id: 'relationship-type-1',
