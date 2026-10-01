@@ -11,7 +11,8 @@
       [dateLocale]="i18n.dateLocale()"
       [labels]="dateTimeLabels()"
       [required]="true"
-      [invalid]="form.controls.dateTime.touched && form.controls.dateTime.invalid"
+      [invalid]="saveAttempted() && form.controls.dateTime.invalid"
+      [showValidationErrors]="saveAttempted()"
       [controlDisabled]="saving()"
       [readonly]="false"
       [min]="min()"
@@ -30,7 +31,7 @@
       controlSize="small"
       appearance="default"
       [required]="true"
-      [invalid]="form.controls.categoryId.touched && form.controls.categoryId.invalid"
+      [invalid]="saveAttempted() && form.controls.categoryId.invalid"
       [controlDisabled]="saving()"
     />
   </div>
@@ -43,12 +44,12 @@
       <input
         [id]="inputId() + '-amount'"
         class="form-control form-control-sm"
-        [class.is-invalid]="form.controls.amount.touched && form.controls.amount.invalid"
+        [class.is-invalid]="saveAttempted() && form.controls.amount.invalid"
         type="text"
         inputmode="decimal"
         formControlName="amount"
         required
-        [attr.aria-invalid]="form.controls.amount.touched && form.controls.amount.invalid"
+        [attr.aria-invalid]="saveAttempted() && form.controls.amount.invalid"
       />
     </div>
     <div>
@@ -78,7 +79,7 @@
       rows="2"
     ></textarea>
   </div>
-  @if (form.touched && form.invalid && !saving()) {
+  @if (saveAttempted() && form.invalid && !saving()) {
     <p class="finance-entry-error text-danger" role="alert">{{ 'finance.error.entry' | t }}</p>
   }
   <div class="finance-entry-actions">

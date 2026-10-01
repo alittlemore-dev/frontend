@@ -29,6 +29,103 @@ describe('FinanceTransactionEntryComponent', () => {
 
   afterEach(() => TestBed.resetTestingModule());
 
+  it('waits for a save attempt before showing errors while editing', () => {
+    const amount = fixture.nativeElement.querySelector('#entry-amount') as HTMLInputElement;
+    const category = fixture.nativeElement.querySelector('#entry-category') as HTMLButtonElement;
+    amount.value = '0';
+    amount.dispatchEvent(new Event('input', { bubbles: true }));
+    amount.dispatchEvent(new Event('blur'));
+    category.dispatchEvent(new Event('blur'));
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[role="alert"]')).toBeNull();
+    expect(amount.classList).not.toContain('is-invalid');
+    expect(amount.getAttribute('aria-invalid')).not.toBe('true');
+    expect(category.getAttribute('aria-invalid')).not.toBe('true');
+
+    const form = fixture.nativeElement.querySelector('form') as HTMLFormElement;
+    form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[role="alert"]')).not.toBeNull();
+    expect(amount.classList).toContain('is-invalid');
+    expect(amount.getAttribute('aria-invalid')).toBe('true');
+    expect(category.getAttribute('aria-invalid')).toBe('true');
+
+    fixture.componentInstance.form.controls.categoryId.setValue('food');
+    amount.value = '25';
+    amount.dispatchEvent(new Event('input', { bubbles: true }));
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[role="alert"]')).toBeNull();
+    expect(amount.classList).not.toContain('is-invalid');
+    expect(category.getAttribute('aria-invalid')).not.toBe('true');
+  });
+
+  it('hides previous validation errors when opening another transaction draft', () => {
+    const form = fixture.nativeElement.querySelector('form') as HTMLFormElement;
+    form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[role="alert"]')).not.toBeNull();
+
+    fixture.componentRef.setInput('initialValue', {
+      categoryId: '',
+      amount: '',
+      currency: 'USD',
+      dateTime: '',
+      description: '',
+    });
+    fixture.detectChanges();
+    const amount = fixture.nativeElement.querySelector('#entry-amount') as HTMLInputElement;
+    amount.dispatchEvent(new Event('blur'));
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[role="alert"]')).toBeNull();
+    expect(amount.classList).not.toContain('is-invalid');
+  });
+
+  it.each(['', 'unfinished', '01.10.2026 12:00'])(
+    'shows date errors only after a save attempt for %p',
+    (value) => {
+      const submitted = jest.fn();
+      fixture.componentInstance.submitted.subscribe(submitted);
+      fixture.componentInstance.form.controls.categoryId.setValue('food');
+      fixture.componentInstance.form.controls.amount.setValue('25');
+      fixture.detectChanges();
+      const date = fixture.nativeElement.querySelector('#entry-date') as HTMLInputElement;
+      date.value = value;
+      date.dispatchEvent(new Event('input', { bubbles: true }));
+      date.dispatchEvent(new Event('blur'));
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('[role="alert"]')).toBeNull();
+      expect(date.getAttribute('aria-invalid')).not.toBe('true');
+
+      const form = fixture.nativeElement.querySelector('form') as HTMLFormElement;
+      form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+      fixture.detectChanges();
+
+      expect(submitted).not.toHaveBeenCalled();
+      expect(fixture.nativeElement.querySelector('.finance-entry-error')).not.toBeNull();
+      expect(
+        fixture.nativeElement.querySelector('[data-testid="datetime-picker-validation-message"]'),
+      ).not.toBeNull();
+      expect(date.getAttribute('aria-invalid')).toBe('true');
+
+      date.value = '16.09.2026 12:00';
+      date.dispatchEvent(new Event('input', { bubbles: true }));
+      date.dispatchEvent(new Event('blur'));
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('[role="alert"]')).toBeNull();
+      form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+      fixture.detectChanges();
+      expect(submitted).toHaveBeenCalledWith(
+        expect.objectContaining({ dateTime: '2026-09-16T12:00', amount: '25' }),
+      );
+    },
+  );
+
   it('blocks incomplete and nonpositive amounts with visible feedback', () => {
     const submitted = jest.fn();
     fixture.componentInstance.submitted.subscribe(submitted);
