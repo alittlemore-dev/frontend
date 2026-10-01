@@ -37,6 +37,23 @@ describe('FinanceTransactionsColumnComponent', () => {
     expect(editing).toHaveBeenCalledWith(FINANCE_TEST_TRANSACTION);
   });
 
+  it('shows the saved Telegram creator and source on active and deleted operations', () => {
+    fixture.componentRef.setInput('transactions', [
+      {
+        ...FINANCE_TEST_TRANSACTION,
+        source: 'telegram',
+        authorId: '42',
+        authorLabel: 'Family',
+        deleted: true,
+      },
+    ]);
+    fixture.detectChanges();
+    const root = fixture.nativeElement as HTMLElement;
+    expect(root.textContent).toContain('Family');
+    expect(root.textContent).toContain('finance.transaction.source.telegram');
+    expect(root.querySelector('.finance-archived')).not.toBeNull();
+  });
+
   it('requests creation from the header and exposes the expanded history state', () => {
     const creating = jest.fn();
     fixture.componentInstance.creationRequested.subscribe(creating);

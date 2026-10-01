@@ -39,7 +39,14 @@ describe('SettingsPageComponent', () => {
         {
           provide: TelegramSettingsService,
           useValue: {
-            load: () => of({ available: false, enabled: false, invitations: [], connections: [] }),
+            load: () =>
+              of({
+                available: false,
+                status: 'disabled',
+                enabled: false,
+                invitations: [],
+                connections: [],
+              }),
           },
         },
       ],

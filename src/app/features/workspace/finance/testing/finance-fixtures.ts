@@ -38,6 +38,9 @@ export const FINANCE_TEST_MONTH: FinanceMonth = {
 };
 
 export const FINANCE_TEST_TRANSACTION: FinanceTransaction = {
+  source: 'web',
+  authorId: 'owner',
+  authorLabel: 'owner',
   id: 'transaction',
   categoryId: 'food',
   categoryName: 'Еда',

@@ -5,17 +5,27 @@
 @if (error()) {
   <div class="alert alert-danger" role="alert">
     {{ error() | t }}
-    @if (!settings()) {
-      <button type="button" class="btn btn-outline-secondary btn-sm ms-2" (click)="load()">
+    @if (loadFailure()) {
+      <button
+        type="button"
+        class="btn btn-outline-secondary btn-sm ms-2"
+        [disabled]="loading()"
+        (click)="load()"
+      >
         {{ 'shared.retry' | t }}
       </button>
     }
   </div>
 }
 @if (settings(); as data) {
-  @if (!data.available) {
-    <p class="alert alert-info">{{ 'account.telegram.unavailable' | t }}</p>
-  } @else {
+  @if (!data.available || data.status === 'disabled') {
+    <p class="alert alert-info" role="status">{{ 'account.telegram.unavailable' | t }}</p>
+  } @else if (data.status === 'connecting') {
+    <p class="alert alert-info" role="status">{{ 'account.telegram.connecting' | t }}</p>
+  } @else if (data.status === 'failed') {
+    <p class="alert alert-warning" role="status">{{ 'account.telegram.failed' | t }}</p>
+  }
+  <fieldset [disabled]="!editable()">
     <div class="form-check form-switch mb-3">
       <input
         #telegramToggle
@@ -23,7 +33,7 @@
         type="checkbox"
         class="form-check-input"
         [checked]="data.enabled"
-        [disabled]="busy()"
+        [disabled]="!editable()"
         (change)="setEnabled(telegramToggle.checked)"
       />
       <label class="form-check-label" for="telegram-enabled">{{
@@ -37,7 +47,7 @@
         type="checkbox"
         class="form-check-input"
         [checked]="data.notify"
-        [disabled]="busy()"
+        [disabled]="!editable()"
         (change)="setNotify(notifyToggle.checked)"
       />
       <label class="form-check-label" for="telegram-notify">{{
@@ -66,7 +76,7 @@
             id="telegram-create-invite"
             class="btn btn-primary"
             type="button"
-            [disabled]="busy()"
+            [disabled]="!editable()"
             (click)="createInvitation()"
           >
             {{ 'account.telegram.createInvite' | t }}
@@ -76,13 +86,17 @@
       @if (issued(); as invite) {
         <div class="alert alert-success" role="status">
           <p class="mb-1">{{ 'account.telegram.linkOnce' | t }}</p>
-          <a
-            id="telegram-invite-link"
-            [href]="invite.url"
-            target="_blank"
-            rel="noopener noreferrer"
-            >{{ invite.url }}</a
-          >
+          @if (editable()) {
+            <a
+              id="telegram-invite-link"
+              [href]="invite.url"
+              target="_blank"
+              rel="noopener noreferrer"
+              >{{ invite.url }}</a
+            >
+          } @else {
+            <span id="telegram-invite-link">{{ invite.url }}</span>
+          }
           <p class="small mb-0">
             {{ 'account.telegram.expires' | t }}: {{ invite.expiresAt | date: 'medium' }}
           </p>
@@ -97,7 +111,7 @@
           <button
             class="btn btn-outline-danger btn-sm"
             type="button"
-            [disabled]="busy()"
+            [disabled]="!editable()"
             (click)="cancelInvitation(invite.id)"
           >
             {{ 'account.telegram.cancelInvite' | t }}
@@ -138,7 +152,7 @@
                     <button
                       type="button"
                       class="btn btn-primary btn-sm mt-1"
-                      [disabled]="busy()"
+                      [disabled]="!editable()"
                       (click)="rename(connection.id)"
                     >
                       {{ 'account.telegram.saveLabel' | t }}
@@ -168,7 +182,7 @@
                       <button
                         type="button"
                         class="btn btn-outline-primary btn-sm"
-                        [disabled]="busy()"
+                        [disabled]="!editable()"
                         (click)="beginEditNotifications(connection)"
                       >
                         {{ 'account.telegram.notificationSettings' | t }}
@@ -179,7 +193,7 @@
                         [id]="'telegram-approve-' + connection.id"
                         type="button"
                         class="btn btn-outline-success btn-sm"
-                        [disabled]="busy()"
+                        [disabled]="!editable()"
                         (click)="changeState(connection.id, 'approve')"
                       >
                         {{ 'account.telegram.approve' | t }}
@@ -187,7 +201,7 @@
                       <button
                         type="button"
                         class="btn btn-outline-secondary btn-sm"
-                        [disabled]="busy()"
+                        [disabled]="!editable()"
                         (click)="changeState(connection.id, 'revoke')"
                       >
                         {{ 'account.telegram.reject' | t }}
@@ -197,7 +211,7 @@
                       <button
                         type="button"
                         class="btn btn-outline-secondary btn-sm"
-                        [disabled]="busy()"
+                        [disabled]="!editable()"
                         (click)="changeState(connection.id, 'revoke')"
                       >
                         {{ 'account.telegram.revoke' | t }}
@@ -207,7 +221,7 @@
                       <button
                         type="button"
                         class="btn btn-outline-danger btn-sm"
-                        [disabled]="busy()"
+                        [disabled]="!editable()"
                         (click)="changeState(connection.id, 'block')"
                       >
                         {{ 'account.telegram.block' | t }}
@@ -216,7 +230,7 @@
                       <button
                         type="button"
                         class="btn btn-outline-secondary btn-sm"
-                        [disabled]="busy()"
+                        [disabled]="!editable()"
                         (click)="changeState(connection.id, 'unblock')"
                       >
                         {{ 'account.telegram.unblock' | t }}
@@ -241,7 +255,7 @@
               type="checkbox"
               id="telegram-notify-birthday"
               [checked]="draft.notifyBirthday"
-              [disabled]="busy()"
+              [disabled]="!editable()"
               (change)="updateNotificationDraft({ notifyBirthday: birthdayToggle.checked })"
             />
             <label class="form-check-label" for="telegram-notify-birthday">{{
@@ -255,12 +269,42 @@
               type="checkbox"
               id="telegram-notify-date"
               [checked]="draft.notifyMemorableDate"
-              [disabled]="busy()"
+              [disabled]="!editable()"
               (change)="updateNotificationDraft({ notifyMemorableDate: dateToggle.checked })"
             />
             <label class="form-check-label" for="telegram-notify-date">{{
               'account.telegram.notifyMemorableDate' | t
             }}</label>
+          </div>
+          <div class="form-check mb-3">
+            <input
+              #transactionToggle
+              type="checkbox"
+              class="form-check-input"
+              id="telegram-finance-transaction"
+              [checked]="draft.notifyFinanceTransaction"
+              [disabled]="!editable()"
+              (change)="
+                updateNotificationDraft({ notifyFinanceTransaction: transactionToggle.checked })
+              "
+            />
+            <label class="form-check-label" for="telegram-finance-transaction">
+              {{ 'account.telegram.notifyFinanceTransaction' | t }}
+            </label>
+          </div>
+          <div class="form-check mb-3">
+            <input
+              #limitToggle
+              type="checkbox"
+              class="form-check-input"
+              id="telegram-finance-limit"
+              [checked]="draft.notifyFinanceLimit"
+              [disabled]="!editable()"
+              (change)="updateNotificationDraft({ notifyFinanceLimit: limitToggle.checked })"
+            />
+            <label class="form-check-label" for="telegram-finance-limit">
+              {{ 'account.telegram.notifyFinanceLimit' | t }}
+            </label>
           </div>
           <div class="row g-2 mb-3">
             <div class="col-12 col-md-4">
@@ -272,7 +316,7 @@
                 id="telegram-notification-language"
                 class="form-select"
                 [value]="draft.language"
-                [disabled]="busy()"
+                [disabled]="!editable()"
                 (change)="setNotificationLanguage(languageSelect.value)"
               >
                 <option value="en">English</option>
@@ -283,7 +327,7 @@
           <button
             type="button"
             class="btn btn-primary btn-sm"
-            [disabled]="busy()"
+            [disabled]="!editable()"
             (click)="saveNotifications()"
           >
             {{ 'account.telegram.saveNotifications' | t }}
@@ -291,5 +335,5 @@
         </section>
       }
     }
-  }
+  </fieldset>
 }

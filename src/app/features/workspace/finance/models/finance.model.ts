@@ -49,6 +49,9 @@ export interface FinanceMonth {
 }
 
 export interface FinanceTransaction {
+  source: 'web' | 'telegram';
+  authorId: string;
+  authorLabel: string;
   id: string;
   categoryId: string | null;
   categoryName: string;

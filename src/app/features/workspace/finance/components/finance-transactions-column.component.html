@@ -68,6 +68,10 @@
                 <span>{{ transaction.description }}</span>
               }
             </button>
+            <small class="d-block text-body-secondary">
+              {{ 'finance.transaction.author' | t }}: {{ transaction.authorLabel }} ·
+              {{ 'finance.transaction.source.' + transaction.source | t }}
+            </small>
           </td>
           <td class="text-end finance-amount-cell">
             {{ money(transaction.amount, transaction.currency) }}

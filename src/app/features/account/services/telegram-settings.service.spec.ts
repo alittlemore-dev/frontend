@@ -5,7 +5,7 @@ import { signal } from '@angular/core';
 import { of } from 'rxjs';
 import { AccountSettingsService } from '../../../core/auth/account-settings.service';
 import { ApiClient } from '../../../core/http/api-client.service';
-import { TelegramSettingsService } from './telegram-settings.service';
+import { TelegramSettings, TelegramSettingsService } from './telegram-settings.service';
 
 describe('TelegramSettingsService', () => {
   let service: TelegramSettingsService;
@@ -45,10 +45,27 @@ describe('TelegramSettingsService', () => {
       item.url.endsWith('/api/personal-workspace/telegram'),
     );
     expect(workspaceRequest.request.method).toBe('GET');
-    workspaceRequest.flush({ available: true, invitations: [], connections: [] });
+    workspaceRequest.flush({ available: true, status: 'ready', invitations: [], connections: [] });
     expect(enabled).toBe(true);
     expect(available).toBe(true);
   });
+
+  it.each(['disabled', 'connecting', 'ready', 'failed'] as const)(
+    'retains the workspace %s status separately from configured availability',
+    (status) => {
+      let result: TelegramSettings | undefined;
+      service.load().subscribe((value) => (result = value));
+      http
+        .expectOne((item) => item.url.endsWith('/api/personal-workspace/telegram'))
+        .flush({
+          available: status !== 'disabled',
+          status,
+          invitations: [],
+          connections: [],
+        });
+      expect(result).toEqual(expect.objectContaining({ status, available: status !== 'disabled' }));
+    },
+  );
 
   it('saves the Telegram switch through the full account settings update', () => {
     preferences.update.mockReturnValue(of({ settings: accountSettings() }));
@@ -77,6 +94,8 @@ describe('TelegramSettingsService', () => {
     const settings = {
       notifyBirthday: true,
       notifyMemorableDate: false,
+      notifyFinanceTransaction: false,
+      notifyFinanceLimit: false,
       language: 'ru' as const,
     };
     service.updateConnectionSettings('abc', settings).subscribe();

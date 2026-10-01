@@ -21,16 +21,23 @@ export interface TelegramConnection {
   lastContactAt: string;
   notifyBirthday: boolean;
   notifyMemorableDate: boolean;
+  notifyFinanceTransaction: boolean;
+  notifyFinanceLimit: boolean;
   language: 'ru' | 'en';
 }
 
 export type TelegramConnectionSettings = Pick<
   TelegramConnection,
-  'notifyBirthday' | 'notifyMemorableDate' | 'language'
+  | 'notifyBirthday'
+  | 'notifyMemorableDate'
+  | 'notifyFinanceTransaction'
+  | 'notifyFinanceLimit'
+  | 'language'
 >;
 
 export interface TelegramSettings {
   available: boolean;
+  status: 'disabled' | 'connecting' | 'ready' | 'failed';
   enabled: boolean;
   notify: boolean;
   invitations: TelegramInvitation[];
@@ -55,7 +62,7 @@ export class TelegramSettingsService {
       const settings = this.preferences.settings();
       if (!settings) return throwError(() => new Error('Account settings are unavailable'));
       return this.api
-        .get<Pick<TelegramSettings, 'available' | 'invitations' | 'connections'>>(
+        .get<Pick<TelegramSettings, 'available' | 'status' | 'invitations' | 'connections'>>(
           this.workspaceBase,
         )
         .pipe(
