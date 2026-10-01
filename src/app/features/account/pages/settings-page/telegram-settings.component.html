@@ -31,6 +31,7 @@
         #telegramToggle
         id="telegram-enabled"
         type="checkbox"
+        role="switch"
         class="form-check-input"
         [checked]="data.enabled"
         [disabled]="!editable()"
@@ -45,6 +46,7 @@
         #notifyToggle
         id="telegram-notify"
         type="checkbox"
+        role="switch"
         class="form-check-input"
         [checked]="data.notify"
         [disabled]="!editable()"
@@ -248,11 +250,12 @@
           <h4 id="telegram-notification-title" class="h6">
             {{ 'account.telegram.notificationSettings' | t }} · {{ draft.label }}
           </h4>
-          <div class="form-check form-switch mb-2">
+          <div class="form-check form-switch mb-3">
             <input
               #birthdayToggle
               class="form-check-input"
               type="checkbox"
+              role="switch"
               id="telegram-notify-birthday"
               [checked]="draft.notifyBirthday"
               [disabled]="!editable()"
@@ -262,11 +265,12 @@
               'account.telegram.notifyBirthday' | t
             }}</label>
           </div>
-          <div class="form-check form-switch mb-2">
+          <div class="form-check form-switch mb-3">
             <input
               #dateToggle
               class="form-check-input"
               type="checkbox"
+              role="switch"
               id="telegram-notify-date"
               [checked]="draft.notifyMemorableDate"
               [disabled]="!editable()"
@@ -276,10 +280,11 @@
               'account.telegram.notifyMemorableDate' | t
             }}</label>
           </div>
-          <div class="form-check mb-3">
+          <div class="form-check form-switch mb-3">
             <input
               #transactionToggle
               type="checkbox"
+              role="switch"
               class="form-check-input"
               id="telegram-finance-transaction"
               [checked]="draft.notifyFinanceTransaction"
@@ -292,10 +297,11 @@
               {{ 'account.telegram.notifyFinanceTransaction' | t }}
             </label>
           </div>
-          <div class="form-check mb-3">
+          <div class="form-check form-switch mb-3">
             <input
               #limitToggle
               type="checkbox"
+              role="switch"
               class="form-check-input"
               id="telegram-finance-limit"
               [checked]="draft.notifyFinanceLimit"

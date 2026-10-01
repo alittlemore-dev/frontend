@@ -1,3 +1,25 @@
+@use 'bootstrap/scss/bootstrap';
+
+// Keep form controls themed while the app consumes design-system 0.3.3.
+.form-check-input:checked,
+.form-check-input[type='checkbox']:indeterminate {
+  background-color: var(--accent-color);
+  border-color: var(--accent-color);
+}
+
+.form-check-input:focus {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 0.25rem var(--bs-focus-ring-color);
+}
+
+.form-switch .form-check-input:focus:not(:checked) {
+  --bs-form-switch-bg: #{bootstrap.escape-svg(bootstrap.$form-switch-bg-image)};
+}
+
+[data-bs-theme='dark'] .form-switch .form-check-input:focus:not(:checked) {
+  --bs-form-switch-bg: #{bootstrap.escape-svg(bootstrap.$form-switch-bg-image-dark)};
+}
+
 .accent-border {
   border-color: var(--main-component-color) !important;
 }
