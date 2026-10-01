@@ -1,5 +1,5 @@
 import { Component, signal } from '@angular/core';
-import { fakeAsync, TestBed, tick } from '@angular/core/testing';
+import { TestBed } from '@angular/core/testing';
 import { Title } from '@angular/platform-browser';
 import { provideRouter, Router, TitleStrategy } from '@angular/router';
 import { I18nService } from '../i18n/i18n.service';
@@ -40,28 +40,25 @@ describe('LocalizedTitleStrategy', () => {
     title = TestBed.inject(Title);
   });
 
-  it('translates the active route title and updates it when the language changes', fakeAsync(() => {
-    void router.navigateByUrl('/admin');
-    tick();
+  it('translates the active route title and updates it when the language changes', async () => {
+    await router.navigateByUrl('/admin');
 
     expect(title.getTitle()).toBe('Админ-панель');
 
     language.set('en');
-    TestBed.flushEffects();
+    TestBed.tick();
 
     expect(title.getTitle()).toBe('Admin panel');
-  }));
+  });
 
-  it('does not overwrite a public SEO title when the active route has no title', fakeAsync(() => {
-    void router.navigateByUrl('/admin');
-    tick();
-    void router.navigateByUrl('/public');
-    tick();
+  it('does not overwrite a public SEO title when the active route has no title', async () => {
+    await router.navigateByUrl('/admin');
+    await router.navigateByUrl('/public');
     title.setTitle('Public SEO title');
 
     language.set('en');
-    TestBed.flushEffects();
+    TestBed.tick();
 
     expect(title.getTitle()).toBe('Public SEO title');
-  }));
+  });
 });
