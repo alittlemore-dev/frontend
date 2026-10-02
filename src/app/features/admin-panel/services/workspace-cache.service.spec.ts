@@ -2,18 +2,23 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { ApiClient } from '../../../core/http/api-client.service';
-import { CacheStatus, CacheWarmOperation } from '../models/tools.model';
-import { ToolsService } from './tools.service';
+import { CacheStatus, CacheWarmOperation } from '../models/workspace-cache.model';
+import { WorkspaceCacheService } from './workspace-cache.service';
 
-describe('ToolsService', () => {
-  let service: ToolsService;
+describe('WorkspaceCacheService', () => {
+  let service: WorkspaceCacheService;
   let httpMock: HttpTestingController;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [ToolsService, ApiClient, provideHttpClient(), provideHttpClientTesting()],
+      providers: [
+        WorkspaceCacheService,
+        ApiClient,
+        provideHttpClient(),
+        provideHttpClientTesting(),
+      ],
     });
-    service = TestBed.inject(ToolsService);
+    service = TestBed.inject(WorkspaceCacheService);
     httpMock = TestBed.inject(HttpTestingController);
   });
 

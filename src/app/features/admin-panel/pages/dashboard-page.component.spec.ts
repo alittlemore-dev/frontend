@@ -12,6 +12,7 @@ import {
   ModeratorDashboardMatrixStats,
   ModeratorDashboardQueueStats,
 } from '../models/moderator-dashboard.model';
+import { WorkspaceCacheService } from '../services/workspace-cache.service';
 import { AdminToolsService } from '../services/admin-tools.service';
 import { ModeratorDashboardService } from '../services/moderator-dashboard.service';
 import { DashboardPageComponent } from './dashboard-page.component';
@@ -33,6 +34,8 @@ describe('DashboardPageComponent', () => {
     pruneAuthSessions: jest.Mock;
   };
 
+  let workspaceCacheService: { getCacheStatus: jest.Mock };
+
   beforeEach(async () => {
     canManageTeam = signal(true);
     currentUser = signal({ username: 'admin', role: 'admin' });
@@ -41,6 +44,7 @@ describe('DashboardPageComponent', () => {
     moderatorMatrixResponse = of({ draft: 8, missingDraft: 4, dangerousPublished: 2 });
     getQueueStats = jest.fn(() => moderatorQueueResponse);
     getMatrixStats = jest.fn(() => moderatorMatrixResponse);
+    workspaceCacheService = { getCacheStatus: jest.fn(() => of(cacheStatus())) };
     toolsService = {
       getCacheStatus: jest.fn().mockReturnValue(of(cacheStatus())),
       clearCache: jest.fn().mockReturnValue(of(cacheStatus())),
@@ -61,6 +65,7 @@ describe('DashboardPageComponent', () => {
           useValue: { getQueueStats, getMatrixStats },
         },
         { provide: AdminToolsService, useValue: toolsService },
+        { provide: WorkspaceCacheService, useValue: workspaceCacheService },
         {
           provide: NotificationService,
           useValue: { success: jest.fn(), error: jest.fn() },
@@ -84,21 +89,26 @@ describe('DashboardPageComponent', () => {
     render();
   }
 
-  it('renders manager operational tools directly without dashboard tabs', () => {
-    render();
+  it.each(['admin', 'owner'] as const)(
+    'renders operational tools for %s without dashboard tabs',
+    (role) => {
+      currentUser.set({ username: role, role });
+      render();
 
-    const view = fixture.nativeElement.querySelector(
-      '[data-testid="dashboard-manager-view"]',
-    ) as HTMLElement;
+      const view = fixture.nativeElement.querySelector(
+        '[data-testid="dashboard-manager-view"]',
+      ) as HTMLElement;
 
-    expect(view.querySelector('[role="tablist"]')).toBeNull();
-    expect(view.querySelector('[role="tabpanel"]')).toBeNull();
-    expect(view.querySelector('app-admin-tools-widget')).not.toBeNull();
-    expect(view.querySelector('[data-testid="admin-tools-cache-card"]')).not.toBeNull();
-    expect(view.querySelector('[data-testid="admin-tools-sessions-card"]')).not.toBeNull();
-    expect(getQueueStats).not.toHaveBeenCalled();
-    expect(getMatrixStats).not.toHaveBeenCalled();
-  });
+      expect(view.querySelector('[role="tablist"]')).toBeNull();
+      expect(view.querySelector('[role="tabpanel"]')).toBeNull();
+      expect(view.querySelector('app-admin-tools-widget')).not.toBeNull();
+      expect(view.querySelector('[data-testid="admin-tools-cache-card"]')).not.toBeNull();
+      expect(view.querySelector('[data-testid="workspace-cache-card"]')).not.toBeNull();
+      expect(view.querySelector('[data-testid="admin-tools-sessions-card"]')).not.toBeNull();
+      expect(getQueueStats).not.toHaveBeenCalled();
+      expect(getMatrixStats).not.toHaveBeenCalled();
+    },
+  );
 
   it('refreshes both directly rendered manager tools', () => {
     render();
@@ -110,6 +120,7 @@ describe('DashboardPageComponent', () => {
 
     expect(toolsService.getCacheStatus).toHaveBeenCalledTimes(2);
     expect(toolsService.getAuthSessionsStatus).toHaveBeenCalledTimes(2);
+    expect(workspaceCacheService.getCacheStatus).toHaveBeenCalledTimes(2);
   });
 
   it('keeps moderator Matrix and Queue views as accessible tabs', () => {
@@ -158,6 +169,8 @@ describe('DashboardPageComponent', () => {
     ).not.toBeNull();
     expect(view.querySelector('app-admin-tools-widget')).toBeNull();
     expect(toolsService.getCacheStatus).not.toHaveBeenCalled();
+    expect(workspaceCacheService.getCacheStatus).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.querySelector('app-workspace-cache-widget')).toBeNull();
   });
 
   it('keeps the Matrix panel usable when the moderator Queue request fails', () => {

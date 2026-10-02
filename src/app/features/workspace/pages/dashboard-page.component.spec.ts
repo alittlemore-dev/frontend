@@ -8,7 +8,6 @@ import { I18nService } from '../../../core/i18n/i18n.service';
 
 import { provideI18nTesting } from '../../../testing/i18n-testing';
 import { CalendarService } from '../services/calendar.service';
-import { ToolsService } from '../services/tools.service';
 import { EventsService } from '../services/events.service';
 import { ImportantInfoService } from '../services/important-info.service';
 import { DashboardPageComponent } from './dashboard-page.component';
@@ -42,15 +41,6 @@ describe('DashboardPageComponent', () => {
         { provide: AccountSettingsService, useValue: { timeZone } },
         { provide: EventsService, useValue: { occurrences: jest.fn(() => NEVER) } },
         { provide: ImportantInfoService, useValue: { list: jest.fn(() => NEVER) } },
-        {
-          provide: ToolsService,
-          useValue: {
-            getCacheStatus: jest.fn(() => NEVER),
-            clearCache: jest.fn(() => NEVER),
-            startCacheWarm: jest.fn(() => NEVER),
-            getCacheWarmOperation: jest.fn(() => NEVER),
-          },
-        },
         {
           provide: NotificationService,
           useValue: { success: jest.fn(), error: jest.fn() },
@@ -100,24 +90,6 @@ describe('DashboardPageComponent', () => {
     expect(
       calendarPanel.querySelector('[data-testid="ds-section-toggle-month-calendar"]'),
     ).toBeNull();
-  });
-
-  it('shows tools without a collapse control', () => {
-    fixture = TestBed.createComponent(DashboardPageComponent);
-    fixture.detectChanges();
-
-    const toolsTab = fixture.nativeElement.querySelector(
-      '[data-testid="dashboard-tab-tools"]',
-    ) as HTMLButtonElement;
-    toolsTab.click();
-    fixture.detectChanges();
-
-    const toolsPanel = fixture.nativeElement.querySelector(
-      '[data-testid="dashboard-tabpanel-tools"]',
-    ) as HTMLElement;
-    expect(toolsPanel.hidden).toBe(false);
-    expect(toolsPanel.querySelector('app-tools-widget')).not.toBeNull();
-    expect(toolsPanel.querySelector('[data-testid="ds-section-toggle-tools"]')).toBeNull();
   });
 
   it('loads only known collapsed sections from browser storage', () => {

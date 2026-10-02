@@ -65,14 +65,9 @@ export const adminGuard = teamGuard;
 export const workspaceGuard: CanActivateFn = (_route, state) => {
   const auth = inject(AuthService);
   const router = inject(Router);
-  const i18n = inject(I18nService);
   const login = () => router.createUrlTree(['/login'], { queryParams: { returnUrl: state.url } });
   return auth.ensureCurrentUserLoaded().pipe(
-    map(
-      () =>
-        auth.canManageContent() ||
-        (auth.isLoggedIn() ? currentPublicHomeUrlTree(router, i18n) : login()),
-    ),
+    map(() => auth.isLoggedIn() || login()),
     catchError(() => {
       auth.clearLocalSession();
       return of(login());

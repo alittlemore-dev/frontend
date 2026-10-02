@@ -277,6 +277,36 @@ describe('ownerGuard', () => {
 
 describe('workspace access', () => {
   it.each([workspaceGuard, workspaceChildGuard])(
+    'redirects failed session restoration to login',
+    async (guard) => {
+      const clearLocalSession = jest.fn();
+      TestBed.configureTestingModule({
+        providers: [
+          provideRouter([]),
+          {
+            provide: AuthService,
+            useValue: {
+              ensureCurrentUserLoaded: () => throwError(() => new Error('restore failed')),
+              clearLocalSession,
+            },
+          },
+        ],
+      });
+      const result = await firstValueFrom(
+        TestBed.runInInjectionContext(() =>
+          guard(
+            {} as ActivatedRouteSnapshot,
+            { url: '/personal-workspace/resumes' } as RouterStateSnapshot,
+          ),
+        ) as import('rxjs').Observable<GuardResult>,
+      );
+      expect((result as UrlTree).toString()).toBe(
+        '/login?returnUrl=%2Fpersonal-workspace%2Fresumes',
+      );
+      expect(clearLocalSession).toHaveBeenCalledTimes(1);
+    },
+  );
+  it.each([workspaceGuard, workspaceChildGuard])(
     'preserves anonymous deep links through login',
     async (guard) => {
       TestBed.configureTestingModule({
@@ -310,7 +340,7 @@ describe('workspace access', () => {
     ['owner', true],
     ['admin', true],
     ['moderator', true],
-    ['user', false],
+    ['user', true],
   ])('applies workspace access to role %s', async (role, permitted) => {
     TestBed.configureTestingModule({
       providers: [

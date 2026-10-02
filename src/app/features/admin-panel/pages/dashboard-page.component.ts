@@ -18,6 +18,7 @@ import { TranslatePipe } from '../../../core/i18n/translate.pipe';
 import { ApiError } from '../../../core/models/api-error.model';
 import { ErrorMessageComponent, LoadingSpinnerComponent } from '@alittlemore.dev/design-system';
 
+import { WorkspaceCacheWidgetComponent } from '../components/workspace-cache-widget/workspace-cache-widget.component';
 import { AdminToolsWidgetComponent } from '../components/admin-tools-widget/admin-tools-widget.component';
 import { DashboardFoldableSectionComponent } from '../components/dashboard-foldable-section/dashboard-foldable-section.component';
 import {
@@ -54,6 +55,7 @@ const MODERATOR_DASHBOARD_SECTIONS: readonly DashboardSectionKey[] = [
     LoadingSpinnerComponent,
     DashboardFoldableSectionComponent,
     AdminToolsWidgetComponent,
+    WorkspaceCacheWidgetComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './dashboard-page.component.html',
@@ -70,6 +72,9 @@ export class DashboardPageComponent implements OnInit {
 
   @ViewChild(AdminToolsWidgetComponent)
   private adminToolsWidget: AdminToolsWidgetComponent | undefined;
+
+  @ViewChild(WorkspaceCacheWidgetComponent)
+  private workspaceCacheWidget: WorkspaceCacheWidgetComponent | undefined;
 
   readonly canManageTeam = this.auth.canManageTeam;
   readonly moderatorQueueStats = signal<ModeratorDashboardQueueStats | null>(null);
@@ -118,6 +123,7 @@ export class DashboardPageComponent implements OnInit {
     if (this.canManageTeam()) {
       this.adminToolsWidget?.loadCacheStatus();
       this.adminToolsWidget?.loadSessionsStatus();
+      this.workspaceCacheWidget?.loadCacheStatus();
       return;
     }
     this.loadModeratorQueue();

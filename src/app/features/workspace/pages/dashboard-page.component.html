@@ -135,15 +135,5 @@
         <app-events-calendar />
       }
     </div>
-
-    <div
-      role="tabpanel"
-      [id]="tabPanelId('tools')"
-      [attr.aria-labelledby]="tabId('tools')"
-      [attr.data-testid]="'dashboard-tabpanel-tools'"
-      [hidden]="activeTab() !== 'tools'"
-    >
-      <app-tools-widget />
-    </div>
   </div>
 </div>

@@ -23,7 +23,6 @@ import { TranslatePipe } from '../../../core/i18n/translate.pipe';
 import { ApiError } from '../../../core/models/api-error.model';
 
 import { FoldableSectionComponent } from '@alittlemore.dev/design-system';
-import { ToolsWidgetComponent } from '../components/tools-widget/tools-widget.component';
 import { ImportantInfoComponent } from '../components/important-info/important-info.component';
 import { EventsCalendarComponent } from '../components/events-calendar/events-calendar.component';
 import { formatAnnualDate } from '../knowledge/shared/annual-date';
@@ -33,7 +32,7 @@ import { Temporal } from 'temporal-polyfill';
 
 type DashboardSectionKey = 'upcoming-dates' | 'important-info';
 
-type DashboardTabKey = 'home' | 'month-calendar' | 'tools';
+type DashboardTabKey = 'home' | 'month-calendar';
 
 interface DashboardTabDefinition {
   key: DashboardTabKey;
@@ -45,7 +44,6 @@ const DASHBOARD_COLLAPSED_SECTIONS_STORAGE_KEY = 'dashboardCollapsedSections';
 const DASHBOARD_TABS: readonly DashboardTabDefinition[] = [
   { key: 'home', labelKey: 'workspaceDashboard.home.title' },
   { key: 'month-calendar', labelKey: 'workspaceDashboard.calendar.title' },
-  { key: 'tools', labelKey: 'workspaceDashboard.tools.title' },
 ];
 
 const DASHBOARD_SECTIONS: readonly DashboardSectionKey[] = ['important-info', 'upcoming-dates'];
@@ -62,7 +60,6 @@ const DASHBOARD_SECTIONS: readonly DashboardSectionKey[] = ['important-info', 'u
     FoldableSectionComponent,
     ImportantInfoComponent,
     EventsCalendarComponent,
-    ToolsWidgetComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './dashboard-page.component.html',

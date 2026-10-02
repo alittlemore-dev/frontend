@@ -19,21 +19,21 @@ import {
   CacheDomain,
   CacheWarmOperation,
   CacheWarmStatus,
-} from '../../models/tools.model';
-import { ToolsService } from '../../services/tools.service';
+} from '../../models/workspace-cache.model';
+import { WorkspaceCacheService } from '../../services/workspace-cache.service';
 
 const CACHE_WARM_POLL_INTERVAL_MS = 1000;
 
 @Component({
-  selector: 'app-tools-widget',
+  selector: 'app-workspace-cache-widget',
   standalone: true,
   imports: [TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  templateUrl: './tools-widget.component.html',
-  styleUrl: './tools-widget.component.scss',
+  templateUrl: './workspace-cache-widget.component.html',
+  styleUrl: './workspace-cache-widget.component.scss',
 })
-export class ToolsWidgetComponent implements OnInit {
-  private readonly service = inject(ToolsService);
+export class WorkspaceCacheWidgetComponent implements OnInit {
+  private readonly service = inject(WorkspaceCacheService);
   private readonly notifications = inject(NotificationService);
   private readonly i18n = inject(I18nService);
   private readonly document = inject(DOCUMENT);
@@ -89,7 +89,9 @@ export class ToolsWidgetComponent implements OnInit {
         error: (error: ApiError) => {
           this.cacheLoading.set(false);
           const errorKey =
-            this.cacheStatus() === null ? 'tools.cache.loadError' : 'tools.cache.refreshError';
+            this.cacheStatus() === null
+              ? 'adminWorkspaceTools.cache.loadError'
+              : 'adminWorkspaceTools.cache.refreshError';
           if (this.cacheStatus() === null) {
             this.cacheLoadError.set(error);
           } else {
@@ -103,7 +105,9 @@ export class ToolsWidgetComponent implements OnInit {
   clearCache(): void {
     if (this.cacheMutationActive()) return;
     const confirmed =
-      this.document.defaultView?.confirm(this.i18n.translate('tools.cache.confirmClear')) ?? false;
+      this.document.defaultView?.confirm(
+        this.i18n.translate('adminWorkspaceTools.cache.confirmClear'),
+      ) ?? false;
     if (!confirmed) return;
 
     this.cacheClearing.set(true);
@@ -115,12 +119,12 @@ export class ToolsWidgetComponent implements OnInit {
         next: (status) => {
           this.cacheStatus.set(status);
           this.cacheClearing.set(false);
-          this.notifications.success(this.i18n.translate('tools.cache.clearSuccess'));
+          this.notifications.success(this.i18n.translate('adminWorkspaceTools.cache.clearSuccess'));
         },
         error: () => {
           this.cacheClearing.set(false);
-          this.cacheActionErrorKey.set('tools.cache.clearError');
-          this.notifications.error(this.i18n.translate('tools.cache.clearError'));
+          this.cacheActionErrorKey.set('adminWorkspaceTools.cache.clearError');
+          this.notifications.error(this.i18n.translate('adminWorkspaceTools.cache.clearError'));
         },
       });
   }
@@ -137,8 +141,8 @@ export class ToolsWidgetComponent implements OnInit {
         next: (operation) => this.handleWarmOperation(operation),
         error: () => {
           this.cacheWarming.set(false);
-          this.cacheActionErrorKey.set('tools.cache.warmStartError');
-          this.notifications.error(this.i18n.translate('tools.cache.warmStartError'));
+          this.cacheActionErrorKey.set('adminWorkspaceTools.cache.warmStartError');
+          this.notifications.error(this.i18n.translate('adminWorkspaceTools.cache.warmStartError'));
         },
       });
   }
@@ -154,13 +158,13 @@ export class ToolsWidgetComponent implements OnInit {
 
   domainLabelKey(domain: CacheDomain): string {
     const keys: Record<CacheDomain, string> = {
-      i18n: 'tools.cache.domain.i18n',
+      i18n: 'adminWorkspaceTools.cache.domain.i18n',
     };
     return keys[domain];
   }
 
   warmStatusLabelKey(status: CacheWarmStatus): string {
-    return `tools.cache.status.${status}`;
+    return `adminWorkspaceTools.cache.status.${status}`;
   }
 
   warmStatusBadgeClass(status: CacheWarmStatus): string {
@@ -186,10 +190,10 @@ export class ToolsWidgetComponent implements OnInit {
 
     this.cacheWarming.set(false);
     if (operation.status === 'succeeded') {
-      this.notifications.success(this.i18n.translate('tools.cache.warmSuccess'));
+      this.notifications.success(this.i18n.translate('adminWorkspaceTools.cache.warmSuccess'));
     } else {
-      this.cacheActionErrorKey.set('tools.cache.warmFailed');
-      this.notifications.error(this.i18n.translate('tools.cache.warmFailed'));
+      this.cacheActionErrorKey.set('adminWorkspaceTools.cache.warmFailed');
+      this.notifications.error(this.i18n.translate('adminWorkspaceTools.cache.warmFailed'));
     }
     this.loadCacheStatus();
   }
@@ -198,8 +202,8 @@ export class ToolsWidgetComponent implements OnInit {
     const timerWindow = this.document.defaultView;
     if (timerWindow === null) {
       this.cacheWarming.set(false);
-      this.cacheActionErrorKey.set('tools.cache.pollError');
-      this.notifications.error(this.i18n.translate('tools.cache.pollError'));
+      this.cacheActionErrorKey.set('adminWorkspaceTools.cache.pollError');
+      this.notifications.error(this.i18n.translate('adminWorkspaceTools.cache.pollError'));
       return;
     }
     this.clearWarmPoll();
@@ -216,8 +220,8 @@ export class ToolsWidgetComponent implements OnInit {
       .subscribe({
         next: (operation) => this.handleWarmOperation(operation),
         error: () => {
-          this.cacheActionErrorKey.set('tools.cache.pollError');
-          this.notifications.error(this.i18n.translate('tools.cache.pollError'));
+          this.cacheActionErrorKey.set('adminWorkspaceTools.cache.pollError');
+          this.notifications.error(this.i18n.translate('adminWorkspaceTools.cache.pollError'));
         },
       });
   }

@@ -79,9 +79,6 @@ export class SiteHeaderComponent {
     };
   });
   readonly canManageContent = computed(() => this.authService.canManageContent());
-  readonly canOpenWorkspace = computed(
-    () => !this.isLoggedIn() || this.authService.canManageContent(),
-  );
   readonly languageOptions = computed(() =>
     this.i18n.languages().map((language) => ({
       code: language.code,

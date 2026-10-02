@@ -145,14 +145,14 @@ describe('Shared site header', () => {
   });
 
   it.each(['owner', 'admin', 'moderator'] as const)(
-    'shows workspace for %s and hides it for regular users',
+    'shows workspace for %s and regular users',
     (role) => {
       currentUser.set({ username: role, role });
       fixture.detectChanges();
       expect(el.querySelector('a[href="/personal-workspace"]')).not.toBeNull();
       currentUser.set({ username: 'reader', role: 'user' });
       fixture.detectChanges();
-      expect(el.querySelector('a[href="/personal-workspace"]')).toBeNull();
+      expect(el.querySelector('a[href="/personal-workspace"]')).not.toBeNull();
       expect(el.querySelector('a[href="/admin-panel"]')).toBeNull();
     },
   );

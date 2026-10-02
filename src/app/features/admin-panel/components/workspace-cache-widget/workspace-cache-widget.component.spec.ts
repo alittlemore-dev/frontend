@@ -4,20 +4,20 @@ import { Subject, of, throwError } from 'rxjs';
 import { ApiError } from '../../../../core/models/api-error.model';
 
 import { provideI18nTesting } from '../../../../testing/i18n-testing';
-import { CacheStatus, CacheWarmOperation } from '../../models/tools.model';
-import { ToolsService } from '../../services/tools.service';
-import { ToolsWidgetComponent } from './tools-widget.component';
+import { CacheStatus, CacheWarmOperation } from '../../models/workspace-cache.model';
+import { WorkspaceCacheService } from '../../services/workspace-cache.service';
+import { WorkspaceCacheWidgetComponent } from './workspace-cache-widget.component';
 
-interface ToolsServiceMock {
+interface WorkspaceCacheServiceMock {
   getCacheStatus: jest.Mock;
   clearCache: jest.Mock;
   startCacheWarm: jest.Mock;
   getCacheWarmOperation: jest.Mock;
 }
 
-describe('ToolsWidgetComponent', () => {
-  let fixture: ComponentFixture<ToolsWidgetComponent>;
-  let service: ToolsServiceMock;
+describe('WorkspaceCacheWidgetComponent', () => {
+  let fixture: ComponentFixture<WorkspaceCacheWidgetComponent>;
+  let service: WorkspaceCacheServiceMock;
 
   beforeEach(async () => {
     jest.useFakeTimers();
@@ -29,10 +29,10 @@ describe('ToolsWidgetComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [ToolsWidgetComponent],
+      imports: [WorkspaceCacheWidgetComponent],
       providers: [
         provideI18nTesting(),
-        { provide: ToolsService, useValue: service },
+        { provide: WorkspaceCacheService, useValue: service },
         {
           provide: NotificationService,
           useValue: { success: jest.fn(), error: jest.fn() },
@@ -40,7 +40,7 @@ describe('ToolsWidgetComponent', () => {
       ],
     }).compileComponents();
 
-    fixture = TestBed.createComponent(ToolsWidgetComponent);
+    fixture = TestBed.createComponent(WorkspaceCacheWidgetComponent);
   });
 
   afterEach(() => {
@@ -56,9 +56,9 @@ describe('ToolsWidgetComponent', () => {
 
     fixture.detectChanges();
 
-    expect(element('[data-testid="tools-cache-card"]')).not.toBeNull();
-    expect(element('[data-testid="tools-cache-skeleton"]')).not.toBeNull();
-    expect(element('[data-testid="tools-cache-clear"]')).toBeNull();
+    expect(element('[data-testid="workspace-cache-card"]')).not.toBeNull();
+    expect(element('[data-testid="workspace-cache-skeleton"]')).not.toBeNull();
+    expect(element('[data-testid="workspace-cache-clear"]')).toBeNull();
   });
 
   it('renders a failed initial request and replaces it with cache data after retry', () => {
@@ -71,21 +71,21 @@ describe('ToolsWidgetComponent', () => {
       'Cache status is unavailable.',
     );
 
-    click('[data-testid="tools-cache-retry"]');
+    click('[data-testid="workspace-cache-retry"]');
 
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('Ключей: 3');
-    expect(element('[data-testid="tools-cache-retry"]')).toBeNull();
+    expect(element('[data-testid="workspace-cache-retry"]')).toBeNull();
   });
 
   it('changes displayed cache state only after the user confirms clearing', () => {
     const confirm = jest.spyOn(window, 'confirm').mockReturnValue(false);
     fixture.detectChanges();
 
-    click('[data-testid="tools-cache-clear"]');
+    click('[data-testid="workspace-cache-clear"]');
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('Ключей: 3');
 
     confirm.mockReturnValue(true);
-    click('[data-testid="tools-cache-clear"]');
+    click('[data-testid="workspace-cache-clear"]');
 
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('Ключей: 0');
   });
@@ -93,22 +93,22 @@ describe('ToolsWidgetComponent', () => {
   it('shows a queued warm as busy and unlocks actions after terminal polling', () => {
     fixture.detectChanges();
 
-    click('[data-testid="tools-cache-warm"]');
+    click('[data-testid="workspace-cache-warm"]');
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('В очереди');
-    expect(button('[data-testid="tools-cache-clear"]').disabled).toBe(true);
-    expect(button('[data-testid="tools-cache-warm"]').disabled).toBe(true);
+    expect(button('[data-testid="workspace-cache-clear"]').disabled).toBe(true);
+    expect(button('[data-testid="workspace-cache-warm"]').disabled).toBe(true);
 
     jest.advanceTimersByTime(1000);
     fixture.detectChanges();
 
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('Успешно');
-    expect(button('[data-testid="tools-cache-clear"]').disabled).toBe(false);
-    expect(button('[data-testid="tools-cache-warm"]').disabled).toBe(false);
+    expect(button('[data-testid="workspace-cache-clear"]').disabled).toBe(false);
+    expect(button('[data-testid="workspace-cache-warm"]').disabled).toBe(false);
   });
 
   it('cancels a queued warm poll when the widget is destroyed', () => {
     fixture.detectChanges();
-    click('[data-testid="tools-cache-warm"]');
+    click('[data-testid="workspace-cache-warm"]');
 
     fixture.destroy();
     jest.advanceTimersByTime(1000);

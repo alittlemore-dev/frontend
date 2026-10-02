@@ -8,10 +8,10 @@ import {
   CacheWarmOperationDto,
   mapCacheStatusDto,
   mapCacheWarmOperationDto,
-} from '../models/tools.model';
+} from '../models/workspace-cache.model';
 
 @Injectable({ providedIn: 'root' })
-export class ToolsService {
+export class WorkspaceCacheService {
   private readonly api = inject(ApiClient);
 
   getCacheStatus(): Observable<CacheStatus> {
