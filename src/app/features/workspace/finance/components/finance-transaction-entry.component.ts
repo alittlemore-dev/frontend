@@ -79,7 +79,7 @@ export class FinanceTransactionEntryComponent {
   ]);
   readonly dateTimeLabels = computed<LocalizedDateTimePickerLabels>(() => {
     this.i18n.language();
-    // The picker shortcuts use browser wall time; transaction drafts use the tracker zone.
+    // Picker shortcuts use browser wall time; transaction drafts use the account zone.
     const browserTime = this.timeZone() === Intl.DateTimeFormat().resolvedOptions().timeZone;
     return {
       placeholder: this.i18n.translate('finance.dateTime.placeholder'),

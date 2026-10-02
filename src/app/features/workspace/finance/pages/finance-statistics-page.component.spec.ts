@@ -1,3 +1,5 @@
+import { AccountSettingsService } from '../../../../core/auth/account-settings.service';
+import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
@@ -12,11 +14,13 @@ import {
 import { FinanceStatisticsPageComponent } from './finance-statistics-page.component';
 
 describe('FinanceStatisticsPageComponent', () => {
+  const timeZone = signal('UTC');
   const service = {
     ensure: jest.fn(() => of(MONTH)),
     statistics: jest.fn(() => of({ currency: 'USD' as const, reports: [STATISTICS] })),
   };
   beforeEach(() => {
+    timeZone.set('UTC');
     service.statistics.mockReturnValue(of({ currency: 'USD' as const, reports: [STATISTICS] }));
     jest.clearAllMocks();
     TestBed.configureTestingModule({
@@ -24,6 +28,7 @@ describe('FinanceStatisticsPageComponent', () => {
         provideRouter([{ path: 'finance/statistics', component: FinanceStatisticsPageComponent }]),
         provideI18nTesting(),
         { provide: FinanceService, useValue: service },
+        { provide: AccountSettingsService, useValue: { timeZone } },
       ],
     });
   });
@@ -38,6 +43,17 @@ describe('FinanceStatisticsPageComponent', () => {
     expect(root.querySelector('input')).toBeNull();
     expect(root.querySelectorAll('app-finance-chart')).toHaveLength(10);
     expect(root.querySelector('app-finance-budget-column')?.textContent).toContain('$');
+  });
+
+  it('reloads analytics boundaries when the account zone changes', async () => {
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl('/finance/statistics?period=last7Days&currency=EUR');
+    timeZone.set('Asia/Yerevan');
+    harness.detectChanges();
+    expect(service.ensure).toHaveBeenCalledTimes(2);
+    expect(service.statistics).toHaveBeenCalledTimes(2);
+    expect(service.statistics).toHaveBeenLastCalledWith('last7Days', 'EUR');
+    expect(harness.routeNativeElement!.textContent).toContain('Asia/Yerevan');
   });
 
   it('does not show plans or balances for a rolling period', async () => {

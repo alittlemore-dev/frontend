@@ -1,3 +1,4 @@
+import { AccountSettingsService } from '../../../../core/auth/account-settings.service';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
@@ -32,6 +33,7 @@ describe('Finance month navigation', () => {
         provideRouter([{ path: 'finance', component: FinanceOverviewPageComponent }]),
         provideI18nTesting(),
         { provide: FinanceService, useValue: service },
+        { provide: AccountSettingsService, useValue: { timeZone: () => 'UTC' } },
       ],
     });
   });

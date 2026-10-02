@@ -13,6 +13,7 @@ describe('FinanceTransactionsColumnComponent', () => {
     }).compileComponents();
     fixture = TestBed.createComponent(FinanceTransactionsColumnComponent);
     fixture.componentRef.setInput('kind', 'expense');
+    fixture.componentRef.setInput('timeZone', 'UTC');
     fixture.componentRef.setInput('month', FINANCE_TEST_MONTH);
     fixture.componentRef.setInput('transactions', [FINANCE_TEST_TRANSACTION]);
     fixture.componentRef.setInput('historyTransactionId', null);

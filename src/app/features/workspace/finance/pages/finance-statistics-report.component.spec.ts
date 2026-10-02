@@ -13,6 +13,7 @@ describe('FinanceStatisticsReportComponent', () => {
 
   it('shows all budget charts and tables with the projected currency and saved-rate date', () => {
     const fixture = TestBed.createComponent(FinanceStatisticsReportComponent);
+    fixture.componentRef.setInput('timeZone', 'UTC');
     fixture.componentRef.setInput('statistics', {
       ...STATISTICS,
       currency: 'AMD',
@@ -32,6 +33,7 @@ describe('FinanceStatisticsReportComponent', () => {
 
   it('uses the exact uncategorized amount supplied by the API in the budget', () => {
     const fixture = TestBed.createComponent(FinanceStatisticsReportComponent);
+    fixture.componentRef.setInput('timeZone', 'UTC');
     fixture.componentRef.setInput('statistics', { ...STATISTICS, uncategorizedIncome: '5.25' });
     fixture.componentRef.setInput('tab', 'summary');
     fixture.detectChanges();
@@ -41,5 +43,32 @@ describe('FinanceStatisticsReportComponent', () => {
     const uncategorized = rows.find((row) => row.textContent?.includes('Без категории'));
     expect(uncategorized?.textContent).toContain('5,25');
     expect(uncategorized?.querySelector('button')).toBeNull();
+  });
+
+  it('labels UTC timeline buckets in the selected display zone and keeps their values', () => {
+    const fixture = TestBed.createComponent(FinanceStatisticsReportComponent);
+    fixture.componentRef.setInput('timeZone', 'Asia/Yerevan');
+    fixture.componentRef.setInput('statistics', {
+      ...STATISTICS,
+      window: { ...STATISTICS.window, granularity: 'hour' },
+      income: {
+        ...STATISTICS.income,
+        timeline: [
+          {
+            start: '2026-09-30T23:00:00Z',
+            end: '2026-10-01T00:00:00Z',
+            amount: '10',
+          },
+        ],
+      },
+    });
+    fixture.componentRef.setInput('tab', 'income');
+    fixture.detectChanges();
+    const root = fixture.nativeElement as HTMLElement;
+    expect(root.textContent).toContain('03:00');
+    fixture.componentRef.setInput('timeZone', 'Pacific/Honolulu');
+    fixture.detectChanges();
+    expect(root.textContent).toContain('13:00');
+    expect(root.textContent).toContain('10');
   });
 });

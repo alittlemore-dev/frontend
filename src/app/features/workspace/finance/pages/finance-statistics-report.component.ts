@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 import { I18nService } from '../../../../core/i18n/i18n.service';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
-import { Temporal } from 'temporal-polyfill';
+import { formatFinanceDate, financePeriodEnd } from '../utils/finance-time';
 import { FinanceBudgetColumnComponent } from '../components/finance-budget-column.component';
 import { FinanceChartComponent, FinanceChartDatum } from '../components/finance-chart.component';
 import {
@@ -25,6 +25,7 @@ import { formatFinanceMoney } from '../utils/finance-format';
 export class FinanceStatisticsReportComponent {
   readonly i18n = inject(I18nService);
   readonly statistics = input.required<FinanceStatistics>();
+  readonly timeZone = input.required<string>();
   readonly tab = input.required<'summary' | FinanceKind>();
   readonly kinds: readonly FinanceKind[] = ['income', 'expense'];
   readonly blankDraft = { name: '', plan: '' };
@@ -96,7 +97,7 @@ export class FinanceStatisticsReportComponent {
   timeline(data: FinanceStatisticsBreakdown): FinanceChartDatum[] {
     const statistics = this.statistics()!;
     const formatter = new Intl.DateTimeFormat(this.i18n.dateLocale(), {
-      timeZone: statistics.timezoneName,
+      timeZone: this.timeZone(),
       ...(statistics.window.granularity === 'hour'
         ? { hour: '2-digit', minute: '2-digit', timeZoneName: 'shortOffset' }
         : statistics.window.granularity === 'month'
@@ -132,15 +133,11 @@ export class FinanceStatisticsReportComponent {
   }
 
   date(value: string): string {
-    const date = Temporal.PlainDate.from(value.slice(0, 10));
-    return new Intl.DateTimeFormat(this.i18n.dateLocale(), {
-      dateStyle: 'medium',
-      timeZone: 'UTC',
-    }).format(new Date(`${date}T00:00:00Z`));
+    return formatFinanceDate(value, this.i18n.dateLocale(), this.timeZone());
   }
 
   periodEnd(value: string): string {
-    return this.date(Temporal.PlainDate.from(value.slice(0, 10)).subtract({ days: 1 }).toString());
+    return financePeriodEnd(value, this.i18n.dateLocale(), this.timeZone());
   }
   symbol(currency: FinanceCurrency): string {
     return FINANCE_CURRENCY_SYMBOLS[currency];

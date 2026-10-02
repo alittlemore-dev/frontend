@@ -194,7 +194,7 @@ export class EventsCalendarComponent {
       eventClick: (arg) => this.onEventClick(arg),
       events: this.occurrences().entries.map((entry) => ({
         id: entry.id,
-        title: entry.displayName,
+        title: this.entryTitle(entry),
         start: entry.start,
         end: entry.end,
         allDay: entry.allDay,
@@ -393,6 +393,11 @@ export class EventsCalendarComponent {
     return entry.kind === 'memorableDate'
       ? ['/personal-workspace/knowledge/dates', entry.sourceId]
       : ['/personal-workspace/knowledge/people', entry.sourceId];
+  }
+  entryTitle(entry: CalendarOccurrence | UnplacedAnnualEntry): string {
+    return entry.kind === 'birthday'
+      ? `${this.i18n.translate('workspaceDashboard.dates.type.birthday')} · ${entry.displayName}`
+      : entry.displayName;
   }
   annualLabel(entry: CalendarOccurrence | UnplacedAnnualEntry): string {
     if (!entry.annualDate) return '';

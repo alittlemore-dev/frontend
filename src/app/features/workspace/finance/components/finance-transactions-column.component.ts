@@ -21,6 +21,7 @@ export class FinanceTransactionsColumnComponent {
   readonly i18n = inject(I18nService);
   readonly kind = input.required<FinanceKind>();
   readonly month = input.required<FinanceMonth>();
+  readonly timeZone = input.required<string>();
   readonly transactions = input.required<readonly FinanceTransaction[]>();
   readonly historyTransactionId = input.required<string | null>();
   readonly saving = input.required<boolean>();
@@ -42,6 +43,6 @@ export class FinanceTransactionsColumnComponent {
   }
 
   dateTime(value: string): string {
-    return formatFinanceDateTime(value, this.i18n.dateLocale(), this.month().timezoneName);
+    return formatFinanceDateTime(value, this.i18n.dateLocale(), this.timeZone());
   }
 }

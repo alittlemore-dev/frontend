@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, input } from '@an
 import { I18nService } from '../../../../core/i18n/i18n.service';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
 import { FinanceCurrency, FINANCE_CURRENCY_SYMBOLS } from '../models/finance.model';
+import { financeChartColors } from '../utils/finance-chart-colors';
 import { formatFinanceMoney } from '../utils/finance-format';
 
 export interface FinanceChartDatum {
@@ -57,28 +58,45 @@ export class FinanceChartComponent {
       };
     }),
   );
-  readonly slices = computed(() => {
+  readonly pieRows = computed(() => {
     const positive = this.data().filter((row) => row.amount !== null && Number(row.amount) > 0);
     const total = positive.reduce((sum, row) => sum + Number(row.amount), 0);
-    let angle = -Math.PI / 2;
-    return positive.map((row, index) => {
-      const next = angle + (Number(row.amount) / total) * Math.PI * 2;
-      const middle = angle + (next - angle) / 2;
-      const startX = 180 + Math.cos(angle) * 110;
-      const startY = 130 + Math.sin(angle) * 110;
-      const midX = 180 + Math.cos(middle) * 110;
-      const midY = 130 + Math.sin(middle) * 110;
-      const endX = 180 + Math.cos(next) * 110;
-      const endY = 130 + Math.sin(next) * 110;
-      const path = `M180,130 L${startX},${startY} A110,110 0 0,1 ${midX},${midY} A110,110 0 0,1 ${endX},${endY} Z`;
-      angle = next;
+    const colors = financeChartColors(positive.length);
+    let colorIndex = 0;
+    return this.data().map((row) => {
+      const value = Number(row.amount ?? 0);
       return {
         ...row,
-        path,
-        colorClass: `finance-color-${index % 8}`,
-        percentage: (Number(row.amount) / total) * 100,
+        fill: value > 0 ? colors[colorIndex++] : null,
+        percentage: value > 0 ? (value / total) * 100 : 0,
       };
     });
+  });
+  readonly legendRows = computed(() =>
+    this.kind() === 'pie'
+      ? this.pieRows()
+      : this.data().map((row) => ({ ...row, fill: null, percentage: 0 })),
+  );
+  readonly slices = computed(() => {
+    let angle = -Math.PI / 2;
+    return this.pieRows()
+      .filter((row) => row.fill !== null)
+      .map((row) => {
+        const next = angle + (row.percentage / 100) * Math.PI * 2;
+        const middle = angle + (next - angle) / 2;
+        const startX = 180 + Math.cos(angle) * 110;
+        const startY = 130 + Math.sin(angle) * 110;
+        const midX = 180 + Math.cos(middle) * 110;
+        const midY = 130 + Math.sin(middle) * 110;
+        const endX = 180 + Math.cos(next) * 110;
+        const endY = 130 + Math.sin(next) * 110;
+        const path = `M180,130 L${startX},${startY} A110,110 0 0,1 ${midX},${midY} A110,110 0 0,1 ${endX},${endY} Z`;
+        angle = next;
+        return {
+          ...row,
+          path,
+        };
+      });
   });
   readonly nonzero = computed(() =>
     this.data().some((row) => row.amount !== null && Number(row.amount) !== 0),

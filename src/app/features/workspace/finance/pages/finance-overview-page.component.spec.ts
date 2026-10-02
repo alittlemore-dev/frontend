@@ -1,3 +1,5 @@
+import { AccountSettingsService } from '../../../../core/auth/account-settings.service';
+import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { of, Subject, throwError } from 'rxjs';
 import { provideRouter } from '@angular/router';
@@ -14,6 +16,7 @@ import {
 } from '../testing/finance-fixtures';
 
 describe('FinanceOverviewPageComponent', () => {
+  const accountTimeZone = signal('Asia/Yerevan');
   let fixture: ComponentFixture<FinanceOverviewPageComponent>;
   const service = {
     ensure: jest.fn(() => of(MONTH)),
@@ -32,6 +35,7 @@ describe('FinanceOverviewPageComponent', () => {
   };
 
   beforeEach(async () => {
+    accountTimeZone.set('Asia/Yerevan');
     jest.clearAllMocks();
     service.transactions.mockReturnValue(of([]));
     service.deleteCategoryPermanently.mockReturnValue(of(MONTH));
@@ -42,6 +46,7 @@ describe('FinanceOverviewPageComponent', () => {
         provideRouter([]),
         provideI18nTesting({ 'finance.category.none': 'Без категории' }),
         { provide: FinanceService, useValue: service },
+        { provide: AccountSettingsService, useValue: { timeZone: accountTimeZone } },
       ],
     }).compileComponents();
     fixture = TestBed.createComponent(FinanceOverviewPageComponent);
@@ -216,7 +221,7 @@ describe('FinanceOverviewPageComponent', () => {
     ).toEqual(['', 'salary']);
   });
 
-  it('creates an expense from the dialog in the tracker zone and closes it after saving', () => {
+  it('creates an expense in the account display zone and closes it after saving', () => {
     const dialog = openTransaction();
     const expense = entries()[0];
     expense.form.setValue({
@@ -242,6 +247,93 @@ describe('FinanceOverviewPageComponent', () => {
     expect(dialog.open).toBe(false);
     expect(fixture.componentInstance.transactionEditor()).toBeNull();
     expect(service.transactions).toHaveBeenCalledTimes(2);
+  });
+
+  it('reloads month boundaries and wall times when the account zone changes', () => {
+    service.transactions.mockReturnValue(of([TRANSACTION]));
+    fixture.componentInstance.transactions.set([TRANSACTION]);
+    fixture.detectChanges();
+    const root = fixture.nativeElement as HTMLElement;
+    expect(root.textContent).toContain('Asia/Yerevan');
+    expect(root.querySelector('.finance-transaction-row')?.textContent).toContain('16:00');
+    accountTimeZone.set('UTC');
+    fixture.detectChanges();
+    expect(root.querySelector('.finance-transaction-row')?.textContent).toContain('12:00');
+    expect(service.updateTransaction).not.toHaveBeenCalled();
+    expect(service.ensure).toHaveBeenCalledTimes(2);
+  });
+
+  it('defers a zone refresh until the open draft is finished', () => {
+    openTransaction();
+    entries()[0].form.controls.description.setValue('Unsaved');
+    accountTimeZone.set('UTC');
+    fixture.detectChanges();
+    expect(service.ensure).toHaveBeenCalledTimes(1);
+    expect(entries()[0].form.controls.description.value).toBe('Unsaved');
+    fixture.componentInstance.saveTransaction({
+      categoryId: 'food',
+      amount: '10',
+      currency: 'RUB',
+      dateTime: '2026-09-15T16:00',
+      description: 'Unsaved',
+    });
+    fixture.detectChanges();
+    expect(service.ensure).toHaveBeenCalledTimes(2);
+    expect(fixture.componentInstance.timeZone()).toBe('UTC');
+  });
+
+  it('rejects an operation from the next local calendar month even when UTC is still September', () => {
+    openTransaction();
+    fixture.componentInstance.saveTransaction({
+      categoryId: 'food',
+      amount: '10',
+      currency: 'RUB',
+      dateTime: '2026-10-01T02:00',
+      description: '',
+    });
+    expect(service.createTransaction).not.toHaveBeenCalled();
+  });
+
+  it('accepts the first hours of a local month and saves the preceding UTC date', () => {
+    fixture.componentInstance.month.set({ ...MONTH, periodStart: '2026-11-01' });
+    openTransaction();
+    fixture.componentInstance.saveTransaction({
+      categoryId: 'food',
+      amount: '10',
+      currency: 'RUB',
+      dateTime: '2026-11-01T02:00',
+      description: '',
+    });
+    expect(service.createTransaction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        occurredAt: '2026-10-31T22:00:00Z',
+      }),
+    );
+  });
+
+  it('preserves a linked month and UTC timestamp when editing across a changed local boundary', () => {
+    const page = fixture.componentInstance;
+    page.month.set({ ...MONTH, periodStart: '2026-10-01' });
+    page.selectedPeriod.set('2026-10-01');
+    page.currentPeriod.set('2026-11-01');
+    const transaction = {
+      ...TRANSACTION,
+      occurredAt: '2026-10-31T22:00:30Z',
+      createdAt: '2026-11-04T12:00:00Z',
+    };
+    transactionDialog();
+    page.openTransactionEdit(transaction);
+    fixture.detectChanges();
+    const editor = entries()[0];
+    expect(editor.form.controls.dateTime.value).toBe('2026-11-01T02:00');
+    editor.form.controls.description.setValue('Corrected');
+    editor.submit();
+    expect(service.updateTransaction).toHaveBeenCalledWith(
+      'transaction',
+      1,
+      expect.objectContaining({ occurredAt: transaction.occurredAt, description: 'Corrected' }),
+      '2026-10-01',
+    );
   });
 
   it('opens an operation in the dialog with its existing values and version', () => {

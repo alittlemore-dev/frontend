@@ -10,6 +10,8 @@ import {
   DestroyRef,
   OnInit,
   computed,
+  effect,
+  untracked,
   inject,
   signal,
   viewChild,
@@ -22,6 +24,8 @@ import { UnsavedChangesService } from '../../../../core/unsaved-changes/unsaved-
 import { Temporal } from 'temporal-polyfill';
 
 import { I18nService } from '../../../../core/i18n/i18n.service';
+import { AccountSettingsService } from '../../../../core/auth/account-settings.service';
+import { financeMonthTimeRange } from '../utils/finance-time';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
 import { ApiError } from '../../../../core/models/api-error.model';
 import {
@@ -95,6 +99,8 @@ export class FinanceOverviewPageComponent implements OnInit {
   private readonly changes = inject(UnsavedChangesService);
   private readonly scope = this.changes.createScope(inject(DestroyRef));
   readonly i18n = inject(I18nService);
+  private readonly preferences = inject(AccountSettingsService);
+  readonly timeZone = signal(this.preferences.timeZone());
   private readonly destroyRef = inject(DestroyRef);
   private readonly changeDetector = inject(ChangeDetectorRef);
   private initializationSubscription?: Subscription;
@@ -189,13 +195,33 @@ export class FinanceOverviewPageComponent implements OnInit {
           timeZone: 'UTC',
         }).format(new Date(`${period}T00:00:00Z`));
   });
-  readonly earliestTime = computed(() => `${this.month()?.periodStart ?? ''}T00:00`);
-  readonly latestTime = computed(() => {
+  readonly transactionTimeRange = computed(() => {
     const month = this.month();
-    return month === null
-      ? ''
-      : `${Temporal.PlainDate.from(month.periodStart).add({ months: 1 }).subtract({ days: 1 })}T23:59`;
+    return month === null ? null : financeMonthTimeRange(month.periodStart, this.timeZone());
   });
+  readonly earliestTime = computed(() => {
+    const min = this.transactionTimeRange()?.min ?? '';
+    const editor = this.transactionEditor();
+    return editor?.transaction && editor.entry.dateTime < min ? editor.entry.dateTime : min;
+  });
+  readonly latestTime = computed(() => {
+    const max = this.transactionTimeRange()?.max ?? '';
+    const editor = this.transactionEditor();
+    return editor?.transaction && editor.entry.dateTime > max ? editor.entry.dateTime : max;
+  });
+
+  constructor() {
+    effect(() => {
+      const zone = this.preferences.timeZone();
+      if (zone === this.timeZone() || this.saving() || this.transactionEditor() || this.dirty())
+        return;
+      // Finish an in-progress draft in its original zone before refreshing month boundaries.
+      untracked(() => {
+        this.timeZone.set(zone);
+        this.initialize();
+      });
+    });
+  }
 
   ngOnInit(): void {
     this.scope.registerSource(
@@ -529,13 +555,22 @@ export class FinanceOverviewPageComponent implements OnInit {
   private blankTransactionEntry(): FinanceTransactionEntry {
     const month = this.month();
     if (month === null) throw new Error('Finance month is not loaded');
-    const local = Temporal.Now.instant().toZonedDateTimeISO(month.timezoneName);
-    const date = local.toPlainDate().toString();
+    const range = this.transactionTimeRange()!;
+    const now = Temporal.Now.instant();
+    const instant =
+      Temporal.Instant.compare(now, range.start) < 0
+        ? range.start
+        : Temporal.Instant.compare(now, range.end) >= 0
+          ? range.end.subtract({ minutes: 1 })
+          : now;
     return {
       categoryId: '',
       amount: '',
       currency: month.currency,
-      dateTime: `${date.slice(0, 7) === month.periodStart.slice(0, 7) ? date : month.periodStart}T${local.toPlainTime().toString({ smallestUnit: 'minute' })}`,
+      dateTime: instant
+        .toZonedDateTimeISO(this.timeZone())
+        .toPlainDateTime()
+        .toString({ smallestUnit: 'minute' }),
       description: '',
     };
   }
@@ -559,9 +594,7 @@ export class FinanceOverviewPageComponent implements OnInit {
       !this.canEditTransaction(transaction)
     )
       return;
-    const local = Temporal.Instant.from(transaction.occurredAt).toZonedDateTimeISO(
-      month.timezoneName,
-    );
+    const local = Temporal.Instant.from(transaction.occurredAt).toZonedDateTimeISO(this.timeZone());
     this.transactionEditor.set({
       kind: transaction.kind,
       transaction,
@@ -616,15 +649,24 @@ export class FinanceOverviewPageComponent implements OnInit {
       this.errorKey.set('finance.error.entry');
       return;
     }
-    if (entry.dateTime.slice(0, 7) !== month.periodStart.slice(0, 7)) {
-      this.errorKey.set('finance.error.date');
-      return;
-    }
     try {
-      const occurredAt = Temporal.PlainDateTime.from(entry.dateTime)
-        .toZonedDateTime(month.timezoneName)
-        .toInstant()
-        .toString();
+      const occurredAt =
+        editor.transaction && entry.dateTime === editor.entry.dateTime
+          ? editor.transaction.occurredAt
+          : Temporal.PlainDateTime.from(entry.dateTime)
+              .toZonedDateTime(this.timeZone(), { disambiguation: 'reject' })
+              .toInstant()
+              .toString();
+      const instant = Temporal.Instant.from(occurredAt);
+      const range = this.transactionTimeRange()!;
+      if (
+        occurredAt !== editor.transaction?.occurredAt &&
+        (Temporal.Instant.compare(instant, range.start) < 0 ||
+          Temporal.Instant.compare(instant, range.end) >= 0)
+      ) {
+        this.errorKey.set('finance.error.date');
+        return;
+      }
       const draft: FinanceTransactionDraft = {
         categoryId: entry.categoryId,
         amount: entry.amount.trim().replace(',', '.'),
@@ -655,7 +697,7 @@ export class FinanceOverviewPageComponent implements OnInit {
     return (
       !this.readOnly() ||
       Temporal.Instant.from(transaction.createdAt)
-        .toZonedDateTimeISO(month.timezoneName)
+        .toZonedDateTimeISO(this.timeZone())
         .toPlainDate()
         .with({ day: 1 })
         .toString() === this.currentPeriod()
@@ -817,10 +859,6 @@ export class FinanceOverviewPageComponent implements OnInit {
   }
 
   dateTime(value: string): string {
-    return formatFinanceDateTime(
-      value,
-      this.i18n.dateLocale(),
-      this.month()?.timezoneName ?? 'UTC',
-    );
+    return formatFinanceDateTime(value, this.i18n.dateLocale(), this.timeZone());
   }
 }

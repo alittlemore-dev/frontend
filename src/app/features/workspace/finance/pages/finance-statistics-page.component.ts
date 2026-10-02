@@ -3,6 +3,8 @@ import {
   Component,
   DestroyRef,
   computed,
+  effect,
+  untracked,
   inject,
   signal,
   OnInit,
@@ -11,7 +13,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SiteSelectComponent, SiteSelectOption } from '@alittlemore.dev/design-system';
 import { Subscription, switchMap } from 'rxjs';
-import { Temporal } from 'temporal-polyfill';
+import { AccountSettingsService } from '../../../../core/auth/account-settings.service';
+import { formatFinanceDate, financePeriodEnd } from '../utils/finance-time';
 import { I18nService } from '../../../../core/i18n/i18n.service';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
 import { ApiError } from '../../../../core/models/api-error.model';
@@ -47,6 +50,7 @@ const CURRENCIES: readonly FinanceCurrency[] = ['AMD', 'RUB', 'USD', 'EUR'];
 export class FinanceStatisticsPageComponent implements OnInit {
   private readonly service = inject(FinanceService);
   readonly i18n = inject(I18nService);
+  readonly timeZone = inject(AccountSettingsService).timeZone;
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
@@ -73,6 +77,17 @@ export class FinanceStatisticsPageComponent implements OnInit {
       label: this.i18n.translate(`finance.statistics.period.${value}`),
     }));
   });
+  private loadedTimeZone = this.timeZone();
+
+  constructor() {
+    effect(() => {
+      const zone = this.timeZone();
+      if (zone === this.loadedTimeZone) return;
+      this.loadedTimeZone = zone;
+      untracked(() => this.load());
+    });
+  }
+
   ngOnInit(): void {
     this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => this.load());
   }
@@ -158,14 +173,10 @@ export class FinanceStatisticsPageComponent implements OnInit {
   }
 
   date(value: string): string {
-    const date = Temporal.PlainDate.from(value.slice(0, 10));
-    return new Intl.DateTimeFormat(this.i18n.dateLocale(), {
-      dateStyle: 'medium',
-      timeZone: 'UTC',
-    }).format(new Date(`${date}T00:00:00Z`));
+    return formatFinanceDate(value, this.i18n.dateLocale(), this.timeZone());
   }
 
   periodEnd(value: string): string {
-    return this.date(Temporal.PlainDate.from(value.slice(0, 10)).subtract({ days: 1 }).toString());
+    return financePeriodEnd(value, this.i18n.dateLocale(), this.timeZone());
   }
 }

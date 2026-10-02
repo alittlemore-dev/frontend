@@ -11,7 +11,7 @@
   >
     @if (kind() === 'pie') {
       @for (slice of slices(); track slice.id) {
-        <path [attr.d]="slice.path" [attr.class]="slice.colorClass">
+        <path [attr.d]="slice.path" [attr.fill]="slice.fill">
           <title>
             {{ slice.label }}: {{ money(slice.amount) }} · {{ percentage(slice.percentage) }}
           </title>
@@ -23,14 +23,26 @@
           {{ bar.shortLabel }}
           <title>{{ bar.label }}</title>
         </text>
-        <rect x="280" [attr.y]="bar.rowY" [attr.width]="bar.horizontalWidth" height="24">
+        <rect
+          class="finance-bar"
+          x="280"
+          [attr.y]="bar.rowY"
+          [attr.width]="bar.horizontalWidth"
+          height="24"
+        >
           <title>{{ bar.label }}: {{ money(bar.amount) }}</title>
         </rect>
       }
     } @else {
       <line x1="35" x2="705" [attr.y1]="zeroY()" [attr.y2]="zeroY()" />
       @for (bar of bars(); track bar.id) {
-        <rect [attr.x]="bar.x" [attr.y]="bar.y" [attr.width]="bar.width" [attr.height]="bar.height">
+        <rect
+          class="finance-bar"
+          [attr.x]="bar.x"
+          [attr.y]="bar.y"
+          [attr.width]="bar.width"
+          [attr.height]="bar.height"
+        >
           <title>{{ bar.label }}: {{ money(bar.amount) }}</title>
         </rect>
         @if (bar.showLabel) {
@@ -39,7 +51,7 @@
       }
     }
   </svg>
-  <div class="table-responsive">
+  <div class="table-responsive" [class.finance-table-scroll]="kind() === 'vertical'">
     <table class="table table-sm mb-0">
       <caption class="visually-hidden">
         {{
@@ -47,20 +59,19 @@
         }}
       </caption>
       <tbody>
-        @for (row of data(); track row.id; let index = $index) {
+        @for (row of legendRows(); track row.id) {
           <tr>
             <th scope="row">
-              @if (kind() === 'pie') {
-                <span
-                  [class]="'finance-swatch finance-color-' + (index % 8)"
-                  aria-hidden="true"
-                ></span>
+              @if (kind() === 'pie' && row.fill) {
+                <svg class="finance-swatch" viewBox="0 0 1 1" aria-hidden="true">
+                  <rect width="1" height="1" [attr.fill]="row.fill" />
+                </svg>
               }
               {{ row.label }}
             </th>
             <td class="text-end">{{ money(row.amount) }}</td>
             @if (kind() === 'pie') {
-              <td class="text-end">{{ percentage(slices()[index]?.percentage ?? 0) }}</td>
+              <td class="text-end">{{ percentage(row.percentage) }}</td>
             }
           </tr>
         }

@@ -9,7 +9,7 @@
         }
       </h1>
       @if (month(); as currentMonth) {
-        <p>{{ currentMonth.timezoneName }}</p>
+        <p>{{ timeZone() }}</p>
       }
     </div>
     <nav class="d-flex align-items-center gap-2" [attr.aria-label]="'finance.month.navigation' | t">
@@ -212,6 +212,7 @@
         @for (kind of kinds; track kind) {
           <app-finance-transactions-column
             [kind]="kind"
+            [timeZone]="timeZone()"
             [month]="currentMonth"
             [transactions]="kind === 'expense' ? expenseTransactions() : incomeTransactions()"
             [historyTransactionId]="revisionsFor()?.id ?? null"
@@ -354,7 +355,7 @@
         [categories]="transactionEditorCategories()"
         [min]="earliestTime()"
         [max]="latestTime()"
-        [timeZone]="month()?.timezoneName ?? ''"
+        [timeZone]="timeZone()"
         [saving]="saving()"
         [editing]="editor.transaction !== null"
         (draftChanged)="transactionDraft.set($event)"

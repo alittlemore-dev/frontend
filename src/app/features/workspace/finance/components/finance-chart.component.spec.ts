@@ -51,4 +51,57 @@ describe('FinanceChartComponent', () => {
     expect(rows[0].textContent).toContain('Не задано');
     expect(rows[1].textContent).toContain('0');
   });
+
+  it('gives more than eight categories distinct fills shared by their sectors and legend', () => {
+    const fixture = TestBed.createComponent(FinanceChartComponent);
+    fixture.componentRef.setInput('title', 'Categories');
+    fixture.componentRef.setInput('currency', 'AMD');
+    fixture.componentRef.setInput('kind', 'pie');
+    fixture.componentRef.setInput(
+      'data',
+      Array.from({ length: 12 }, (_, index) => ({
+        id: String(index),
+        label: `Category ${index}`,
+        amount: '100',
+      })),
+    );
+    fixture.detectChanges();
+    const root = fixture.nativeElement as HTMLElement;
+    const fills = Array.from(root.querySelectorAll('path'), (path) => path.getAttribute('fill'));
+    expect(new Set(fills).size).toBe(12);
+    expect(
+      Array.from(root.querySelectorAll('.finance-swatch rect'), (rect) =>
+        rect.getAttribute('fill'),
+      ),
+    ).toEqual(fills);
+  });
+
+  it('keeps sector colours and percentages aligned when zero and unset rows are interspersed', () => {
+    const fixture = TestBed.createComponent(FinanceChartComponent);
+    fixture.componentRef.setInput('title', 'Categories');
+    fixture.componentRef.setInput('currency', 'AMD');
+    fixture.componentRef.setInput('kind', 'pie');
+    fixture.componentRef.setInput('data', [
+      { id: 'none', label: 'Unset', amount: null },
+      { id: 'salary', label: 'Salary', amount: '75' },
+      { id: 'zero', label: 'Zero', amount: '0' },
+      { id: 'subscriptions', label: 'Subscriptions', amount: '25' },
+    ]);
+    fixture.detectChanges();
+    const root = fixture.nativeElement as HTMLElement;
+    const paths = root.querySelectorAll('path');
+    const rows = root.querySelectorAll('tr');
+    expect(paths).toHaveLength(2);
+    expect(rows[0].querySelector('.finance-swatch')).toBeNull();
+    expect(rows[2].querySelector('.finance-swatch')).toBeNull();
+    for (const [sectorIndex, rowIndex] of [1, 3].entries()) {
+      expect(rows[rowIndex].querySelector('rect')?.getAttribute('fill')).toBe(
+        paths[sectorIndex].getAttribute('fill'),
+      );
+    }
+    expect(rows[0].lastElementChild?.textContent?.trim()).toMatch(/^0\s*%$/);
+    expect(rows[1].lastElementChild?.textContent?.trim()).toMatch(/^75\s*%$/);
+    expect(rows[2].lastElementChild?.textContent?.trim()).toMatch(/^0\s*%$/);
+    expect(rows[3].lastElementChild?.textContent?.trim()).toMatch(/^25\s*%$/);
+  });
 });

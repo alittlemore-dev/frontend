@@ -1,3 +1,4 @@
+import { provideRouter } from '@angular/router';
 import { TestBed } from '@angular/core/testing';
 import { ChangeDetectionStrategy, Component, Input, signal } from '@angular/core';
 import {
@@ -19,11 +20,18 @@ import { AccountSettingsService } from '../../../../core/auth/account-settings.s
   // eslint-disable-next-line @angular-eslint/component-selector
   selector: 'full-calendar',
   standalone: true,
-  template: '',
+  template: '@for (title of titles; track $index) { <span>{{ title }}</span> }',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 class StubFullCalendarComponent {
   @Input() options?: CalendarOptions;
+
+  get titles(): readonly string[] {
+    const events = this.options?.events;
+    return Array.isArray(events)
+      ? events.map((event: { title?: string }) => event.title ?? '')
+      : [];
+  }
 }
 
 describe('EventsCalendarComponent', () => {
@@ -36,7 +44,8 @@ describe('EventsCalendarComponent', () => {
     jest.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(1);
     TestBed.configureTestingModule({
       providers: [
-        provideI18nTesting(),
+        provideRouter([]),
+        provideI18nTesting({ 'workspaceDashboard.dates.type.birthday': 'День рождения' }),
         { provide: EventsService, useValue: service },
         { provide: AccountSettingsService, useValue: { timeZone } },
       ],
@@ -45,6 +54,67 @@ describe('EventsCalendarComponent', () => {
   afterEach(() => {
     TestBed.resetTestingModule();
     jest.restoreAllMocks();
+  });
+
+  it('identifies birthdays in calendar titles, day entries and event details', async () => {
+    await TestBed.configureTestingModule({ imports: [EventsCalendarComponent] })
+      .overrideComponent(EventsCalendarComponent, {
+        remove: { imports: [FullCalendarModule] },
+        add: { imports: [StubFullCalendarComponent] },
+      })
+      .compileComponents();
+    const fixture = TestBed.createComponent(EventsCalendarComponent);
+    const birthday = {
+      id: 'birthday-1',
+      sourceId: 'person-1',
+      kind: 'birthday' as const,
+      displayName: 'Иван Иванов',
+      allDay: true,
+      start: '2026-10-02',
+      end: '2026-10-03',
+      annualDate: { day: 2, month: 10, year: 1990 },
+      relatedPeople: [],
+    };
+    service.occurrences.mockReturnValue(
+      of({
+        entries: [
+          birthday,
+          {
+            ...birthday,
+            id: 'date-1',
+            sourceId: 'date-1',
+            kind: 'memorableDate',
+            displayName: 'Годовщина',
+          },
+        ],
+        unplacedAnnualEntries: [],
+      }),
+    );
+    fixture.componentInstance.range.set({
+      startDate: '2026-10-01',
+      endDate: '2026-11-01',
+      viewType: 'dayGridMonth',
+    });
+    fixture.detectChanges();
+    const root = fixture.nativeElement as HTMLElement;
+    expect(root.querySelector('full-calendar')?.textContent).toContain(
+      'День рождения · Иван Иванов',
+    );
+    expect(root.querySelector('full-calendar')?.textContent).toContain('Годовщина');
+    expect(root.querySelector('full-calendar')?.textContent).not.toContain(
+      'День рождения · Годовщина',
+    );
+    fixture.componentInstance.openDay('2026-10-02');
+    fixture.detectChanges();
+    const button = Array.from(root.querySelectorAll<HTMLButtonElement>('.list-group button')).find(
+      (item) => item.textContent?.includes('День рождения · Иван Иванов'),
+    );
+    expect(button).toBeDefined();
+    button!.click();
+    fixture.detectChanges();
+    expect(root.querySelector('[aria-labelledby="calendar-event-title"] strong')?.textContent).toBe(
+      'День рождения · Иван Иванов',
+    );
   });
 
   it('requests the visible half-open range and uses 30-minute slots without inner scrolling', () => {

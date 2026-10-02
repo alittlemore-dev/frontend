@@ -110,7 +110,7 @@
       <ul class="mb-0">
         @for (entry of occurrences().unplacedAnnualEntries; track entry.kind + entry.sourceId) {
           <li>
-            <a [routerLink]="entryRoute(entry)">{{ entry.displayName }}</a> ·
+            <a [routerLink]="entryRoute(entry)">{{ entryTitle(entry) }}</a> ·
             {{ annualLabel(entry) }}
           </li>
         }
@@ -164,7 +164,7 @@
                     class="btn btn-link text-start p-0"
                     (click)="showDayEntry(entry)"
                   >
-                    {{ entry.displayName }}
+                    {{ entryTitle(entry) }}
                   </button>
                 </li>
               }
@@ -210,7 +210,7 @@
           ></button>
         </div>
         <div class="modal-body vstack gap-2">
-          <strong>{{ entry.displayName }}</strong>
+          <strong>{{ entryTitle(entry) }}</strong>
           @if (entry.kind === 'event') {
             @if (eventLoading()) {
               <ds-loading-spinner [ariaLabel]="'shared.loading' | t" />

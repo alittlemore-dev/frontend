@@ -7,7 +7,7 @@ svg {
   width: 100%;
   max-height: 32rem;
 }
-rect {
+.finance-bar {
   fill: var(--accent-color);
 }
 line {
@@ -21,7 +21,7 @@ path {
   stroke: var(--main-bg-color);
   stroke-width: 2;
 }
-.table-responsive {
+.finance-table-scroll {
   max-height: 16rem;
 }
 .finance-swatch {
@@ -29,37 +29,4 @@ path {
   width: 0.75rem;
   height: 0.75rem;
   margin-inline-end: 0.5rem;
-  background: var(--chart-color);
-}
-.finance-color-0 {
-  --chart-color: var(--bs-primary);
-  fill: var(--chart-color);
-}
-.finance-color-1 {
-  --chart-color: var(--bs-success);
-  fill: var(--chart-color);
-}
-.finance-color-2 {
-  --chart-color: var(--bs-warning);
-  fill: var(--chart-color);
-}
-.finance-color-3 {
-  --chart-color: var(--bs-info);
-  fill: var(--chart-color);
-}
-.finance-color-4 {
-  --chart-color: var(--bs-danger);
-  fill: var(--chart-color);
-}
-.finance-color-5 {
-  --chart-color: var(--bs-secondary);
-  fill: var(--chart-color);
-}
-.finance-color-6 {
-  --chart-color: var(--link-readable-color);
-  fill: var(--chart-color);
-}
-.finance-color-7 {
-  --chart-color: var(--main-text-color);
-  fill: var(--chart-color);
 }

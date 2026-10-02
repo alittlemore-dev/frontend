@@ -48,7 +48,7 @@
     @if (data.reports[0]; as report) {
       <p class="text-body-secondary">
         {{ date(report.window.start) }} — {{ periodEnd(report.window.end) }} ·
-        {{ report.timezoneName }}
+        {{ timeZone() }}
       </p>
       @if (report.availableSince > report.previousWindow.start.slice(0, 10)) {
         <p class="alert alert-info">
@@ -75,7 +75,7 @@
       }
     </ul>
     @for (report of data.reports; track report.currency) {
-      <app-finance-statistics-report [statistics]="report" [tab]="tab()" />
+      <app-finance-statistics-report [statistics]="report" [tab]="tab()" [timeZone]="timeZone()" />
     }
   }
 </section>
