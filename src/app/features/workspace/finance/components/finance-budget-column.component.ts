@@ -40,6 +40,7 @@ export class FinanceBudgetColumnComponent {
   readonly drafts = input.required<Record<string, FinanceCategoryFields>>();
   readonly newCategoryDraft = input.required<FinanceCategoryFields>();
   readonly saving = input.required<boolean>();
+  readonly readOnly = input(false);
   readonly draftChanged = output<FinanceCategoryDraftChange>();
   readonly newDraftChanged = output<FinanceCategoryFieldChange>();
   readonly saved = output<FinanceCategory>();

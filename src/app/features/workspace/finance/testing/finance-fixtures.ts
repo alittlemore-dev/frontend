@@ -41,6 +41,7 @@ export const FINANCE_TEST_TRANSACTION: FinanceTransaction = {
   source: 'web',
   authorId: 'owner',
   authorLabel: 'owner',
+  createdAt: '2026-09-15T12:00:00Z',
   id: 'transaction',
   categoryId: 'food',
   categoryName: 'Еда',
@@ -53,4 +54,45 @@ export const FINANCE_TEST_TRANSACTION: FinanceTransaction = {
   rateEffectiveOn: '2026-09-15',
   version: 1,
   deleted: false,
+};
+
+export const FINANCE_TEST_STATISTICS: import('../models/finance.model').FinanceStatistics = {
+  budgetRateEffectiveOn: '2026-09-15',
+  period: 'thisMonth',
+  currency: 'USD',
+  timezoneName: 'Asia/Yerevan',
+  window: {
+    start: '2026-09-01T00:00:00+04:00',
+    end: '2026-10-01T00:00:00+04:00',
+    granularity: 'day',
+  },
+  previousWindow: {
+    start: '2026-08-01T00:00:00+04:00',
+    end: '2026-09-01T00:00:00+04:00',
+    granularity: 'day',
+  },
+  availableSince: '2026-08-01',
+  net: '10',
+  previousNet: '0',
+  uncategorizedIncome: '0',
+  uncategorizedExpense: '0',
+  income: {
+    actual: '10',
+    previous: '0',
+    change: '10',
+    changePercent: null,
+    timeline: [
+      { start: '2026-09-01T00:00:00+04:00', end: '2026-09-02T00:00:00+04:00', amount: '10' },
+    ],
+    categories: [{ id: 'salary', name: 'Salary', amount: '10', percentage: '100' }],
+  },
+  expense: {
+    actual: '0',
+    previous: '0',
+    change: '0',
+    changePercent: null,
+    timeline: [],
+    categories: [],
+  },
+  monthly: { ...FINANCE_TEST_MONTH, currency: 'USD' },
 };

@@ -16,7 +16,9 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { Observable, Subscription } from 'rxjs';
+import { Observable, Subscription, of, switchMap } from 'rxjs';
+import { ActivatedRoute, Router } from '@angular/router';
+import { UnsavedChangesService } from '../../../../core/unsaved-changes/unsaved-changes.service';
 import { Temporal } from 'temporal-polyfill';
 
 import { I18nService } from '../../../../core/i18n/i18n.service';
@@ -88,6 +90,10 @@ function decimalForInput(value: string): string {
 })
 export class FinanceOverviewPageComponent implements OnInit {
   private readonly service = inject(FinanceService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly changes = inject(UnsavedChangesService);
+  private readonly scope = this.changes.createScope(inject(DestroyRef));
   readonly i18n = inject(I18nService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly changeDetector = inject(ChangeDetectorRef);
@@ -99,6 +105,34 @@ export class FinanceOverviewPageComponent implements OnInit {
   readonly currencySymbols = FINANCE_CURRENCY_SYMBOLS;
   readonly kinds: readonly FinanceKind[] = ['expense', 'income'];
   readonly month = signal<FinanceMonth | null>(null);
+  readonly currentPeriod = signal<string | null>(null);
+  readonly selectedPeriod = signal<string | null>(null);
+  readonly readOnly = computed(() => this.selectedPeriod() !== this.currentPeriod());
+  readonly canWriteTransactions = computed(() => {
+    const current = this.currentPeriod();
+    const selected = this.selectedPeriod();
+    return (
+      current !== null &&
+      selected !== null &&
+      (selected === current ||
+        Temporal.PlainDate.from(selected).add({ months: 1 }).toString() === current)
+    );
+  });
+  readonly editableIds = computed(() =>
+    this.transactions()
+      .filter((row) => this.canEditTransaction(row))
+      .map((row) => row.id),
+  );
+  readonly empty = signal(false);
+  readonly navigationNotice = signal(false);
+  private readonly editorBaseline = signal('');
+  readonly transactionDraft = signal<FinanceTransactionEntry | null>(null);
+  readonly transactionDirty = computed(
+    () =>
+      this.transactionEditor() !== null &&
+      JSON.stringify(this.transactionDraft()) !== this.editorBaseline(),
+  );
+  private discardApproved = false;
   readonly transactions = signal<readonly FinanceTransaction[]>([]);
   readonly revisions = signal<readonly FinanceRevision[]>([]);
   readonly revisionsLoading = signal(false);
@@ -146,14 +180,14 @@ export class FinanceOverviewPageComponent implements OnInit {
   }));
   readonly monthLabel = computed(() => {
     this.i18n.language();
-    const month = this.month();
-    return month === null
+    const period = this.selectedPeriod();
+    return period === null
       ? ''
       : new Intl.DateTimeFormat(this.i18n.dateLocale(), {
           month: 'long',
           year: 'numeric',
           timeZone: 'UTC',
-        }).format(new Date(`${month.periodStart}T00:00:00Z`));
+        }).format(new Date(`${period}T00:00:00Z`));
   });
   readonly earliestTime = computed(() => `${this.month()?.periodStart ?? ''}T00:00`);
   readonly latestTime = computed(() => {
@@ -164,7 +198,90 @@ export class FinanceOverviewPageComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    this.initialize();
+    this.scope.registerSource(
+      computed(() => this.dirty()),
+      computed(() => !this.readOnly() || this.canWriteTransactions()),
+    );
+    this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      const requested = this.routePeriod();
+      if (this.currentPeriod() !== null && requested !== this.selectedPeriod()) {
+        if (this.saving() || (!this.discardApproved && !this.scope.confirmDiscard())) {
+          this.writePeriod(this.selectedPeriod(), true);
+          return;
+        }
+      }
+      this.discardApproved = false;
+      this.initialize();
+    });
+  }
+
+  private routePeriod(): string | null {
+    const params = this.route.snapshot.queryParamMap;
+    const year = params.get('year');
+    const month = params.get('month');
+    if (year === null && month === null) return this.currentPeriod();
+    if (
+      params.getAll('year').length !== 1 ||
+      params.getAll('month').length !== 1 ||
+      !/^\d{1,4}$/.test(year ?? '') ||
+      !/^\d{1,2}$/.test(month ?? '')
+    )
+      return null;
+    try {
+      const period = Temporal.PlainDate.from(
+        { year: Number(year), month: Number(month), day: 1 },
+        { overflow: 'reject' },
+      ).toString();
+      if (Number(year) < 1 || (this.currentPeriod() !== null && period > this.currentPeriod()!))
+        return null;
+      return period;
+    } catch {
+      return null;
+    }
+  }
+
+  private writePeriod(period: string | null, replaceUrl: boolean): void {
+    const date = period === null ? null : Temporal.PlainDate.from(period);
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParamsHandling: 'merge',
+      replaceUrl,
+      queryParams: { year: date?.year ?? null, month: date?.month ?? null },
+    });
+  }
+
+  navigateMonth(offset: number): void {
+    const selected = this.selectedPeriod();
+    if (!selected || this.saving() || this.loading() || !this.scope.confirmDiscard()) return;
+    const next = Temporal.PlainDate.from(selected).add({ months: offset });
+    if (next.year < 1 || next.toString() > this.currentPeriod()!) return;
+    this.discardApproved = true;
+    this.writePeriod(next.toString(), false);
+  }
+
+  returnToCurrent(): void {
+    if (this.saving() || this.loading() || !this.readOnly() || !this.scope.confirmDiscard()) return;
+    this.discardApproved = true;
+    this.writePeriod(null, false);
+  }
+
+  private dirty(): boolean {
+    const month = this.month();
+    if (month === null) return false;
+    return (
+      this.openingDraft() !== decimalForInput(month.openingBalance) ||
+      month.categories.some((category) => {
+        const draft = this.categoryDrafts()[category.id];
+        return (
+          draft &&
+          (draft.name !== category.name ||
+            draft.plan !==
+              (category.plannedAmount === null ? '' : decimalForInput(category.plannedAmount)))
+        );
+      }) ||
+      Object.values(this.newCategoryDrafts()).some((draft) => !!draft.name || !!draft.plan) ||
+      this.transactionDirty()
+    );
   }
 
   initialize(): void {
@@ -176,11 +293,42 @@ export class FinanceOverviewPageComponent implements OnInit {
       return;
     }
     this.loading.set(true);
+    this.empty.set(false);
     this.errorKey.set(null);
+    this.transactionsSubscription?.unsubscribe();
+    this.closeRevisions();
     this.initializationSubscription?.unsubscribe();
     this.initializationSubscription = this.service
       .ensure(language)
-      .pipe(takeUntilDestroyed(this.destroyRef))
+      .pipe(
+        switchMap((current) => {
+          this.currentPeriod.set(current.periodStart);
+          const selected = this.routePeriod();
+          if (selected === null) {
+            this.navigationNotice.set(true);
+            this.writePeriod(null, true);
+          }
+          const period = selected ?? current.periodStart;
+          if (period !== this.selectedPeriod()) {
+            this.transactionDialog()?.close();
+            this.removalDialog()?.close();
+            this.categoryToRemove.set(null);
+            this.transactionDraft.set(null);
+            this.month.set(null);
+            this.transactions.set([]);
+            this.newCategoryDrafts.set({
+              income: { name: '', plan: '' },
+              expense: { name: '', plan: '' },
+            });
+            this.transactionEditor.set(null);
+          }
+          this.selectedPeriod.set(period);
+          return period === current.periodStart
+            ? of(current)
+            : this.service.historicalMonth(period);
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
       .subscribe({
         next: (month) => {
           this.receiveMonth(month);
@@ -188,7 +336,10 @@ export class FinanceOverviewPageComponent implements OnInit {
           this.loadTransactions();
         },
         error: (error: ApiError) => {
-          this.errorKey.set(this.errorFor(error, 'finance.error.load'));
+          if (error.status === 404 && this.readOnly()) {
+            this.month.set(null);
+            this.empty.set(true);
+          } else this.errorKey.set(this.errorFor(error, 'finance.error.load'));
           this.loading.set(false);
         },
       });
@@ -235,13 +386,13 @@ export class FinanceOverviewPageComponent implements OnInit {
 
   private loadTransactions(): void {
     this.transactionsSubscription?.unsubscribe();
-    this.transactionsSubscription = this.service
-      .transactions(this.includeDeleted())
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (rows) => this.transactions.set(rows),
-        error: (error: ApiError) => this.errorKey.set(this.errorFor(error, 'finance.error.load')),
-      });
+    const operation = this.readOnly()
+      ? this.service.historicalTransactions(this.selectedPeriod()!, this.includeDeleted())
+      : this.service.transactions(this.includeDeleted());
+    this.transactionsSubscription = operation.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (rows) => this.transactions.set(rows),
+      error: (error: ApiError) => this.errorKey.set(this.errorFor(error, 'finance.error.load')),
+    });
   }
 
   setTab(tab: 'summary' | 'transactions'): void {
@@ -254,6 +405,7 @@ export class FinanceOverviewPageComponent implements OnInit {
   }
 
   saveOpeningBalance(): void {
+    if (this.readOnly()) return;
     const amount = this.openingDraft().trim().replace(',', '.');
     if (amount === decimalForInput(this.month()?.openingBalance ?? '')) return;
     if (!/^[+-]?\d+(?:\.\d+)?$/.test(amount)) {
@@ -266,6 +418,7 @@ export class FinanceOverviewPageComponent implements OnInit {
   }
 
   selectCurrency(value: string): void {
+    if (this.readOnly()) return;
     if (this.saving() || !this.isCurrency(value) || value === this.month()?.currency) return;
     this.currencyDraft.set(value);
     this.mutateMonth(this.service.changeCurrency(value));
@@ -288,6 +441,7 @@ export class FinanceOverviewPageComponent implements OnInit {
   }
 
   saveCategoryInline(category: FinanceCategory): void {
+    if (this.readOnly()) return;
     const draft = this.categoryDraft(category);
     const name = draft.name.trim();
     const plan = draft.plan.trim() || null;
@@ -325,6 +479,7 @@ export class FinanceOverviewPageComponent implements OnInit {
   }
 
   createCategoryInline(kind: FinanceKind): void {
+    if (this.readOnly()) return;
     const draft = this.newCategoryDrafts()[kind];
     const name = draft.name.trim();
     if (!name) return;
@@ -337,6 +492,7 @@ export class FinanceOverviewPageComponent implements OnInit {
   }
 
   setCategoryArchived(category: FinanceCategory, archived: boolean): void {
+    if (this.readOnly()) return;
     this.mutateMonth(
       archived
         ? this.service.archiveCategory(category.id)
@@ -345,13 +501,14 @@ export class FinanceOverviewPageComponent implements OnInit {
   }
 
   openCategoryRemoval(category: FinanceCategory): void {
+    if (this.readOnly()) return;
     this.categoryToRemove.set(category);
     this.errorKey.set(null);
     this.removalDialog()?.open();
   }
 
   closeCategoryRemoval(): void {
-    if (this.saving()) return;
+    if (this.saving() || this.readOnly()) return;
     this.removalDialog()?.close();
     this.categoryToRemove.set(null);
   }
@@ -384,16 +541,24 @@ export class FinanceOverviewPageComponent implements OnInit {
   }
 
   openTransactionCreation(kind: FinanceKind): void {
-    if (this.month() === null || this.saving()) return;
+    if (this.month() === null || this.saving() || !this.canWriteTransactions()) return;
     this.transactionEditor.set({ kind, transaction: null, entry: this.blankTransactionEntry() });
     this.errorKey.set(null);
+    this.transactionDraft.set(this.transactionEditor()?.entry ?? null);
+    this.editorBaseline.set(JSON.stringify(this.transactionDraft()));
     this.changeDetector.detectChanges();
     this.transactionDialog()?.open();
   }
 
   openTransactionEdit(transaction: FinanceTransaction): void {
     const month = this.month();
-    if (month === null || transaction.deleted || this.saving()) return;
+    if (
+      month === null ||
+      transaction.deleted ||
+      this.saving() ||
+      !this.canEditTransaction(transaction)
+    )
+      return;
     const local = Temporal.Instant.from(transaction.occurredAt).toZonedDateTimeISO(
       month.timezoneName,
     );
@@ -409,14 +574,33 @@ export class FinanceOverviewPageComponent implements OnInit {
       },
     });
     this.errorKey.set(null);
+    this.transactionDraft.set(this.transactionEditor()?.entry ?? null);
+    this.editorBaseline.set(JSON.stringify(this.transactionDraft()));
     this.changeDetector.detectChanges();
     this.transactionDialog()?.open();
   }
 
   closeTransactionEditor(): void {
-    if (this.saving()) return;
+    if (this.saving() || (this.transactionDirty() && !this.scope.confirmDiscard())) return;
     this.transactionDialog()?.close();
     this.transactionEditor.set(null);
+  }
+
+  cancelTransactionDialog(event: Event): void {
+    event.preventDefault();
+    this.closeTransactionEditor();
+  }
+
+  dismissTransactionBackdrop(event: PointerEvent): void {
+    if (event.target !== event.currentTarget || event.button !== 0) return;
+    const bounds = (event.currentTarget as HTMLDialogElement).getBoundingClientRect();
+    if (
+      event.clientX < bounds.left ||
+      event.clientX > bounds.right ||
+      event.clientY < bounds.top ||
+      event.clientY > bounds.bottom
+    )
+      this.closeTransactionEditor();
   }
 
   private isCurrency(value: string): value is FinanceCurrency {
@@ -424,6 +608,7 @@ export class FinanceOverviewPageComponent implements OnInit {
   }
 
   saveTransaction(entry: FinanceTransactionEntry): void {
+    if (!this.canWriteTransactions()) return;
     const month = this.month();
     const editor = this.transactionEditor();
     if (month === null || editor === null || this.saving()) return;
@@ -448,8 +633,11 @@ export class FinanceOverviewPageComponent implements OnInit {
         description: entry.description.trim(),
       };
       const editing = editor.transaction;
-      const operation =
-        editing === null
+      const operation = this.readOnly()
+        ? editing === null
+          ? this.service.createTransaction(draft, month.periodStart)
+          : this.service.updateTransaction(editing.id, editing.version, draft, month.periodStart)
+        : editing === null
           ? this.service.createTransaction(draft)
           : this.service.updateTransaction(editing.id, editing.version, draft);
       this.mutateTransaction(operation, () => {
@@ -461,12 +649,37 @@ export class FinanceOverviewPageComponent implements OnInit {
     }
   }
 
-  setTransactionDeleted(transaction: FinanceTransaction, deleted: boolean): void {
-    this.mutateTransaction(
-      deleted
-        ? this.service.deleteTransaction(transaction.id, transaction.version)
-        : this.service.restoreTransaction(transaction.id, transaction.version),
+  canEditTransaction(transaction: FinanceTransaction): boolean {
+    const month = this.month();
+    if (!month || !this.canWriteTransactions()) return false;
+    return (
+      !this.readOnly() ||
+      Temporal.Instant.from(transaction.createdAt)
+        .toZonedDateTimeISO(month.timezoneName)
+        .toPlainDate()
+        .with({ day: 1 })
+        .toString() === this.currentPeriod()
     );
+  }
+
+  setTransactionDeleted(transaction: FinanceTransaction, deleted: boolean): void {
+    if (!this.canEditTransaction(transaction)) return;
+    const operation = this.readOnly()
+      ? deleted
+        ? this.service.deleteTransaction(
+            transaction.id,
+            transaction.version,
+            this.selectedPeriod()!,
+          )
+        : this.service.restoreTransaction(
+            transaction.id,
+            transaction.version,
+            this.selectedPeriod()!,
+          )
+      : deleted
+        ? this.service.deleteTransaction(transaction.id, transaction.version)
+        : this.service.restoreTransaction(transaction.id, transaction.version);
+    this.mutateTransaction(operation);
   }
 
   showRevisions(transaction: FinanceTransaction): void {
@@ -479,19 +692,19 @@ export class FinanceOverviewPageComponent implements OnInit {
     this.revisionsSubscription?.unsubscribe();
     this.revisionsLoading.set(true);
     this.revisionsErrorKey.set(null);
-    this.revisionsSubscription = this.service
-      .revisions(transaction.id)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (rows) => {
-          this.revisions.set(rows);
-          this.revisionsLoading.set(false);
-        },
-        error: (error: ApiError) => {
-          this.revisionsErrorKey.set(this.errorFor(error, 'finance.error.load'));
-          this.revisionsLoading.set(false);
-        },
-      });
+    const operation = this.readOnly()
+      ? this.service.historicalRevisions(this.selectedPeriod()!, transaction.id)
+      : this.service.revisions(transaction.id);
+    this.revisionsSubscription = operation.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (rows) => {
+        this.revisions.set(rows);
+        this.revisionsLoading.set(false);
+      },
+      error: (error: ApiError) => {
+        this.revisionsErrorKey.set(this.errorFor(error, 'finance.error.load'));
+        this.revisionsLoading.set(false);
+      },
+    });
   }
 
   closeRevisions(): void {
@@ -503,7 +716,7 @@ export class FinanceOverviewPageComponent implements OnInit {
   }
 
   private mutateMonth(operation: Observable<FinanceMonth>, after?: () => void): void {
-    if (this.saving()) return;
+    if (this.saving() || this.readOnly()) return;
     this.initializationSubscription?.unsubscribe();
     this.transactionsSubscription?.unsubscribe();
     this.loading.set(false);
@@ -526,7 +739,7 @@ export class FinanceOverviewPageComponent implements OnInit {
   }
 
   private mutateTransaction(operation: Observable<FinanceTransaction>, after?: () => void): void {
-    if (this.saving()) return;
+    if (this.saving() || !this.canWriteTransactions()) return;
     this.initializationSubscription?.unsubscribe();
     this.transactionsSubscription?.unsubscribe();
     this.loading.set(false);
@@ -535,8 +748,11 @@ export class FinanceOverviewPageComponent implements OnInit {
     operation.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         after?.();
-        this.initializationSubscription = this.service
-          .month()
+        this.initializationSubscription = (
+          this.readOnly()
+            ? this.service.historicalMonth(this.selectedPeriod()!)
+            : this.service.month()
+        )
           .pipe(takeUntilDestroyed(this.destroyRef))
           .subscribe({
             next: (month) => {

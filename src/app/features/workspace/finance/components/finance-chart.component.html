@@ -1,0 +1,70 @@
+<figure class="finance-chart">
+  <figcaption class="h6">{{ title() }} · {{ symbol() }}</figcaption>
+  @if (!nonzero()) {
+    <p class="text-body-secondary">{{ 'finance.statistics.empty' | t }}</p>
+  }
+  <svg
+    [attr.viewBox]="'0 0 720 ' + height()"
+    role="img"
+    [attr.aria-label]="title() + ' · ' + symbol()"
+    preserveAspectRatio="xMidYMid meet"
+  >
+    @if (kind() === 'pie') {
+      @for (slice of slices(); track slice.id) {
+        <path [attr.d]="slice.path" [attr.class]="slice.colorClass">
+          <title>
+            {{ slice.label }}: {{ money(slice.amount) }} · {{ percentage(slice.percentage) }}
+          </title>
+        </path>
+      }
+    } @else if (kind() === 'horizontal') {
+      @for (bar of bars(); track bar.id) {
+        <text x="5" [attr.y]="bar.rowY + 17">
+          {{ bar.shortLabel }}
+          <title>{{ bar.label }}</title>
+        </text>
+        <rect x="280" [attr.y]="bar.rowY" [attr.width]="bar.horizontalWidth" height="24">
+          <title>{{ bar.label }}: {{ money(bar.amount) }}</title>
+        </rect>
+      }
+    } @else {
+      <line x1="35" x2="705" [attr.y1]="zeroY()" [attr.y2]="zeroY()" />
+      @for (bar of bars(); track bar.id) {
+        <rect [attr.x]="bar.x" [attr.y]="bar.y" [attr.width]="bar.width" [attr.height]="bar.height">
+          <title>{{ bar.label }}: {{ money(bar.amount) }}</title>
+        </rect>
+        @if (bar.showLabel) {
+          <text [attr.x]="bar.labelX" y="250" text-anchor="middle">{{ bar.label }}</text>
+        }
+      }
+    }
+  </svg>
+  <div class="table-responsive">
+    <table class="table table-sm mb-0">
+      <caption class="visually-hidden">
+        {{
+          title()
+        }}
+      </caption>
+      <tbody>
+        @for (row of data(); track row.id; let index = $index) {
+          <tr>
+            <th scope="row">
+              @if (kind() === 'pie') {
+                <span
+                  [class]="'finance-swatch finance-color-' + (index % 8)"
+                  aria-hidden="true"
+                ></span>
+              }
+              {{ row.label }}
+            </th>
+            <td class="text-end">{{ money(row.amount) }}</td>
+            @if (kind() === 'pie') {
+              <td class="text-end">{{ percentage(slices()[index]?.percentage ?? 0) }}</td>
+            }
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</figure>

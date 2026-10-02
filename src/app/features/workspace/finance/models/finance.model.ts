@@ -49,6 +49,7 @@ export interface FinanceMonth {
 }
 
 export interface FinanceTransaction {
+  createdAt: string;
   source: 'web' | 'telegram';
   authorId: string;
   authorLabel: string;
@@ -80,4 +81,59 @@ export interface FinanceRevision {
   previousState: Record<string, string | number | boolean | null>;
   actorUsername: string;
   changedAt: string;
+}
+
+export type FinanceStatisticsPeriod =
+  'today' | 'thisWeek' | 'thisMonth' | 'thisYear' | 'last7Days' | 'last30Days' | 'last365Days';
+
+export interface FinanceStatisticsWindow {
+  start: string;
+  end: string;
+  granularity: 'hour' | 'day' | 'month';
+}
+
+export interface FinanceStatisticsPoint {
+  start: string;
+  end: string;
+  amount: string;
+}
+
+export interface FinanceStatisticsCategory {
+  id: string;
+  name: string;
+  amount: string;
+  percentage: string;
+}
+
+export interface FinanceStatisticsBreakdown {
+  actual: string;
+  previous: string;
+  change: string;
+  changePercent: string | null;
+  timeline: FinanceStatisticsPoint[];
+  categories: FinanceStatisticsCategory[];
+}
+
+export type FinanceStatisticsCurrency = FinanceCurrency | 'month';
+
+export interface FinanceStatisticsResult {
+  currency: FinanceStatisticsCurrency;
+  reports: FinanceStatistics[];
+}
+
+export interface FinanceStatistics {
+  budgetRateEffectiveOn: string | null;
+  period: FinanceStatisticsPeriod;
+  currency: FinanceCurrency;
+  timezoneName: string;
+  window: FinanceStatisticsWindow;
+  previousWindow: FinanceStatisticsWindow;
+  availableSince: string;
+  income: FinanceStatisticsBreakdown;
+  expense: FinanceStatisticsBreakdown;
+  net: string;
+  previousNet: string;
+  uncategorizedIncome: string;
+  uncategorizedExpense: string;
+  monthly: FinanceMonth | null;
 }

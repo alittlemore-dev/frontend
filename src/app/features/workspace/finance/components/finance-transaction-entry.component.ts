@@ -7,6 +7,7 @@ import {
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   computed,
   effect,
   inject,
@@ -15,6 +16,7 @@ import {
   signal,
   untracked,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 
 import { I18nService } from '../../../../core/i18n/i18n.service';
@@ -51,6 +53,7 @@ export class FinanceTransactionEntryComponent {
   readonly editing = input(false);
   readonly saveAttempted = signal(false);
   readonly submitted = output<FinanceTransactionEntry>();
+  readonly draftChanged = output<FinanceTransactionEntry>();
   readonly cancelled = output<void>();
 
   readonly form = new FormGroup({
@@ -107,10 +110,14 @@ export class FinanceTransactionEntryComponent {
   });
 
   constructor() {
+    this.form.valueChanges.pipe(takeUntilDestroyed(inject(DestroyRef))).subscribe(() => {
+      const value = this.form.getRawValue();
+      this.draftChanged.emit({ ...value, dateTime: value.dateTime ?? '' });
+    });
     effect(() => {
       const value = this.initialValue();
       untracked(() => {
-        this.form.reset(value);
+        this.form.reset(value, { emitEvent: false });
         this.saveAttempted.set(false);
       });
     });

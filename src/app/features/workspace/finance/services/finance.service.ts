@@ -2,6 +2,9 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 import { ApiClient } from '../../../../core/http/api-client.service';
 import {
+  FinanceStatisticsResult,
+  FinanceStatisticsCurrency,
+  FinanceStatisticsPeriod,
   FinanceCurrency,
   FinanceKind,
   FinanceMonth,
@@ -15,6 +18,48 @@ const PATH = '/api/personal-workspace/finance/current-month';
 @Injectable({ providedIn: 'root' })
 export class FinanceService {
   private readonly api = inject(ApiClient);
+
+  historicalMonth(period: string): Observable<FinanceMonth> {
+    return this.api.get<FinanceMonth>(this.historicalPath(period));
+  }
+
+  historicalTransactions(
+    period: string,
+    includeDeleted: boolean,
+  ): Observable<readonly FinanceTransaction[]> {
+    return this.api
+      .get<{ transactions: FinanceTransaction[] }>(`${this.historicalPath(period)}/transactions`, {
+        include_deleted: String(includeDeleted),
+      })
+      .pipe(map(({ transactions }) => transactions));
+  }
+
+  historicalRevisions(period: string, id: string): Observable<readonly FinanceRevision[]> {
+    return this.api
+      .get<{ revisions: FinanceRevision[] }>(
+        `${this.historicalPath(period)}/transactions/${encodeURIComponent(id)}/revisions`,
+      )
+      .pipe(map(({ revisions }) => revisions));
+  }
+
+  statistics(
+    period: FinanceStatisticsPeriod,
+    currency: FinanceStatisticsCurrency,
+  ): Observable<FinanceStatisticsResult> {
+    return this.api.get<FinanceStatisticsResult>('/api/personal-workspace/finance/statistics', {
+      period,
+      currency,
+    });
+  }
+
+  private historicalPath(period: string): string {
+    const [year, month] = period.split('-');
+    return `/api/personal-workspace/finance/months/${year}/${Number(month)}`;
+  }
+
+  private transactionPath(period?: string): string {
+    return period === undefined ? PATH : this.historicalPath(period);
+  }
 
   ensure(language: 'ru' | 'en'): Observable<FinanceMonth> {
     return this.api.post<FinanceMonth>(`${PATH}/ensure`, { language });
@@ -78,30 +123,40 @@ export class FinanceService {
       .pipe(map(({ transactions }) => transactions));
   }
 
-  createTransaction(draft: FinanceTransactionDraft): Observable<FinanceTransaction> {
-    return this.api.post<FinanceTransaction>(`${PATH}/transactions`, draft);
+  createTransaction(
+    draft: FinanceTransactionDraft,
+    period?: string,
+  ): Observable<FinanceTransaction> {
+    return this.api.post<FinanceTransaction>(`${this.transactionPath(period)}/transactions`, draft);
   }
 
   updateTransaction(
     id: string,
     version: number,
     draft: FinanceTransactionDraft,
+    period?: string,
   ): Observable<FinanceTransaction> {
-    return this.api.put<FinanceTransaction>(`${PATH}/transactions/${encodeURIComponent(id)}`, {
-      ...draft,
-      version,
-    });
+    return this.api.put<FinanceTransaction>(
+      `${this.transactionPath(period)}/transactions/${encodeURIComponent(id)}`,
+      {
+        ...draft,
+        version,
+      },
+    );
   }
 
-  deleteTransaction(id: string, version: number): Observable<FinanceTransaction> {
-    return this.api.delete<FinanceTransaction>(`${PATH}/transactions/${encodeURIComponent(id)}`, {
-      version: String(version),
-    });
+  deleteTransaction(id: string, version: number, period?: string): Observable<FinanceTransaction> {
+    return this.api.delete<FinanceTransaction>(
+      `${this.transactionPath(period)}/transactions/${encodeURIComponent(id)}`,
+      {
+        version: String(version),
+      },
+    );
   }
 
-  restoreTransaction(id: string, version: number): Observable<FinanceTransaction> {
+  restoreTransaction(id: string, version: number, period?: string): Observable<FinanceTransaction> {
     return this.api.post<FinanceTransaction>(
-      `${PATH}/transactions/${encodeURIComponent(id)}/restore`,
+      `${this.transactionPath(period)}/transactions/${encodeURIComponent(id)}/restore`,
       {
         version,
       },

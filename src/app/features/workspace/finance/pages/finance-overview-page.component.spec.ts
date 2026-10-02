@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { of, Subject, throwError } from 'rxjs';
+import { provideRouter } from '@angular/router';
 import { By } from '@angular/platform-browser';
 import { I18nService } from '../../../../core/i18n/i18n.service';
 import { FinanceTransactionEntryComponent } from '../components/finance-transaction-entry.component';
@@ -38,6 +39,7 @@ describe('FinanceOverviewPageComponent', () => {
     await TestBed.configureTestingModule({
       imports: [FinanceOverviewPageComponent],
       providers: [
+        provideRouter([]),
         provideI18nTesting({ 'finance.category.none': 'Без категории' }),
         { provide: FinanceService, useValue: service },
       ],
@@ -371,6 +373,7 @@ describe('FinanceOverviewPageComponent', () => {
   });
 
   it('cancels creation without saving and starts a new empty draft on reopening', () => {
+    const confirm = jest.spyOn(window, 'confirm').mockReturnValue(true);
     const dialog = openTransaction();
     entries()[0].form.controls.amount.setValue('77');
     entries()[0].form.controls.description.setValue('Cancelled draft');
@@ -383,6 +386,31 @@ describe('FinanceOverviewPageComponent', () => {
     openTransaction('income');
     expect(entries()[0].form.controls.amount.value).toBe('');
     expect(entries()[0].form.controls.description.value).toBe('');
+    confirm.mockRestore();
+  });
+
+  it('protects an operation draft on cancel and treats a full revert as clean', () => {
+    const confirm = jest.spyOn(window, 'confirm').mockReturnValue(false);
+    const dialog = openTransaction();
+    const description = dialog.querySelector<HTMLTextAreaElement>('textarea')!;
+    description.value = 'Unsaved operation';
+    description.dispatchEvent(new Event('input', { bubbles: true }));
+    fixture.detectChanges();
+    dialog.dispatchEvent(new Event('cancel', { cancelable: true }));
+    fixture.detectChanges();
+    expect(confirm).toHaveBeenCalledTimes(1);
+    expect(dialog.open).toBe(true);
+    expect(description.value).toBe('Unsaved operation');
+    description.value = '';
+    description.dispatchEvent(new Event('input', { bubbles: true }));
+    fixture.detectChanges();
+    dialog
+      .querySelector<HTMLButtonElement>('.finance-entry-actions button[type="button"]')!
+      .click();
+    fixture.detectChanges();
+    expect(dialog.open).toBe(false);
+    expect(confirm).toHaveBeenCalledTimes(1);
+    confirm.mockRestore();
   });
 
   it('keeps failed opening balance and category drafts when retry reloads the month', () => {

@@ -1,0 +1,125 @@
+@let data = statistics();
+<div
+  [attr.id]="'finance-statistics-panel-summary-' + data.currency"
+  role="tabpanel"
+  aria-labelledby="finance-statistics-tab-summary"
+  [hidden]="tab() !== 'summary'"
+>
+  <div class="finance-statistics-totals">
+    @for (kind of kinds; track kind) {
+      <article class="card">
+        <div class="card-body">
+          <h2 class="h5">
+            {{ (kind === 'income' ? 'finance.income' : 'finance.expenses') | t }} ·
+            {{ symbol(data.currency) }}
+          </h2>
+          <strong class="fs-4">{{ money(data[kind].actual, data.currency) }}</strong>
+          <p class="mb-0">
+            {{ 'finance.statistics.previous' | t }}:
+            {{ money(data[kind].previous, data.currency) }}
+          </p>
+          <p class="mb-0">
+            {{ 'finance.statistics.change' | t }}: {{ money(data[kind].change, data.currency) }} ·
+            {{ percent(data[kind].changePercent) }}
+          </p>
+        </div>
+      </article>
+    }
+    <article class="card">
+      <div class="card-body">
+        <h2 class="h5">{{ 'finance.statistics.net' | t }} · {{ symbol(data.currency) }}</h2>
+        <strong class="fs-4">{{ money(data.net, data.currency) }}</strong>
+        <p class="mb-0">
+          {{ 'finance.statistics.previous' | t }}: {{ money(data.previousNet, data.currency) }}
+        </p>
+      </div>
+    </article>
+  </div>
+  <p class="text-body-secondary mt-2">
+    {{ 'finance.statistics.comparison' | t }}: {{ date(data.previousWindow.start) }} —
+    {{ periodEnd(data.previousWindow.end) }}
+  </p>
+  @if (data.monthly; as month) {
+    <h2 class="h4 mt-4">
+      {{ 'finance.statistics.monthBudget' | t }} · {{ symbol(month.currency) }}
+    </h2>
+    @if (data.budgetRateEffectiveOn) {
+      <p class="text-body-secondary">
+        {{ 'finance.statistics.budgetRate' | t }} {{ date(data.budgetRateEffectiveOn) }}
+      </p>
+    }
+    <div class="finance-statistics-grid">
+      @for (balance of balanceSeries(); track balance.id) {
+        <app-finance-chart
+          [title]="balance.label"
+          [currency]="month.currency"
+          [data]="[balance]"
+          [scale]="balanceScale()"
+        />
+      }
+    </div>
+    <div class="finance-statistics-grid mt-4">
+      @for (kind of kinds; track kind) {
+        <app-finance-budget-column
+          [kind]="kind"
+          [month]="month"
+          [categories]="monthlyCategories()[kind]"
+          [drafts]="{}"
+          [newCategoryDraft]="blankDraft"
+          [saving]="false"
+          [readOnly]="true"
+        />
+      }
+    </div>
+    <div class="finance-statistics-grid mt-4">
+      @for (kind of kinds; track kind) {
+        <app-finance-chart
+          [title]="('finance.statistics.tab.' + kind | t) + ' · ' + ('finance.plan' | t)"
+          [currency]="month.currency"
+          [data]="budgetSeries()[kind].planned"
+          kind="horizontal"
+        />
+        <app-finance-chart
+          [title]="('finance.statistics.tab.' + kind | t) + ' · ' + ('finance.actual' | t)"
+          [currency]="month.currency"
+          [data]="budgetSeries()[kind].actual"
+          kind="horizontal"
+        />
+      }
+    </div>
+  }
+</div>
+@for (kind of kinds; track kind) {
+  <div
+    [attr.id]="'finance-statistics-panel-' + kind + '-' + data.currency"
+    role="tabpanel"
+    [attr.aria-labelledby]="'finance-statistics-tab-' + kind"
+    [hidden]="tab() !== kind"
+  >
+    <h2 class="h4">
+      {{ 'finance.statistics.tab.' + kind | t }} · {{ money(data[kind].actual, data.currency) }}
+    </h2>
+    <p>
+      {{ 'finance.statistics.previous' | t }}: {{ money(data[kind].previous, data.currency) }} ·
+      {{ 'finance.statistics.change' | t }}: {{ money(data[kind].change, data.currency) }} ·
+      {{ percent(data[kind].changePercent) }}
+    </p>
+    <p class="text-body-secondary">
+      {{ 'finance.statistics.comparison' | t }}: {{ date(data.previousWindow.start) }} —
+      {{ periodEnd(data.previousWindow.end) }}
+    </p>
+    <div class="finance-statistics-grid">
+      <app-finance-chart
+        [title]="'finance.statistics.dynamics' | t"
+        [currency]="data.currency"
+        [data]="timeline(data[kind])"
+      />
+      <app-finance-chart
+        [title]="'finance.statistics.categories' | t"
+        [currency]="data.currency"
+        [data]="categories(data[kind])"
+        kind="pie"
+      />
+    </div>
+  </div>
+}

@@ -1,0 +1,81 @@
+<section [attr.aria-busy]="loading()">
+  <h1>{{ 'finance.statistics.title' | t }}</h1>
+  <div class="finance-statistics-filters">
+    <div>
+      <label for="finance-statistics-period">{{ 'finance.statistics.period' | t }}</label>
+      <ds-site-select
+        controlSize="small"
+        appearance="default"
+        inputId="finance-statistics-period"
+        [options]="periodOptions()"
+        [value]="period()"
+        [required]="true"
+        [invalid]="false"
+        [controlDisabled]="false"
+        (valueChange)="selectPeriod($event)"
+      />
+    </div>
+    <div>
+      <label for="finance-statistics-currency">{{ 'finance.statistics.currency' | t }}</label>
+      <ds-site-select
+        controlSize="small"
+        appearance="default"
+        inputId="finance-statistics-currency"
+        [options]="currencyOptions()"
+        [value]="currency()"
+        [required]="true"
+        [invalid]="false"
+        [controlDisabled]="false"
+        (valueChange)="selectCurrency($event)"
+      />
+    </div>
+  </div>
+  @if (notice()) {
+    <p role="status">{{ 'finance.statistics.invalid' | t }}</p>
+  }
+  @if (errorKey(); as key) {
+    <div class="alert alert-danger" role="alert">
+      {{ key | t }}
+      <button type="button" class="btn btn-sm btn-outline-danger" (click)="load()">
+        {{ 'shared.retry' | t }}
+      </button>
+    </div>
+  }
+  @if (loading()) {
+    <p role="status">{{ 'shared.loading' | t }}</p>
+  }
+  @if (statistics(); as data) {
+    @if (data.reports[0]; as report) {
+      <p class="text-body-secondary">
+        {{ date(report.window.start) }} — {{ periodEnd(report.window.end) }} ·
+        {{ report.timezoneName }}
+      </p>
+      @if (report.availableSince > report.previousWindow.start.slice(0, 10)) {
+        <p class="alert alert-info">
+          {{ 'finance.statistics.coverage' | t }} {{ date(report.availableSince) }}
+        </p>
+      }
+    }
+    <ul class="nav nav-tabs mb-3" role="tablist" [attr.aria-label]="'finance.statistics.title' | t">
+      @for (item of tabs; track item) {
+        <li class="nav-item" role="presentation">
+          <button
+            type="button"
+            role="tab"
+            class="nav-link"
+            [class.active]="tab() === item"
+            [attr.id]="'finance-statistics-tab-' + item"
+            [attr.aria-controls]="panelIds(item)"
+            [attr.aria-selected]="tab() === item"
+            (click)="tab.set(item)"
+          >
+            {{ 'finance.statistics.tab.' + item | t }}
+          </button>
+        </li>
+      }
+    </ul>
+    @for (report of data.reports; track report.currency) {
+      <app-finance-statistics-report [statistics]="report" [tab]="tab()" />
+    }
+  }
+</section>

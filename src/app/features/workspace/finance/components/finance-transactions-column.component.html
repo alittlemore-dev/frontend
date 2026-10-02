@@ -17,20 +17,22 @@
         </span>
       </div>
     </div>
-    <button
-      type="button"
-      class="finance-icon-button finance-add-transaction"
-      [attr.aria-label]="
-        ('finance.transaction.add' | t) +
-        ': ' +
-        ((kind() === 'expense' ? 'finance.expenses' : 'finance.income') | t)
-      "
-      [attr.title]="'finance.transaction.add' | t"
-      [disabled]="saving()"
-      (click)="creationRequested.emit()"
-    >
-      +
-    </button>
+    @if (!readOnly()) {
+      <button
+        type="button"
+        class="finance-icon-button finance-add-transaction"
+        [attr.aria-label]="
+          ('finance.transaction.add' | t) +
+          ': ' +
+          ((kind() === 'expense' ? 'finance.expenses' : 'finance.income') | t)
+        "
+        [attr.title]="'finance.transaction.add' | t"
+        [disabled]="saving()"
+        (click)="creationRequested.emit()"
+      >
+        +
+      </button>
+    }
   </header>
   <table class="table finance-transactions-table">
     <thead>
@@ -52,22 +54,29 @@
             }}</time>
           </td>
           <td>
-            <button
-              type="button"
-              class="finance-transaction-edit"
-              [disabled]="transaction.deleted || saving()"
-              [attr.aria-label]="
-                ('finance.transaction.edit' | t) +
-                ': ' +
-                (transaction.categoryName || ('finance.category.none' | t))
-              "
-              (click)="editRequested.emit(transaction)"
-            >
+            @if (!editable(transaction)) {
               <strong>{{ transaction.categoryName || ('finance.category.none' | t) }}</strong>
               @if (transaction.description) {
-                <span>{{ transaction.description }}</span>
+                <span class="d-block">{{ transaction.description }}</span>
               }
-            </button>
+            } @else {
+              <button
+                type="button"
+                class="finance-transaction-edit"
+                [disabled]="transaction.deleted || saving()"
+                [attr.aria-label]="
+                  ('finance.transaction.edit' | t) +
+                  ': ' +
+                  (transaction.categoryName || ('finance.category.none' | t))
+                "
+                (click)="editRequested.emit(transaction)"
+              >
+                <strong>{{ transaction.categoryName || ('finance.category.none' | t) }}</strong>
+                @if (transaction.description) {
+                  <span>{{ transaction.description }}</span>
+                }
+              </button>
+            }
             <small class="d-block text-body-secondary">
               {{ 'finance.transaction.author' | t }}: {{ transaction.authorLabel }} ·
               {{ 'finance.transaction.source.' + transaction.source | t }}
@@ -82,17 +91,19 @@
             }
           </td>
           <td class="finance-icon-cell">
-            <button
-              type="button"
-              class="finance-icon-button"
-              [class.finance-icon-button-danger]="!transaction.deleted"
-              [attr.aria-label]="(transaction.deleted ? 'finance.restore' : 'finance.delete') | t"
-              [attr.title]="(transaction.deleted ? 'finance.restore' : 'finance.delete') | t"
-              [disabled]="saving()"
-              (click)="deletionRequested.emit(transaction)"
-            >
-              {{ transaction.deleted ? '+' : '−' }}
-            </button>
+            @if (editable(transaction)) {
+              <button
+                type="button"
+                class="finance-icon-button"
+                [class.finance-icon-button-danger]="!transaction.deleted"
+                [attr.aria-label]="(transaction.deleted ? 'finance.restore' : 'finance.delete') | t"
+                [attr.title]="(transaction.deleted ? 'finance.restore' : 'finance.delete') | t"
+                [disabled]="saving()"
+                (click)="deletionRequested.emit(transaction)"
+              >
+                {{ transaction.deleted ? '+' : '−' }}
+              </button>
+            }
             <button
               type="button"
               class="finance-icon-button finance-history-button"

@@ -24,6 +24,14 @@ export class FinanceTransactionsColumnComponent {
   readonly transactions = input.required<readonly FinanceTransaction[]>();
   readonly historyTransactionId = input.required<string | null>();
   readonly saving = input.required<boolean>();
+  readonly readOnly = input(false);
+  readonly lateOnly = input(false);
+  readonly editableIds = input<readonly string[]>([]);
+
+  editable(transaction: FinanceTransaction): boolean {
+    return !this.readOnly() && (!this.lateOnly() || this.editableIds().includes(transaction.id));
+  }
+
   readonly creationRequested = output<void>();
   readonly editRequested = output<FinanceTransaction>();
   readonly deletionRequested = output<FinanceTransaction>();

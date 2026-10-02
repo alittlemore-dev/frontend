@@ -3,7 +3,7 @@
     <div>
       <h1>
         {{ 'finance.overview' | t }}
-        @if (month()) {
+        @if (selectedPeriod()) {
           <span class="finance-month-separator" aria-hidden="true">·</span>
           <span class="finance-month-label">{{ monthLabel() }}</span>
         }
@@ -12,7 +12,46 @@
         <p>{{ currentMonth.timezoneName }}</p>
       }
     </div>
+    <nav class="d-flex align-items-center gap-2" [attr.aria-label]="'finance.month.navigation' | t">
+      <button
+        type="button"
+        class="btn btn-outline-secondary"
+        [disabled]="loading() || saving() || selectedPeriod() === '0001-01-01'"
+        [attr.aria-label]="'finance.month.previous' | t"
+        (click)="navigateMonth(-1)"
+      >
+        ←
+      </button>
+      <button
+        type="button"
+        class="btn btn-outline-secondary"
+        [disabled]="loading() || saving() || !readOnly()"
+        (click)="returnToCurrent()"
+      >
+        {{ 'finance.month.current' | t }}
+      </button>
+      <button
+        type="button"
+        class="btn btn-outline-secondary"
+        [disabled]="loading() || saving() || !readOnly()"
+        [attr.aria-label]="'finance.month.next' | t"
+        (click)="navigateMonth(1)"
+      >
+        →
+      </button>
+    </nav>
   </header>
+  @if (navigationNotice()) {
+    <p role="status" class="text-body-secondary">{{ 'finance.month.invalid' | t }}</p>
+  }
+  @if (readOnly()) {
+    <p class="text-body-secondary">
+      {{ (canWriteTransactions() ? 'finance.month.lateOperations' : 'finance.month.readOnly') | t }}
+    </p>
+  }
+  @if (empty()) {
+    <p role="status">{{ 'finance.month.empty' | t }}</p>
+  }
 
   @if (errorKey(); as messageKey) {
     <div
@@ -75,19 +114,25 @@
         <div class="finance-balance-item">
           <label for="finance-opening">{{ 'finance.openingBalance' | t }}</label>
           <div class="finance-balance-value d-flex align-items-baseline">
-            <input
-              id="finance-opening"
-              type="text"
-              inputmode="decimal"
-              class="finance-inline-input finance-balance-input"
-              [size]="openingDraft().length || 1"
-              [ngModel]="openingDraft()"
-              (ngModelChange)="openingDraft.set(inputText($event))"
-              (blur)="saveOpeningBalance()"
-              (keydown.enter)="saveOpeningBalance()"
-              [disabled]="saving()"
-              aria-describedby="finance-opening-currency"
-            />
+            @if (readOnly()) {
+              <strong>{{
+                balanceAmount(currentMonth.openingBalance, currentMonth.currency)
+              }}</strong>
+            } @else {
+              <input
+                id="finance-opening"
+                type="text"
+                inputmode="decimal"
+                class="finance-inline-input finance-balance-input"
+                [size]="openingDraft().length || 1"
+                [ngModel]="openingDraft()"
+                (ngModelChange)="openingDraft.set(inputText($event))"
+                (blur)="saveOpeningBalance()"
+                (keydown.enter)="saveOpeningBalance()"
+                [disabled]="saving()"
+                aria-describedby="finance-opening-currency"
+              />
+            }
             <span id="finance-opening-currency" class="finance-balance-symbol flex-shrink-0">{{
               currencySymbols[currentMonth.currency]
             }}</span>
@@ -106,17 +151,21 @@
         </div>
         <div class="finance-balance-item finance-balance-currency">
           <label for="finance-currency">{{ 'finance.currency' | t }}</label>
-          <ds-site-select
-            inputId="finance-currency"
-            [options]="currencyOptions"
-            controlSize="small"
-            appearance="default"
-            [required]="true"
-            [invalid]="false"
-            [controlDisabled]="saving()"
-            [value]="currencyDraft()"
-            (valueChange)="selectCurrency($event)"
-          />
+          @if (readOnly()) {
+            <strong>{{ currentMonth.currency }}</strong>
+          } @else {
+            <ds-site-select
+              inputId="finance-currency"
+              [options]="currencyOptions"
+              controlSize="small"
+              appearance="default"
+              [required]="true"
+              [invalid]="false"
+              [controlDisabled]="saving()"
+              [value]="currencyDraft()"
+              (valueChange)="selectCurrency($event)"
+            />
+          }
         </div>
       </section>
 
@@ -129,6 +178,7 @@
             [drafts]="categoryDrafts()"
             [newCategoryDraft]="newCategoryDrafts()[kind]"
             [saving]="saving()"
+            [readOnly]="readOnly()"
             (draftChanged)="updateCategoryDraft($event.category, $event.field, $event.value)"
             (newDraftChanged)="updateNewCategoryDraft(kind, $event.field, $event.value)"
             (saved)="saveCategoryInline($event)"
@@ -166,6 +216,9 @@
             [transactions]="kind === 'expense' ? expenseTransactions() : incomeTransactions()"
             [historyTransactionId]="revisionsFor()?.id ?? null"
             [saving]="saving()"
+            [readOnly]="!canWriteTransactions()"
+            [lateOnly]="readOnly()"
+            [editableIds]="editableIds()"
             (creationRequested)="openTransactionCreation(kind)"
             (editRequested)="openTransactionEdit($event)"
             (deletionRequested)="setTransactionDeleted($event, !$event.deleted)"
@@ -267,7 +320,9 @@
     #transactionDialog="dsModalDialog"
     dsModalDialog
     class="finance-transaction-dialog"
-    [dismissible]="!saving()"
+    [dismissible]="!saving() && !transactionDirty()"
+    (cancel)="cancelTransactionDialog($event)"
+    (pointerdown)="dismissTransactionBackdrop($event)"
     (dismissed)="transactionEditor.set(null)"
     aria-modal="true"
     aria-labelledby="finance-transaction-title"
@@ -302,6 +357,7 @@
         [timeZone]="month()?.timezoneName ?? ''"
         [saving]="saving()"
         [editing]="editor.transaction !== null"
+        (draftChanged)="transactionDraft.set($event)"
         (submitted)="saveTransaction($event)"
         (cancelled)="closeTransactionEditor()"
       />

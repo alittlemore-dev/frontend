@@ -45,6 +45,61 @@ describe('FinanceService', () => {
     removal.flush({});
   });
 
+  it('requests historical months, their operations and revisions through the protected API', () => {
+    service.historicalMonth('2025-12-01').subscribe();
+    const month = http.expectOne((entry) =>
+      entry.url.endsWith('/api/personal-workspace/finance/months/2025/12'),
+    );
+    expect(month.request.method).toBe('GET');
+    month.flush({});
+    service.historicalTransactions('2025-12-01', true).subscribe();
+    const operations = http.expectOne((entry) =>
+      entry.url.endsWith('/months/2025/12/transactions'),
+    );
+    expect(operations.request.params.get('include_deleted')).toBe('true');
+    operations.flush({ transactions: [] });
+    service.historicalRevisions('2025-12-01', 'operation/id').subscribe();
+    const revisions = http.expectOne((entry) =>
+      entry.url.endsWith('/months/2025/12/transactions/operation%2Fid/revisions'),
+    );
+    revisions.flush({ revisions: [] });
+  });
+
+  it('sends the independent analytics currency and selected period', () => {
+    service.statistics('last30Days', 'AMD').subscribe();
+    const request = http.expectOne((entry) =>
+      entry.url.endsWith('/api/personal-workspace/finance/statistics'),
+    );
+    expect(request.request.method).toBe('GET');
+    expect(request.request.params.get('period')).toBe('last30Days');
+    expect(request.request.params.get('currency')).toBe('AMD');
+    request.flush({});
+  });
+
+  it('writes late transactions to their historical month rather than the current month', () => {
+    service
+      .createTransaction(
+        {
+          categoryId: 'food',
+          amount: '10',
+          currency: 'USD',
+          occurredAt: '2025-12-31T12:00:00Z',
+          description: 'Late',
+        },
+        '2025-12-01',
+      )
+      .subscribe();
+    const create = http.expectOne((entry) => entry.url.endsWith('/months/2025/12/transactions'));
+    expect(create.request.method).toBe('POST');
+    create.flush({});
+    service.deleteTransaction('late', 2, '2025-12-01').subscribe();
+    const remove = http.expectOne((entry) =>
+      entry.url.endsWith('/months/2025/12/transactions/late'),
+    );
+    expect(remove.request.params.get('version')).toBe('2');
+    remove.flush({});
+  });
+
   it('uses separate archive and permanent category deletion requests', () => {
     service.archiveCategory('food').subscribe();
     const archive = http.expectOne((entry) => entry.url.endsWith('/current-month/categories/food'));

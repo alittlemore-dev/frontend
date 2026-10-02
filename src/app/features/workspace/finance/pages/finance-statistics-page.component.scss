@@ -1,0 +1,29 @@
+.finance-statistics-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-block: 1.5rem;
+}
+.finance-statistics-filters > div {
+  min-width: 12rem;
+}
+.finance-statistics-filters label {
+  display: block;
+  margin-bottom: 0.35rem;
+}
+.finance-statistics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.5rem;
+}
+.finance-statistics-totals {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+@media (max-width: 991px) {
+  .finance-statistics-grid,
+  .finance-statistics-totals {
+    grid-template-columns: 1fr;
+  }
+}

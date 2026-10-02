@@ -69,6 +69,14 @@ export const workspaceRoutes: Routes = [
           import('./pages/events-page/events-page.component').then((m) => m.EventsPageComponent),
       },
       {
+        path: 'finance/statistics',
+        title: 'finance.statistics.title',
+        loadComponent: () =>
+          import('./finance/pages/finance-statistics-page.component').then(
+            (m) => m.FinanceStatisticsPageComponent,
+          ),
+      },
+      {
         path: 'finance',
         title: 'finance.overview',
         canDeactivate: [unsavedChangesGuard],
