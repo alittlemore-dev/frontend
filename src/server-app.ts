@@ -1,4 +1,5 @@
 import express from 'express';
+import { registerApiDocsRoutes } from './server-api-docs';
 import {
   buildPublicNotFoundHtml,
   buildPublicSeoApiUrl,
@@ -32,6 +33,7 @@ interface CreateExpressAppOptions {
 export function createExpressApp(options: CreateExpressAppOptions): express.Express {
   const app = express();
   app.disable('x-powered-by');
+  registerApiDocsRoutes(app);
 
   app.get('/healthz', (_req, res) => {
     res.status(200).type('text/plain').send('');

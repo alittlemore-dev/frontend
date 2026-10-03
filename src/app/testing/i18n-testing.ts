@@ -168,6 +168,7 @@ const I18N_TEST_MESSAGES: Record<string, string> = {
   'enum.role.moderator': 'Модератор',
   'enum.role.admin': 'Администратор',
   'enum.role.owner': 'Владелец',
+  'shell.footer.api': 'API',
   'shell.footer.sourceCode': 'Исходный код',
   'shell.footer.siteBuild': 'Как устроен сайт',
   'shell.footer.updates': 'Обновления',

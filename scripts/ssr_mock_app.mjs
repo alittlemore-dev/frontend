@@ -114,6 +114,22 @@ export async function startSsrFixture(options = {}) {
   await listen(i18nBackend, 0);
   process.env.SSR_I18N_ORIGIN = `http://127.0.0.1:${i18nBackend.address().port}`;
   const backend = http.createServer((req, res) => {
+    const schemaPaths = {
+      '/openapi/auth.json': '/api/auth/login',
+      '/openapi/competency.json': '/api/articles',
+      '/openapi/personal-workspace.json': '/api/resumes',
+      '/openapi/i18n.json': '/api/i18n/languages',
+    };
+    const schemaPath = schemaPaths[req.url];
+    if (schemaPath) {
+      res.setHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify({
+        openapi: '3.1.0',
+        info: { title: 'Smoke API', version: '1.0.0' },
+        paths: { [schemaPath]: { get: { responses: { 200: { description: 'OK' } } } } },
+      }));
+      return;
+    }
     if (req.url?.startsWith('/api/i18n/')) {
       res.statusCode = 404;
       res.end('Translations are owned by i18n');
@@ -125,6 +141,7 @@ export async function startSsrFixture(options = {}) {
   await listen(backend, options.backendPort ?? 0);
   const backendPort = backend.address().port;
   process.env.SSR_API_ORIGIN = `http://127.0.0.1:${backendPort}`;
+  process.env.API_SCHEMA_ORIGIN = `http://127.0.0.1:${backendPort}`;
   process.env.APP_URL_SCHEMA = 'http';
   process.env.APP_DOMAIN = '127.0.0.1';
   process.env.NG_ALLOWED_HOSTS = '127.0.0.1';
@@ -175,7 +192,9 @@ function createFrontendServer(serverHandler, backendHandler, i18nHandler) {
         return;
       }
 
-      if (url.pathname.startsWith('/api/')) {
+      const docsRequest = url.pathname === '/api/docs'
+        || url.pathname.startsWith('/api/docs/') || url.pathname === '/api/openapi.json';
+      if (url.pathname.startsWith('/api/') && !docsRequest) {
         res.statusCode = 404;
         res.end('Not found');
         return;

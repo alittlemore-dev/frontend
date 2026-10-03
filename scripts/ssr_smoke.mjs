@@ -6,6 +6,7 @@ const { frontendPort, requests, i18nRequests } = fixture;
 
 try {
   await assertDiscoveryEndpoints(frontendPort);
+  await assertUnifiedApiDocs(frontendPort);
   await assertBrowserApiProxy(frontendPort);
   await assertUnnamespacedApiIsRejected(frontendPort);
   await assertFixtureCover(frontendPort);
@@ -50,6 +51,26 @@ try {
 
 if (failure !== null) {
   process.exitCode = 1;
+}
+
+async function assertUnifiedApiDocs(frontendPort) {
+  const origin = `http://127.0.0.1:${frontendPort}`;
+  const response = await fetch(`${origin}/api/openapi.json`);
+  const schema = await response.json();
+  assertExpected([
+    ['combined OpenAPI status', response.status === 200],
+    ['combined OpenAPI title', schema.info?.title === 'alittlemore.dev API'],
+    ['combined OpenAPI server', schema.servers?.[0]?.url === '/'],
+    ['auth path', Boolean(schema.paths?.['/api/auth/login'])],
+    ['competency path', Boolean(schema.paths?.['/api/competency/articles'])],
+    ['workspace path', Boolean(schema.paths?.['/api/personal-workspace/resumes'])],
+    ['i18n path', Boolean(schema.paths?.['/api/i18n/languages'])],
+  ], JSON.stringify(schema), 'unified API schema');
+  for (const path of ['/api/docs', '/api/docs/initializer.js', '/api/docs/swagger-ui.css', '/api/docs/swagger-ui-bundle.js']) {
+    const asset = await fetch(`${origin}${path}`);
+    await asset.body?.cancel();
+    assertExpected([[path, asset.status === 200]], `HTTP ${asset.status}`, 'Swagger runtime assets');
+  }
 }
 
 async function assertDiscoveryEndpoints(frontendPort) {

@@ -60,6 +60,17 @@ const UPDATE_TAG_I18N_KEYS: Readonly<Record<UpdateTagId, string>> = {
 
 export const UPDATES_TIMELINE_ENTRIES: readonly UpdateTimelineEntry[] = [
   {
+    id: 'unified-api-documentation',
+    month: '2026-10',
+    order: 10,
+    title: { ru: 'Единая документация API', en: 'Unified API documentation' },
+    summary: {
+      ru: 'Все внешние API собраны в одном Swagger с общей OpenAPI-схемой. Пользовательские методы Personal Workspace доступны в документации, а ссылка на API добавлена в футер.',
+      en: 'All external APIs are available in one Swagger with a shared OpenAPI specification. Personal Workspace user operations are documented, and the footer links to the API.',
+    },
+    tagIds: ['backend', 'frontend'],
+  },
+  {
     id: 'full-security-audit',
     month: '2026-07',
     order: 1,

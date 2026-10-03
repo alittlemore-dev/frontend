@@ -13,6 +13,7 @@ describe('SiteFooterComponent', () => {
       providers: [
         provideRouter([]),
         provideI18nTesting({
+          'shell.footer.api': 'API',
           'shell.footer.sourceCode': 'Исходный код',
           'shell.footer.siteBuild': 'Как устроен сайт',
           'shell.footer.updates': 'Обновления',
@@ -27,6 +28,10 @@ describe('SiteFooterComponent', () => {
     fixture = TestBed.createComponent(SiteFooterComponent);
     fixture.detectChanges();
     el = fixture.nativeElement as HTMLElement;
+  });
+
+  it('links to the shared API documentation with ordinary navigation', () => {
+    expect(el.querySelector('a[href="/api/docs"]')?.textContent?.trim()).toBe('API');
   });
 
   it('renders routerLink to /sitemap', () => {
