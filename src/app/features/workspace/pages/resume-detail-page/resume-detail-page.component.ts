@@ -46,6 +46,7 @@ import {
   ResumeCertificationItem,
   ResumeContent,
   ResumeCurrentStatus,
+  ResumeDateFormat,
   ResumeEducationItem,
   ResumeExportFormat,
   ResumeTheme,
@@ -83,7 +84,8 @@ type ResumeEditorTab =
   | 'education'
   | 'languages'
   | 'certifications'
-  | 'additional';
+  | 'additional'
+  | 'settings';
 type ResumeEditorMode = 'edit' | 'preview';
 type ResumeExportFormatSelection = ResumeExportFormat | '';
 const MAX_PHOTO_DATA_URL_LENGTH = 23 + 4 * Math.ceil(262_144 / 3);
@@ -204,7 +206,12 @@ interface ResumeAdditionalSectionForm {
   items: FormArray<FormGroup<ResumeAdditionalSectionItemForm>>;
 }
 
+interface ResumeSettingsForm {
+  dateFormat: FormControl<ResumeDateFormat>;
+}
+
 interface ResumeEditorForm {
+  settings: FormGroup<ResumeSettingsForm>;
   title: TextControl;
   language: ResumeLanguageControl;
   profile: FormGroup<ResumeProfileForm>;
@@ -226,6 +233,14 @@ const RESUME_EDITOR_TABS: readonly ResumeEditorTabDefinition[] = [
   { key: 'languages', labelKey: 'resumeWorkspace.tabs.languages' },
   { key: 'certifications', labelKey: 'resumeWorkspace.tabs.certifications' },
   { key: 'additional', labelKey: 'resumeWorkspace.tabs.additional' },
+  { key: 'settings', labelKey: 'resumeWorkspace.tabs.settings' },
+];
+
+const RESUME_DATE_FORMATS: readonly ResumeDateFormat[] = [
+  'monthYear',
+  'monthYearNumeric',
+  'fullDate',
+  'year',
 ];
 
 const RESUME_CURRENT_STATUS_OPTIONS: readonly ResumeCurrentStatusOption[] = [
@@ -324,14 +339,22 @@ export class ResumeDetailPageComponent implements OnInit {
       label: this.i18n.translate(option.labelKey),
     }));
   });
+  readonly dateFormatSelectOptions = computed<readonly SiteSelectOption[]>(() => {
+    this.i18n.language();
+    return RESUME_DATE_FORMATS.map((value) => ({
+      value,
+      label: this.i18n.translate(`resumeWorkspace.dateFormat.${value}`),
+    }));
+  });
   readonly activeTab = signal<ResumeEditorTab>('profile');
   readonly mode = signal<ResumeEditorMode>('edit');
   readonly exportModalOpen = signal(false);
   readonly selectedExportFormat = signal<ResumeExportFormatSelection>('');
   readonly selectedExportTheme = signal<ResumeTheme>('simple');
-  readonly previewLanguage = computed<ResumeLanguage>(() =>
-    toResumeLanguage(this.resumeForm.controls.language.getRawValue()),
-  );
+  readonly previewLanguage = computed<ResumeLanguage>(() => {
+    this.formVersion();
+    return toResumeLanguage(this.resumeForm.controls.language.getRawValue());
+  });
   readonly dateLocale = computed(() => this.i18n.dateLocale());
   readonly datePickerLabels = computed<LocalizedDatePickerLabels>(() => {
     this.i18n.language();
@@ -377,6 +400,11 @@ export class ResumeDetailPageComponent implements OnInit {
   readonly validationLimits = VALIDATION_LIMITS;
 
   readonly resumeForm = new FormGroup<ResumeEditorForm>({
+    settings: new FormGroup<ResumeSettingsForm>({
+      dateFormat: this.formBuilder.control<ResumeDateFormat>('monthYear', {
+        validators: [Validators.required, resumeDateFormatValidator],
+      }),
+    }),
     title: this.formBuilder.control('', {
       validators: [trimRequired, Validators.maxLength(VALIDATION_LIMITS.shortText)],
     }),
@@ -890,16 +918,46 @@ export class ResumeDetailPageComponent implements OnInit {
     endDate: string | null,
     currentStatus: ResumeCurrentStatus,
   ): string {
-    const start = cleanNullableDateString(startDate);
+    const start = this.previewDate(startDate);
     const end =
       currentStatus === 'current'
         ? this.previewMessage('resumeWorkspace.currentStatus.current')
-        : cleanNullableDateString(endDate);
+        : this.previewDate(endDate);
     return [start, end].filter(Boolean).join(' - ');
   }
 
+  previewDate(value: string | null): string | null {
+    const date = cleanNullableDateString(value);
+    if (!date) return null;
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+    if (!match) return null;
+    const [, year, month, day] = match;
+    const language = this.previewLanguage();
+    switch (this.resumeForm.controls.settings.controls.dateFormat.value) {
+      case 'year':
+        return year;
+      case 'monthYearNumeric':
+        return `${month}.${year}`;
+      case 'fullDate':
+        return language === 'ru' ? `${day}.${month}.${year}` : `${month}/${day}/${year}`;
+      case 'monthYear': {
+        // Russian short month names use the date context, except nominative May.
+        const options: Intl.DateTimeFormatOptions = { month: 'short', timeZone: 'UTC' };
+        if (language === 'ru' && month !== '05') options.day = 'numeric';
+        const monthName = new Intl.DateTimeFormat(language, options)
+          .formatToParts(new Date(Date.UTC(Number(year), Number(month) - 1, Number(day))))
+          .find((part) => part.type === 'month')?.value;
+        return `${monthName} ${year}`;
+      }
+    }
+  }
+
+  projectRole(project: ResumeProjectItem, experience: ResumeExperienceItem): string | null {
+    return this.previewText(project.role) ?? this.previewText(experience.position);
+  }
+
   updateDate(control: NullableTextControl, value: string): void {
-    control.setValue(value);
+    control.setValue(cleanNullableDateString(value));
     control.markAsDirty();
     control.markAsTouched();
   }
@@ -931,6 +989,7 @@ export class ResumeDetailPageComponent implements OnInit {
       title,
       language: toResumeLanguage(this.resumeForm.controls.language.getRawValue()),
       content: {
+        settings: this.resumeForm.controls.settings.getRawValue(),
         profile: this.buildProfile(),
         summary: this.buildSummary(),
         skills: this.skills.controls.map((control) => this.buildSkillGroup(control)),
@@ -954,6 +1013,7 @@ export class ResumeDetailPageComponent implements OnInit {
       currentProfile.photoFileId === resume.content.profile.photoFileId
         ? currentProfile.photoDataUrl
         : '';
+    this.resumeForm.controls.settings.setValue(resume.content.settings, { emitEvent: false });
     this.resumeForm.controls.title.setValue(resume.title, { emitEvent: false });
     this.resumeForm.controls.language.setValue(resume.language, { emitEvent: false });
     this.resumeForm.setControl(
@@ -1084,6 +1144,12 @@ export class ResumeDetailPageComponent implements OnInit {
       [this.fieldLabel('language')],
       this.resumeForm.controls.language,
     );
+    this.addControlValidationIssue(
+      issues,
+      'settings',
+      [this.tabLabel('settings'), this.fieldLabel('dateFormat')],
+      this.resumeForm.controls.settings.controls.dateFormat,
+    );
     this.collectProfileValidationIssues(issues);
     this.collectSummaryValidationIssues(issues);
     this.collectSkillsValidationIssues(issues);
@@ -1203,6 +1269,14 @@ export class ResumeDetailPageComponent implements OnInit {
       if (!item.summary.trim() && !item.highlights.length && !item.projects.length) {
         this.addRuleIssue(issues, 'experience', path, 'contentRequired');
       }
+      if (!item.startDate && item.endDate) {
+        this.addRuleIssue(
+          issues,
+          'experience',
+          [...path, this.fieldLabel('endDate')],
+          'startRequired',
+        );
+      }
       if (item.startDate && item.endDate && item.endDate < item.startDate) {
         this.addRuleIssue(issues, 'experience', [...path, this.fieldLabel('endDate')], 'dateOrder');
       }
@@ -1240,6 +1314,18 @@ export class ResumeDetailPageComponent implements OnInit {
       });
     });
     value.education.forEach((item, index) => {
+      if (!item.startDate && item.endDate) {
+        this.addRuleIssue(
+          issues,
+          'education',
+          [
+            this.tabLabel('education'),
+            this.entryLabel('education', index),
+            this.fieldLabel('endDate'),
+          ],
+          'startRequired',
+        );
+      }
       if (item.startDate && item.endDate && item.endDate < item.startDate) {
         this.addRuleIssue(
           issues,
@@ -1254,6 +1340,18 @@ export class ResumeDetailPageComponent implements OnInit {
       }
     });
     value.certifications.forEach((item, index) => {
+      if (!item.issuedOn && item.expiresOn) {
+        this.addRuleIssue(
+          issues,
+          'certifications',
+          [
+            this.tabLabel('certifications'),
+            this.entryLabel('certification', index),
+            this.fieldLabel('expiresOn'),
+          ],
+          'startRequired',
+        );
+      }
       if (item.issuedOn && item.expiresOn && item.expiresOn < item.issuedOn) {
         this.addRuleIssue(
           issues,
@@ -1771,7 +1869,7 @@ export class ResumeDetailPageComponent implements OnInit {
       companyWebsiteUrl: this.urlText(item.companyWebsiteUrl),
       position: this.requiredText(item.position, VALIDATION_LIMITS.shortText),
       location: this.text(item.location, VALIDATION_LIMITS.shortText),
-      startDate: this.requiredNullableText(item.startDate, 32),
+      startDate: this.nullableText(item.startDate, 32),
       endDate: this.nullableText(item.endDate, 32),
       currentStatus: this.currentStatus(item.currentStatus),
       summary: this.text(item.summary, VALIDATION_LIMITS.experienceSummary),
@@ -1786,7 +1884,7 @@ export class ResumeDetailPageComponent implements OnInit {
   private createProjectItemForm(item: ResumeProjectItem): FormGroup<ResumeProjectItemForm> {
     return new FormGroup<ResumeProjectItemForm>({
       name: this.requiredText(item.name, VALIDATION_LIMITS.shortText),
-      role: this.requiredText(item.role, VALIDATION_LIMITS.shortText),
+      role: this.text(item.role, VALIDATION_LIMITS.shortText),
       teamSize: this.text(item.teamSize, VALIDATION_LIMITS.shortText),
       scale: this.text(item.scale, VALIDATION_LIMITS.shortText),
       description: this.text(item.description, VALIDATION_LIMITS.projectDescription),
@@ -1802,7 +1900,7 @@ export class ResumeDetailPageComponent implements OnInit {
       degree: this.requiredText(item.degree, VALIDATION_LIMITS.shortText),
       field: this.requiredText(item.field, VALIDATION_LIMITS.shortText),
       location: this.requiredText(item.location, VALIDATION_LIMITS.shortText),
-      startDate: this.requiredNullableText(item.startDate, 32),
+      startDate: this.nullableText(item.startDate, 32),
       endDate: this.nullableText(item.endDate, 32),
       description: this.text(item.description, VALIDATION_LIMITS.educationDescription),
     });
@@ -1875,12 +1973,6 @@ export class ResumeDetailPageComponent implements OnInit {
   private nullableText(value: string | null, maxLength: number | null): NullableTextControl {
     if (maxLength === null) return new FormControl<string | null>(value);
     return new FormControl<string | null>(value, { validators: Validators.maxLength(maxLength) });
-  }
-
-  private requiredNullableText(value: string | null, maxLength: number): NullableTextControl {
-    return new FormControl<string | null>(value, {
-      validators: [nullableTrimRequired, Validators.maxLength(maxLength)],
-    });
   }
 
   private currentStatus(value: ResumeCurrentStatus): CurrentStatusControl {
@@ -2083,7 +2175,10 @@ function visibleResumeTextLength(value: unknown): number {
   }
   if (typeof value !== 'object' || value === null) return 0;
   return Object.entries(value).reduce((sum, [key, item]) => {
-    if (/(?:Url|Date)$/.test(key) || ['issuedOn', 'expiresOn', 'currentStatus'].includes(key)) {
+    if (
+      /(?:Url|Date)$/.test(key) ||
+      ['issuedOn', 'expiresOn', 'currentStatus', 'settings'].includes(key)
+    ) {
       return sum;
     }
     return sum + visibleResumeTextLength(item);
@@ -2100,8 +2195,8 @@ function cleanNullableDateString(value: string | null): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
-function nullableTrimRequired(control: AbstractControl<string | null>): ValidationErrors | null {
-  return (control.value ?? '').trim() === '' ? { required: true } : null;
+function resumeDateFormatValidator(control: AbstractControl<unknown>): ValidationErrors | null {
+  return RESUME_DATE_FORMATS.some((value) => value === control.value) ? null : { required: true };
 }
 
 function nonEmptyFormArray(control: AbstractControl<unknown>): ValidationErrors | null {

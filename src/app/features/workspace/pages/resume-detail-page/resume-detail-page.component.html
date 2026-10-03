@@ -813,7 +813,6 @@
                           [for]="'resume-experience-' + index + '-start-date'"
                         >
                           {{ 'resumeWorkspace.field.startDate' | t }}
-                          <span class="required-marker text-danger" aria-hidden="true">*</span>
                         </label>
                         <ds-localized-date-picker
                           [inputId]="'resume-experience-' + index + '-start-date'"
@@ -821,7 +820,6 @@
                           controlSize="default"
                           [dateLocale]="dateLocale()"
                           [labels]="datePickerLabels()"
-                          [required]="true"
                           [invalid]="
                             experienceItem.controls.startDate.invalid &&
                             experienceItem.controls.startDate.touched
@@ -1099,9 +1097,6 @@
                                       "
                                     >
                                       {{ 'resumeWorkspace.field.role' | t }}
-                                      <span class="required-marker text-danger" aria-hidden="true"
-                                        >*</span
-                                      >
                                     </label>
                                     <input
                                       class="form-control"
@@ -1112,7 +1107,6 @@
                                         projectIndex +
                                         '-role'
                                       "
-                                      required
                                       [appResumeTextLimit]="validationLimits.shortText"
                                       formControlName="role"
                                     />
@@ -1607,7 +1601,6 @@
                           [for]="'resume-education-' + index + '-start-date'"
                         >
                           {{ 'resumeWorkspace.field.startDate' | t }}
-                          <span class="required-marker text-danger" aria-hidden="true">*</span>
                         </label>
                         <ds-localized-date-picker
                           [inputId]="'resume-education-' + index + '-start-date'"
@@ -1615,7 +1608,6 @@
                           controlSize="default"
                           [dateLocale]="dateLocale()"
                           [labels]="datePickerLabels()"
-                          [required]="true"
                           [invalid]="
                             educationItem.controls.startDate.invalid &&
                             educationItem.controls.startDate.touched
@@ -1881,6 +1873,27 @@
               </div>
             }
 
+            @case ('settings') {
+              <div formGroupName="settings" class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label" for="resume-date-format">
+                    {{ 'resumeWorkspace.field.dateFormat' | t }}
+                    <span class="required-marker text-danger" aria-hidden="true">*</span>
+                  </label>
+                  <ds-site-select
+                    inputId="resume-date-format"
+                    testId="resume-date-format"
+                    formControlName="dateFormat"
+                    controlSize="default"
+                    appearance="default"
+                    [controlDisabled]="false"
+                    [options]="dateFormatSelectOptions()"
+                    [required]="true"
+                    [invalid]="fieldInvalid(resumeForm.controls.settings.controls.dateFormat)"
+                  />
+                </div>
+              </div>
+            }
             @case ('additional') {
               <div class="resume-entry-list" formArrayName="additionalSections">
                 @for (
@@ -2220,7 +2233,7 @@
                           @if (previewText(project.name); as name) {
                             <h5>{{ name }}</h5>
                           }
-                          @if (previewText(project.role); as role) {
+                          @if (projectRole(project, item); as role) {
                             <p class="text-body-secondary">{{ role }}</p>
                           }
                           @if (previewText(project.teamSize); as teamSize) {
@@ -2313,6 +2326,12 @@
               @for (certification of previewPayload().content.certifications; track $index) {
                 <li>
                   {{ certification.name }}
+                  @if (
+                    dateRange(certification.issuedOn, certification.expiresOn, 'notSet');
+                    as dates
+                  ) {
+                    <span>· {{ dates }}</span>
+                  }
                   @if (previewText(certification.issuer); as issuer) {
                     <span>· {{ issuer }}</span>
                   }

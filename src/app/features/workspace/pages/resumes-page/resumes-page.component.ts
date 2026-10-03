@@ -305,6 +305,7 @@ export class ResumesPageComponent implements OnInit {
       title: value.title.trim(),
       language: toResumeLanguage(value.language),
       content: {
+        settings: { dateFormat: value.language === 'ru' ? 'monthYearNumeric' : 'monthYear' },
         profile: {
           fullName: value.fullName.trim(),
           photoFileId: '',

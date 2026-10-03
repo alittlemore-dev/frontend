@@ -8,7 +8,12 @@ import { I18nService } from '../../../../core/i18n/i18n.service';
 
 import { provideI18nTesting } from '../../../../testing/i18n-testing';
 import { chooseSiteSelectOption, siteSelectValue } from '@alittlemore.dev/design-system/testing';
-import { Resume, ResumePayload } from '../../models/resume-workspace.model';
+import {
+  Resume,
+  ResumeDateFormat,
+  ResumeLanguage,
+  ResumePayload,
+} from '../../models/resume-workspace.model';
 import { ResumeWorkspaceService } from '../../services/resume-workspace.service';
 import { UnsavedChangesService } from '../../../../core/unsaved-changes/unsaved-changes.service';
 import { ResumeDetailPageComponent } from './resume-detail-page.component';
@@ -959,13 +964,6 @@ describe('ResumeDetailPageComponent', () => {
       expectedIssue: 'Опыт / Компания 1 / Локация — Максимум 255 символов.',
     },
     {
-      description: 'experience start date',
-      tab: 'experience',
-      elementId: 'resume-experience-0-start-date',
-      invalidValue: '',
-      expectedIssue: 'Опыт / Компания 1 / Начало — Заполните поле.',
-    },
-    {
       description: 'experience start date length',
       tab: 'experience',
       elementId: 'resume-experience-0-start-date',
@@ -1013,13 +1011,6 @@ describe('ResumeDetailPageComponent', () => {
       elementId: 'resume-experience-0-project-0-name',
       invalidValue: INVALID_SHORT_TEXT,
       expectedIssue: 'Опыт / Компания 1 / Проект 1 / Проект — Максимум 255 символов.',
-    },
-    {
-      description: 'project role',
-      tab: 'experience',
-      elementId: 'resume-experience-0-project-0-role',
-      invalidValue: '   ',
-      expectedIssue: 'Опыт / Компания 1 / Проект 1 / Роль — Заполните поле.',
     },
     {
       description: 'project role length',
@@ -1119,14 +1110,6 @@ describe('ResumeDetailPageComponent', () => {
       elementId: 'resume-education-0-location',
       invalidValue: INVALID_SHORT_TEXT,
       expectedIssue: 'Образование / Образование 1 / Локация — Максимум 255 символов.',
-    },
-    {
-      description: 'education start date',
-      tab: 'education',
-      setup: 'education',
-      elementId: 'resume-education-0-start-date',
-      invalidValue: '',
-      expectedIssue: 'Образование / Образование 1 / Начало — Заполните поле.',
     },
     {
       description: 'education start date length',
@@ -1581,13 +1564,17 @@ describe('ResumeDetailPageComponent', () => {
     );
   });
 
-  it('shows validation feedback when export is blocked by a hidden required resume field', () => {
+  it('shows validation feedback when export is blocked by a hidden invalid period', () => {
     fixture.componentInstance.setActiveTab('experience');
     fixture.detectChanges();
     fixture.componentInstance.updateDate(
       fixture.componentInstance.experience.controls[0].controls.startDate,
       '',
     );
+    fixture.componentInstance.experience.controls[0].patchValue({
+      endDate: '2024-08-19',
+      currentStatus: 'notCurrent',
+    });
     fixture.componentInstance.setActiveTab('profile');
     fixture.detectChanges();
 
@@ -1597,7 +1584,7 @@ describe('ResumeDetailPageComponent', () => {
     elementByTestId<HTMLButtonElement>('resume-export-submit').click();
     fixture.detectChanges();
 
-    const issue = 'Опыт / Компания 1 / Начало — Заполните поле.';
+    const issue = 'Опыт / Компания 1 / Окончание — Для даты окончания нужна дата начала.';
     expect(service.exportResume).not.toHaveBeenCalled();
     expect(notifications.error).toHaveBeenCalledWith(`Не сохранено. Первая ошибка: ${issue}`);
     expect(elementByTestId<HTMLElement>('resume-validation-summary').textContent).toContain(issue);
@@ -1682,6 +1669,208 @@ describe('ResumeDetailPageComponent', () => {
         }),
       }),
     );
+  });
+
+  it('offers settings last, tracks changes and preserves the chosen format through language changes and export', () => {
+    const component = fixture.componentInstance;
+    const unsaved = TestBed.inject(UnsavedChangesService);
+    expect(
+      Array.from(fixture.nativeElement.querySelectorAll('.nav-tabs button')).at(-1),
+    ).toHaveProperty('textContent', expect.stringContaining('Настройки'));
+    component.setActiveTab('settings');
+    fixture.detectChanges();
+    expect(
+      elementByTestId<HTMLButtonElement>('resume-date-format').closest('ds-site-select'),
+    ).not.toBeNull();
+    expect(inputValue('resume-date-format')).toBe('monthYearNumeric');
+    setInputValue('resume-date-format', 'year');
+    expect(unsaved.hasChanges()).toBe(true);
+    setInputValue('resume-date-format', 'monthYearNumeric');
+    expect(unsaved.hasChanges()).toBe(false);
+    setInputValue('resume-date-format', 'fullDate');
+    setInputValue('resume-language', 'en');
+    component.openExportModal();
+    component.selectExportFormat('pdf');
+    component.exportResume();
+    expect(service.exportResume).toHaveBeenCalledWith(
+      RESUME_ID,
+      'pdf',
+      'simple',
+      expect.objectContaining({
+        language: 'en',
+        content: expect.objectContaining({ settings: { dateFormat: 'fullDate' } }),
+      }),
+    );
+    component.saveResume();
+    expect(service.updateResume).toHaveBeenCalledWith(
+      RESUME_ID,
+      expect.objectContaining({
+        content: expect.objectContaining({ settings: { dateFormat: 'fullDate' } }),
+      }),
+    );
+  });
+
+  it.each<{ language: ResumeLanguage; format: ResumeDateFormat; expected: string }>([
+    { language: 'ru', format: 'monthYear', expected: 'авг. 2024' },
+    { language: 'en', format: 'monthYear', expected: 'Aug 2024' },
+    { language: 'ru', format: 'monthYearNumeric', expected: '08.2024' },
+    { language: 'en', format: 'monthYearNumeric', expected: '08.2024' },
+    { language: 'ru', format: 'fullDate', expected: '19.08.2024' },
+    { language: 'en', format: 'fullDate', expected: '08/19/2024' },
+    { language: 'ru', format: 'year', expected: '2024' },
+    { language: 'en', format: 'year', expected: '2024' },
+  ])('formats every preview date with $format in $language', ({ language, format, expected }) => {
+    const component = fixture.componentInstance;
+    component.resumeForm.controls.language.setValue(language);
+    component.resumeForm.controls.settings.controls.dateFormat.setValue(format);
+    component.experience
+      .at(0)
+      .patchValue({ startDate: '2024-08-19', endDate: '2025-09-20', currentStatus: 'notCurrent' });
+    component.addEducationItem();
+    component.education.at(0).patchValue({
+      institution: 'University',
+      degree: 'Degree',
+      field: 'Field',
+      location: 'City',
+      startDate: '2024-08-19',
+      endDate: '2025-09-20',
+    });
+    component.addCertificationItem();
+    component.certifications
+      .at(0)
+      .patchValue({ name: 'Certificate', issuedOn: '2024-08-19', expiresOn: '2025-09-20' });
+    component.showPreview();
+    fixture.detectChanges();
+    const preview = elementByTestId<HTMLElement>('resume-preview').textContent ?? '';
+    expect(preview.split(expected)).toHaveLength(4);
+    expect(preview).not.toContain('2024-08-19');
+    expect(preview.split(component.previewDate('2025-09-20') ?? '')).toHaveLength(4);
+  });
+
+  it.each([
+    ['01', 'янв.'],
+    ['02', 'февр.'],
+    ['03', 'мар.'],
+    ['04', 'апр.'],
+    ['05', 'май'],
+    ['06', 'июн.'],
+    ['07', 'июл.'],
+    ['08', 'авг.'],
+    ['09', 'сент.'],
+    ['10', 'окт.'],
+    ['11', 'нояб.'],
+    ['12', 'дек.'],
+  ])('matches export month abbreviations for Russian month %s', (month, expected) => {
+    const component = fixture.componentInstance;
+    component.resumeForm.controls.settings.controls.dateFormat.setValue('monthYear');
+    component.experience
+      .at(0)
+      .patchValue({ startDate: `2024-${month}-19`, currentStatus: 'notCurrent' });
+    component.showPreview();
+    fixture.detectChanges();
+    expect(elementByTestId<HTMLElement>('resume-preview').textContent).toContain(
+      `${expected} 2024`,
+    );
+  });
+
+  it('persists an empty project role and previews its company position', () => {
+    const component = fixture.componentInstance;
+    component.setActiveTab('experience');
+    fixture.detectChanges();
+    const role = elementById<HTMLInputElement>('resume-experience-0-project-0-role');
+    expect(role.required).toBe(false);
+    expect(
+      fixture.nativeElement.querySelector(
+        'label[for="resume-experience-0-project-0-role"] .required-marker',
+      ),
+    ).toBeNull();
+    setElementValueById(role.id, '   ');
+    component.showPreview();
+    fixture.detectChanges();
+    expect(elementByTestId<HTMLElement>('resume-preview').textContent).not.toContain('Автор');
+    expect(
+      elementByTestId<HTMLElement>('resume-preview').textContent?.split('Инженер'),
+    ).toHaveLength(3);
+    component.saveResume();
+    const payload = service.updateResume.mock.calls[0][1] as ResumePayload;
+    expect(payload.content.experience[0].projects[0].role).toBe('');
+  });
+
+  describe.each(['experience', 'education', 'certifications'] as const)(
+    '%s optional date period',
+    (section) => {
+      it.each([
+        { start: null, end: null, valid: true },
+        { start: '2024-08-19', end: null, valid: true },
+        { start: '2024-08-19', end: '2025-08-19', valid: true },
+        { start: null, end: '2025-08-19', valid: false },
+        { start: '2025-08-19', end: '2024-08-19', valid: false },
+      ])('validates $start to $end', ({ start, end, valid }) => {
+        const component = fixture.componentInstance;
+        if (section === 'experience') {
+          component.experience
+            .at(0)
+            .patchValue({ startDate: start, endDate: end, currentStatus: 'notCurrent' });
+        } else if (section === 'education') {
+          component.addEducationItem();
+          component.education.at(0).patchValue({
+            institution: 'University',
+            degree: 'Degree',
+            field: 'Field',
+            location: 'City',
+            startDate: start,
+            endDate: end,
+          });
+        } else {
+          component.addCertificationItem();
+          component.certifications
+            .at(0)
+            .patchValue({ name: 'Certificate', issuedOn: start, expiresOn: end });
+        }
+        component.saveResume();
+        fixture.detectChanges();
+        if (valid) {
+          expect(service.updateResume).toHaveBeenCalled();
+          const payload = service.updateResume.mock.calls[0][1] as ResumePayload;
+          expect(payload.content[section][0]).toEqual(
+            expect.objectContaining(
+              section === 'certifications'
+                ? { issuedOn: start, expiresOn: end }
+                : { startDate: start, endDate: end },
+            ),
+          );
+        } else {
+          expect(service.updateResume).not.toHaveBeenCalled();
+          expect(component.activeTab()).toBe(section);
+          expect(elementByTestId<HTMLElement>('resume-validation-summary').textContent).toContain(
+            start ? 'Дата окончания раньше даты начала.' : 'Для даты окончания нужна дата начала.',
+          );
+        }
+      });
+    },
+  );
+
+  it('keeps current experience without an end date and renders undated or start-only periods', () => {
+    const component = fixture.componentInstance;
+    component.experience
+      .at(0)
+      .patchValue({ startDate: null, endDate: '2024-08-19', currentStatus: 'current' });
+    component.saveResume();
+    fixture.detectChanges();
+    expect(service.updateResume).not.toHaveBeenCalled();
+    expect(elementByTestId<HTMLElement>('resume-validation-summary').textContent).toContain(
+      'У текущей работы не должно быть даты окончания.',
+    );
+    component.experience
+      .at(0)
+      .patchValue({ startDate: null, endDate: null, currentStatus: 'notSet' });
+    component.showPreview();
+    fixture.detectChanges();
+    expect(elementByTestId<HTMLElement>('resume-preview').textContent).not.toContain('01.2024');
+    component.experience.at(0).patchValue({ startDate: '2024-08-19' });
+    fixture.detectChanges();
+    expect(elementByTestId<HTMLElement>('resume-preview').textContent).toContain('08.2024');
+    expect(elementByTestId<HTMLElement>('resume-preview').textContent).not.toContain('08.2024 -');
   });
 
   it('shows an API error notification on save failure', () => {
@@ -1850,6 +2039,7 @@ function resume(overrides: Partial<Resume> = {}): Resume {
     createdAt: '2026-01-01T03:04:05+00:00',
     updatedAt: '2026-01-02T03:04:05+00:00',
     content: {
+      settings: { dateFormat: 'monthYearNumeric' },
       profile: {
         fullName: 'Candidate Name',
         photoFileId: '',

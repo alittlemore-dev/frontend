@@ -56,6 +56,7 @@ describe('ResumeWorkspaceService', () => {
 
     service.getResume(RESUME_ID).subscribe((resume) => {
       fullName = resume.content.profile.fullName;
+      expect(resume.content.settings).toEqual({ dateFormat: 'monthYear' });
     });
 
     const detailReq = httpMock.expectOne((request) =>
@@ -217,6 +218,7 @@ function resumeDto(): {
 
 function resumeContent(): ResumePayload['content'] {
   return {
+    settings: { dateFormat: 'monthYear' },
     profile: {
       fullName: 'Candidate Name',
       photoFileId: '',

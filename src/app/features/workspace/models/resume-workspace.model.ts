@@ -4,6 +4,11 @@ export type ResumeCurrentStatus = 'notSet' | 'current' | 'notCurrent';
 export type ResumeLanguage = LanguageCode;
 export type ResumeExportFormat = 'pdf' | 'docx';
 export type ResumeTheme = 'simple' | 'accent';
+export type ResumeDateFormat = 'monthYear' | 'monthYearNumeric' | 'fullDate' | 'year';
+
+export interface ResumeSettings {
+  dateFormat: ResumeDateFormat;
+}
 
 export interface ResumeProfileDto {
   fullName: string;
@@ -87,6 +92,7 @@ export interface ResumeAdditionalSectionDto {
 }
 
 export interface ResumeContentDto {
+  settings: ResumeSettings;
   profile: ResumeProfileDto;
   summary: ResumeSummaryDto;
   skills: ResumeSkillGroupDto[];
@@ -206,6 +212,7 @@ export interface ResumeAdditionalSection {
 }
 
 export interface ResumeContent {
+  settings: ResumeSettings;
   profile: ResumeProfile;
   summary: ResumeSummary;
   skills: ResumeSkillGroup[];
@@ -283,6 +290,7 @@ export function toResumeExportPayloadDto(
 
 export function mapResumeContentDto(dto: ResumeContentDto): ResumeContent {
   return {
+    settings: { ...dto.settings },
     profile: { ...dto.profile, photoDataUrl: '' },
     summary: { ...dto.summary },
     skills: dto.skills.map((skill) => ({
@@ -314,6 +322,7 @@ export function mapResumeContentDto(dto: ResumeContentDto): ResumeContent {
 
 function mapResumeContentToDto(content: ResumeContent): ResumeContentDto {
   return {
+    settings: { ...content.settings },
     profile: {
       fullName: content.profile.fullName,
       photoFileId: content.profile.photoFileId,

@@ -184,43 +184,50 @@ describe('ResumesPageComponent', () => {
     expect(unsavedChanges.hasChanges()).toBe(false);
   });
 
-  it('creates a resume and navigates to detail', () => {
-    fixture.componentInstance.openCreateDialog();
-    fixture.detectChanges();
+  it.each([
+    { language: 'en', dateFormat: 'monthYear' },
+    { language: 'ru', dateFormat: 'monthYearNumeric' },
+  ])(
+    'creates a $language resume with its initial date format and navigates to detail',
+    ({ language, dateFormat }) => {
+      fixture.componentInstance.openCreateDialog();
+      fixture.detectChanges();
 
-    setInputValue('resume-create-title', 'Target resume');
-    setInputValue('resume-create-language', 'en');
-    setInputValue('resume-create-full-name', 'Dmitriy');
-    setInputValue('resume-create-role', 'Backend engineer');
-    setInputValue('resume-create-summary', 'Summary');
+      setInputValue('resume-create-title', 'Target resume');
+      setInputValue('resume-create-language', language);
+      setInputValue('resume-create-full-name', 'Dmitriy');
+      setInputValue('resume-create-role', 'Backend engineer');
+      setInputValue('resume-create-summary', 'Summary');
 
-    const form = fixture.nativeElement.querySelector(
-      '[data-testid="resume-create-form"]',
-    ) as HTMLFormElement;
-    form.dispatchEvent(new Event('submit'));
-    fixture.detectChanges();
+      const form = fixture.nativeElement.querySelector(
+        '[data-testid="resume-create-form"]',
+      ) as HTMLFormElement;
+      form.dispatchEvent(new Event('submit'));
+      fixture.detectChanges();
 
-    expect(service.createResume).toHaveBeenCalledWith({
-      title: 'Target resume',
-      language: 'en',
-      content: expect.objectContaining({
-        profile: expect.objectContaining({
-          fullName: 'Dmitriy',
-          role: 'Backend engineer',
-          phone: '',
+      expect(service.createResume).toHaveBeenCalledWith({
+        title: 'Target resume',
+        language,
+        content: expect.objectContaining({
+          settings: { dateFormat },
+          profile: expect.objectContaining({
+            fullName: 'Dmitriy',
+            role: 'Backend engineer',
+            phone: '',
+          }),
+          summary: {
+            text: 'Summary',
+          },
+          skills: [],
+          experience: [],
         }),
-        summary: {
-          text: 'Summary',
-        },
-        skills: [],
-        experience: [],
-      }),
-    } satisfies ResumePayload);
-    expect(notifications.success).toHaveBeenCalledWith('Резюме сохранено.');
-    expect(router.navigate).toHaveBeenCalledWith(['/personal-workspace/resumes', RESUME_ID], {
-      queryParamsHandling: 'preserve',
-    });
-  });
+      } satisfies ResumePayload);
+      expect(notifications.success).toHaveBeenCalledWith('Резюме сохранено.');
+      expect(router.navigate).toHaveBeenCalledWith(['/personal-workspace/resumes', RESUME_ID], {
+        queryParamsHandling: 'preserve',
+      });
+    },
+  );
 
   it('marks required create fields and clears red border after a required value is entered', () => {
     fixture.componentInstance.openCreateDialog();
@@ -334,6 +341,7 @@ function resume(): Resume {
     createdAt: '2026-01-01T03:04:05+00:00',
     updatedAt: '2026-01-02T03:04:05+00:00',
     content: {
+      settings: { dateFormat: 'monthYearNumeric' },
       profile: {
         fullName: 'Candidate Name',
         photoFileId: '',
