@@ -10,12 +10,17 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
+  ElementRef,
+  Injector,
   ViewChild,
   computed,
   effect,
   inject,
   signal,
   untracked,
+  output,
+  afterNextRender,
+  viewChild,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
@@ -48,6 +53,7 @@ import {
 import { EventsService } from '../../services/events.service';
 import { EventEditorInitial, nextDate } from '../../utils/event-time';
 import { EventEditorComponent } from '../event-editor/event-editor.component';
+import { CalendarEntryCreateComponent } from '../calendar-entry-create/calendar-entry-create.component';
 
 interface VisibleRange {
   startDate: string;
@@ -68,6 +74,7 @@ interface VisibleRange {
     TranslatePipe,
     FullCalendarModule,
     EventEditorComponent,
+    CalendarEntryCreateComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './events-calendar.component.html',
@@ -78,6 +85,8 @@ export class EventsCalendarComponent {
   private readonly i18n = inject(I18nService);
   private readonly preferences = inject(AccountSettingsService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly injector = inject(Injector);
+  private readonly createButton = viewChild<ElementRef<HTMLButtonElement>>('createButton');
   private loadGeneration = 0;
   private lastLoadedTimeZone: string | null = null;
   @ViewChild(FullCalendarComponent) calendar?: FullCalendarComponent;
@@ -124,6 +133,7 @@ export class EventsCalendarComponent {
   readonly eventLoading = signal(false);
   readonly eventError = signal<ApiError | null>(null);
   readonly editorOpen = signal(false);
+  readonly knowledgeCreated = output<void>();
   readonly editorEvent = signal<WorkspaceEvent | null>(null);
   readonly editorInitial = signal<EventEditorInitial | null>(null);
   readonly dayEntries = computed(() => {
@@ -374,6 +384,11 @@ export class EventsCalendarComponent {
     const day = this.selectedDay();
     if (day) this.openCreate({ allDay: true, start: day, end: day });
   }
+  onKnowledgeSaved(): void {
+    this.closeEditor();
+    this.load();
+    this.knowledgeCreated.emit();
+  }
   openEdit(): void {
     const event = this.selectedEvent();
     if (!event) return;
@@ -384,9 +399,10 @@ export class EventsCalendarComponent {
   }
   closeEditor(): void {
     this.editorOpen.set(false);
+    afterNextRender(() => this.createButton()?.nativeElement.focus(), { injector: this.injector });
   }
   onSaved(): void {
-    this.editorOpen.set(false);
+    this.closeEditor();
     this.load();
   }
   entryRoute(entry: CalendarOccurrence | UnplacedAnnualEntry): readonly string[] {

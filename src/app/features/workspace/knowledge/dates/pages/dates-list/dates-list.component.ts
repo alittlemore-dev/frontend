@@ -1,3 +1,4 @@
+import { KnowledgeQuickCreateDialogComponent } from '../../../shared/quick-create-dialog.component';
 import {
   NotificationService,
   EmptyStateComponent,
@@ -36,12 +37,7 @@ import {
   UnsavedChangesService,
   UnsavedChangesSource,
 } from '../../../../../../core/unsaved-changes/unsaved-changes.service';
-import {
-  VALIDATION_LIMITS,
-  controlInvalid,
-  trimRequired,
-  validationMessage,
-} from '../../../../utils/validation';
+import { VALIDATION_LIMITS, trimRequired } from '../../../../utils/validation';
 import { KnowledgeTag, PersonSummary } from '../../../people/models/people.model';
 import { PeopleService } from '../../../people/services/people.service';
 import {
@@ -72,6 +68,7 @@ const RELATED_PEOPLE_PREVIEW_LIMIT = 10;
   selector: 'app-dates-list',
   standalone: true,
   imports: [
+    KnowledgeQuickCreateDialogComponent,
     ReactiveFormsModule,
     RouterLink,
     TranslatePipe,
@@ -150,19 +147,6 @@ export class DatesListComponent implements OnInit {
     value: String(size),
     label: String(size),
   }));
-  readonly dayOptions: readonly SiteSelectOption[] = Array.from({ length: 31 }, (_, index) => ({
-    value: String(index + 1),
-    label: String(index + 1),
-  }));
-  readonly monthOptions = computed<readonly SiteSelectOption[]>(() => {
-    const locale = this.i18n.dateLocale();
-    return Array.from({ length: 12 }, (_, index) => ({
-      value: String(index + 1),
-      label: new Intl.DateTimeFormat(locale, { month: 'long', timeZone: 'UTC' }).format(
-        new Date(Date.UTC(2000, index, 1)),
-      ),
-    }));
-  });
   readonly personOptions = computed<readonly SiteSelectOption[]>(() => [
     { value: '', label: this.i18n.translate('shared.notSet') },
     ...this.personCandidates().map((person) => ({
@@ -452,18 +436,6 @@ export class DatesListComponent implements OnInit {
       }
       return nextExpandedDateIds;
     });
-  }
-
-  createNameInvalid(): boolean {
-    return controlInvalid(this.createForm.controls.displayName, this.createSubmitted());
-  }
-
-  createNameMessage(): string | null {
-    return validationMessage(this.createForm.controls.displayName, this.i18n);
-  }
-
-  createDateInvalid(): boolean {
-    return this.createForm.controls.date.invalid && this.createSubmitted();
   }
 
   annualDateLabel(value: KnowledgeDateSummary['date']): string {

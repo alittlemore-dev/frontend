@@ -1,0 +1,75 @@
+<div class="modal-backdrop show"></div>
+<section
+  class="modal d-block"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="calendar-entry-create-title"
+  cdkTrapFocus
+  [cdkTrapFocusAutoCapture]="true"
+  (keydown.escape)="close()"
+>
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
+    <form class="modal-content calendar-entry-dialog" novalidate (submit)="save($event)">
+      <div class="modal-header">
+        <h2 id="calendar-entry-create-title" class="modal-title fs-5">
+          {{ 'workspaceDashboard.calendar.create' | t }}
+        </h2>
+        <button
+          type="button"
+          class="btn-close"
+          [disabled]="submitting()"
+          [attr.aria-label]="'shared.close' | t"
+          (click)="close()"
+        ></button>
+      </div>
+      <div class="modal-body d-flex flex-column gap-3 overflow-hidden">
+        <div>
+          <label class="form-label" for="calendar-entry-type">{{
+            'workspaceDashboard.calendar.entryType' | t
+          }}</label>
+          <ds-site-select
+            inputId="calendar-entry-type"
+            [options]="typeOptions()"
+            controlSize="default"
+            appearance="default"
+            [required]="false"
+            [invalid]="false"
+            [formControl]="typeControl"
+            [controlDisabled]="submitting()"
+          />
+        </div>
+        <div class="calendar-entry-fields flex-grow-1 overflow-auto">
+          @if (kind() === 'event') {
+            <app-event-editor
+              [embedded]="true"
+              [initial]="initial()"
+              (saved)="eventSaved.emit($event)"
+              (closed)="closed.emit()"
+            />
+          } @else {
+            <app-calendar-knowledge-create
+              [embedded]="true"
+              [kind]="kind() === 'birthday' ? 'birthday' : 'date'"
+              [initialDate]="initialDate()"
+              (saved)="knowledgeSaved.emit()"
+              (closed)="closed.emit()"
+            />
+          }
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button
+          type="button"
+          class="btn btn-outline-secondary"
+          [disabled]="submitting()"
+          (click)="close()"
+        >
+          {{ 'shared.cancel' | t }}
+        </button>
+        <button type="submit" class="btn btn-success" [disabled]="submitting()">
+          {{ 'workspaceEvents.save' | t }}
+        </button>
+      </div>
+    </form>
+  </div>
+</section>

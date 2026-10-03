@@ -1,0 +1,21 @@
+.vault-entry:hover {
+  background-color: var(--bs-tertiary-bg);
+}
+
+.vault-statistics-totals,
+.vault-statistics-activity {
+  display: grid;
+  gap: 0.75rem;
+}
+
+@media (min-width: 576px) {
+  .vault-statistics-totals {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 768px) {
+  .vault-statistics-activity {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

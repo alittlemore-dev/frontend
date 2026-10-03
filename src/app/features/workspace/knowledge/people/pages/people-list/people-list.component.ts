@@ -1,3 +1,4 @@
+import { KnowledgeQuickCreateDialogComponent } from '../../../shared/quick-create-dialog.component';
 import {
   NotificationService,
   EmptyStateComponent,
@@ -34,12 +35,7 @@ import {
   UnsavedChangesService,
   UnsavedChangesSource,
 } from '../../../../../../core/unsaved-changes/unsaved-changes.service';
-import {
-  VALIDATION_LIMITS,
-  controlInvalid,
-  trimRequired,
-  validationMessage,
-} from '../../../../utils/validation';
+import { VALIDATION_LIMITS, trimRequired } from '../../../../utils/validation';
 import { formatAnnualDate } from '../../../shared/annual-date';
 import { formatFileSize } from '../../../shared/file-size';
 import {
@@ -59,6 +55,7 @@ const PAGE_SIZES = [20, 50, 100] as const;
   selector: 'app-people-list',
   standalone: true,
   imports: [
+    KnowledgeQuickCreateDialogComponent,
     ReactiveFormsModule,
     RouterLink,
     TranslatePipe,
@@ -429,14 +426,6 @@ export class PeopleListComponent implements OnInit, OnDestroy {
         error: () =>
           this.notifications.error(this.i18n.translate('knowledgePeople.tags.deleteConflict')),
       });
-  }
-
-  createFieldInvalid(field: 'firstName' | 'lastName'): boolean {
-    return controlInvalid(this.createForm.controls[field], this.createSubmitted());
-  }
-
-  createFieldMessage(field: 'firstName' | 'lastName'): string | null {
-    return validationMessage(this.createForm.controls[field], this.i18n);
   }
 
   birthdayLabel(birthday: PersonBirthday | null): string {

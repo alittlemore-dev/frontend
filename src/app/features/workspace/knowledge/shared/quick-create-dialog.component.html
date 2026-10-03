@@ -1,0 +1,167 @@
+<ng-template #creationFields>
+  <div [formGroup]="form()">
+    @if (error()) {
+      <ds-error-message
+        [error]="error()!"
+        [retryLabel]="'shared.retry' | t"
+        (retry)="submitRequested.emit()"
+      />
+    }
+    @if (kind() === 'date') {
+      <div class="mb-3">
+        <label class="form-label" for="date-create-name"
+          >{{ 'knowledgeDates.name' | t }}
+          <span class="required-marker text-danger" aria-hidden="true">*</span></label
+        >
+        <input
+          id="date-create-name"
+          class="form-control"
+          [class.is-invalid]="invalid('displayName')"
+          formControlName="displayName"
+          [readOnly]="submitting()"
+          required
+          [attr.maxlength]="limits.shortText"
+        />
+        @if (invalid('displayName')) {
+          <div class="invalid-feedback d-block">{{ message('displayName') }}</div>
+        }
+      </div>
+    } @else {
+      @for (field of ['firstName', 'lastName']; track field) {
+        <div class="mb-3">
+          <label class="form-label" [attr.for]="'person-create-' + field"
+            >{{ 'knowledgePeople.' + field | t }}
+            <span class="required-marker text-danger" aria-hidden="true">*</span></label
+          >
+          <input
+            [id]="'person-create-' + field"
+            class="form-control"
+            [class.is-invalid]="invalid(field)"
+            [formControlName]="field"
+            [readOnly]="submitting()"
+            required
+            [attr.maxlength]="limits.shortText"
+          />
+          @if (invalid(field)) {
+            <div class="invalid-feedback d-block">{{ message(field) }}</div>
+          }
+        </div>
+      }
+    }
+    @if (kind() !== 'person') {
+      <fieldset formGroupName="date">
+        <legend class="fs-6">
+          {{ (kind() === 'birthday' ? 'knowledgePeople.birthday' : 'knowledgeDates.date') | t }}
+        </legend>
+        <div class="row g-2">
+          <div class="col-4">
+            <label class="form-label" for="date-create-day"
+              >{{ 'knowledgeDates.day' | t }}
+              <span class="required-marker text-danger" aria-hidden="true">*</span></label
+            >
+            <ds-site-select
+              inputId="date-create-day"
+              [options]="dayOptions"
+              controlSize="default"
+              appearance="default"
+              [required]="true"
+              [invalid]="invalid('date')"
+              [controlDisabled]="submitting()"
+              formControlName="day"
+            />
+          </div>
+          <div class="col-4">
+            <label class="form-label" for="date-create-month"
+              >{{ 'knowledgeDates.month' | t }}
+              <span class="required-marker text-danger" aria-hidden="true">*</span></label
+            >
+            <ds-site-select
+              inputId="date-create-month"
+              [options]="monthOptions()"
+              controlSize="default"
+              appearance="default"
+              [required]="true"
+              [invalid]="invalid('date')"
+              [controlDisabled]="submitting()"
+              formControlName="month"
+            />
+          </div>
+          <div class="col-4">
+            <label class="form-label" for="date-create-year">{{ 'knowledgeDates.year' | t }}</label>
+            <input
+              id="date-create-year"
+              class="form-control"
+              [class.is-invalid]="invalid('date')"
+              type="number"
+              min="1"
+              max="9999"
+              formControlName="year"
+              [readOnly]="submitting()"
+            />
+          </div>
+        </div>
+        @if (invalid('date')) {
+          <p class="text-danger small mt-2" role="alert">
+            {{ 'knowledgeDates.dateInvalid' | t }}
+          </p>
+        }
+      </fieldset>
+    }
+  </div>
+</ng-template>
+@if (embedded()) {
+  <ng-container [ngTemplateOutlet]="creationFields" />
+} @else {
+  <div
+    class="modal d-block bg-dark bg-opacity-50"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-label]="titleKey() | t"
+    [attr.data-testid]="kind() === 'date' ? 'dates-create-dialog' : 'people-create-dialog'"
+    tabindex="-1"
+    (click)="closeRequested.emit()"
+    (keydown.escape)="closeRequested.emit()"
+  >
+    <div
+      class="modal-dialog modal-dialog-centered"
+      (click)="$event.stopPropagation()"
+      (keydown)="$event.stopPropagation(); $event.key === 'Escape' && closeRequested.emit()"
+      role="document"
+      cdkTrapFocus
+      [cdkTrapFocusAutoCapture]="true"
+    >
+      <form class="modal-content" [formGroup]="form()" (ngSubmit)="submitRequested.emit()">
+        <div class="modal-header">
+          <h3 class="h5 modal-title">{{ titleKey() | t }}</h3>
+          <button
+            type="button"
+            class="btn-close"
+            [disabled]="submitting()"
+            [attr.aria-label]="'shared.close' | t"
+            (click)="closeRequested.emit()"
+          ></button>
+        </div>
+        <div class="modal-body">
+          <ng-content />
+          <ng-container [ngTemplateOutlet]="creationFields" />
+        </div>
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn btn-outline-secondary"
+            [disabled]="submitting()"
+            (click)="closeRequested.emit()"
+          >
+            {{ 'shared.cancel' | t }}
+          </button>
+          <button type="submit" class="btn btn-success" [disabled]="submitting()">
+            {{
+              (kind() === 'date' ? 'knowledgeDates.createSubmit' : 'knowledgePeople.createSubmit')
+                | t
+            }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}

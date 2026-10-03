@@ -96,6 +96,10 @@ export interface PersonQuickCreatePayload {
   lastName: string;
 }
 
+export interface PersonBirthdayCreatePayload extends PersonQuickCreatePayload {
+  birthday: PersonBirthday;
+}
+
 export interface PersonRelationshipCreatePayload {
   relatedPersonId: string;
   relationshipTypeId: string;

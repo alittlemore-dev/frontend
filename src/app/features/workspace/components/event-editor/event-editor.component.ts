@@ -9,8 +9,11 @@ import {
   LocalizedDateTimeRangePickerLabels,
   LocalizedRangeRequirements,
   NotificationService,
+  SiteSelectComponent,
+  SiteSelectOption,
 } from '@alittlemore.dev/design-system';
 import { CdkTrapFocus } from '@angular/cdk/a11y';
+import { NgTemplateOutlet } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -53,10 +56,12 @@ interface EventFormValue extends Omit<EventDraft, 'start' | 'end' | 'untilDate'>
   standalone: true,
   imports: [
     CdkTrapFocus,
+    NgTemplateOutlet,
     LocalizedDatePickerComponent,
     LocalizedDateRangePickerComponent,
     LocalizedDateTimeRangePickerComponent,
     ReactiveFormsModule,
+    SiteSelectComponent,
     TranslatePipe,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -75,6 +80,7 @@ export class EventEditorComponent {
 
   readonly event = input<WorkspaceEvent | null>(null);
   readonly initial = input<EventEditorInitial | null>(null);
+  readonly embedded = input(false);
   readonly saved = output<WorkspaceEvent>();
   readonly closed = output<void>();
   readonly submitting = signal(false);
@@ -164,6 +170,13 @@ export class EventEditorComponent {
     'monthly',
     'yearly',
   ];
+  readonly frequencyOptions = computed<readonly SiteSelectOption[]>(() => {
+    this.i18n.language();
+    return this.frequencies.map((value) => ({
+      value,
+      label: this.i18n.translate(`workspaceEvents.frequency.${value}`),
+    }));
+  });
   readonly form = new FormGroup({
     title: new FormControl('', {
       nonNullable: true,
@@ -227,10 +240,13 @@ export class EventEditorComponent {
   }
 
   close(): void {
-    if (this.submitting()) return;
-    if (!this.unsavedScope.confirmDiscard()) return;
+    if (!this.confirmDiscard()) return;
     this.active.set(false);
     this.closed.emit();
+  }
+
+  confirmDiscard(): boolean {
+    return !this.submitting() && this.unsavedScope.confirmDiscard();
   }
 
   submit(): void {

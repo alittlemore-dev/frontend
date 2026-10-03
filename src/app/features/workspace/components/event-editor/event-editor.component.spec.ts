@@ -1,4 +1,5 @@
 import { NotificationService } from '@alittlemore.dev/design-system';
+import { chooseSiteSelectOption } from '@alittlemore.dev/design-system/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { of } from 'rxjs';
@@ -41,10 +42,11 @@ describe('EventEditorComponent', () => {
       allDay: true,
       dateRange: { start: '2026-12-31', end: '2026-12-31' },
       dateTimeRange: { start: null, end: null },
-      frequency: 'yearly',
+      frequency: 'none',
       untilDate: null,
     });
     fixture.detectChanges();
+    chooseSiteSelectOption(fixture, '#event-recurrence', 'yearly');
     expect(component.form.getRawValue()).toEqual({
       title: 'Holiday',
       description: 'Break',

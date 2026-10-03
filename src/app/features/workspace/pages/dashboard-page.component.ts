@@ -29,8 +29,12 @@ import { formatAnnualDate } from '../knowledge/shared/annual-date';
 import { Calendar, CalendarEntry } from '../models/calendar.model';
 import { CalendarService } from '../services/calendar.service';
 import { Temporal } from 'temporal-polyfill';
+import {
+  VaultDashboardComponent,
+  VaultSectionKey,
+} from '../components/vault-dashboard/vault-dashboard.component';
 
-type DashboardSectionKey = 'upcoming-dates' | 'important-info';
+type DashboardSectionKey = 'upcoming-dates' | 'important-info' | VaultSectionKey;
 
 type DashboardTabKey = 'home' | 'month-calendar';
 
@@ -46,7 +50,12 @@ const DASHBOARD_TABS: readonly DashboardTabDefinition[] = [
   { key: 'month-calendar', labelKey: 'workspaceDashboard.calendar.title' },
 ];
 
-const DASHBOARD_SECTIONS: readonly DashboardSectionKey[] = ['important-info', 'upcoming-dates'];
+const DASHBOARD_SECTIONS: readonly DashboardSectionKey[] = [
+  'important-info',
+  'upcoming-dates',
+  'vault-recent',
+  'vault-statistics',
+];
 
 @Component({
   selector: 'app-dashboard-page',
@@ -60,6 +69,7 @@ const DASHBOARD_SECTIONS: readonly DashboardSectionKey[] = ['important-info', 'u
     FoldableSectionComponent,
     ImportantInfoComponent,
     EventsCalendarComponent,
+    VaultDashboardComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './dashboard-page.component.html',
@@ -78,6 +88,7 @@ export class DashboardPageComponent implements OnInit {
   readonly upcomingLoading = signal(false);
   readonly upcomingError = signal<ApiError | null>(null);
   readonly activeTab = signal<DashboardTabKey>('home');
+  readonly vaultRefreshVersion = signal(0);
   readonly tabs = signal<readonly DashboardTabDefinition[]>(DASHBOARD_TABS);
   readonly collapsedSectionKeys = signal<ReadonlySet<DashboardSectionKey>>(
     this.loadCollapsedSectionKeys(),
@@ -125,6 +136,11 @@ export class DashboardPageComponent implements OnInit {
           this.upcomingLoading.set(false);
         },
       });
+  }
+
+  onKnowledgeCreated(): void {
+    this.vaultRefreshVersion.update((version) => version + 1);
+    this.loadUpcomingDates();
   }
 
   isSectionExpanded(sectionKey: DashboardSectionKey): boolean {

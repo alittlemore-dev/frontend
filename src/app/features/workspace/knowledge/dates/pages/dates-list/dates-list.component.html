@@ -216,129 +216,14 @@
   }
 
   @if (createDialogOpen()) {
-    <div
-      class="modal d-block bg-dark bg-opacity-50"
-      role="dialog"
-      aria-modal="true"
-      data-testid="dates-create-dialog"
-      [attr.aria-label]="'knowledgeDates.createTitle' | t"
-      tabindex="0"
-      (click)="closeCreateDialog()"
-      (keyup.escape)="closeCreateDialog()"
-    >
-      <div
-        class="modal-dialog modal-dialog-centered"
-        role="document"
-        tabindex="-1"
-        (click)="$event.stopPropagation()"
-        (keydown)="$event.stopPropagation()"
-      >
-        <form class="modal-content" [formGroup]="createForm" (ngSubmit)="createDate()">
-          <div class="modal-header">
-            <h3 class="h5 modal-title">{{ 'knowledgeDates.createTitle' | t }}</h3>
-            <button
-              type="button"
-              class="btn-close"
-              [disabled]="createSubmitting()"
-              [attr.aria-label]="'shared.close' | t"
-              (click)="closeCreateDialog()"
-            ></button>
-          </div>
-          <div class="modal-body">
-            @if (createError()) {
-              <ds-error-message
-                [error]="createError()!"
-                [retryLabel]="'shared.retry' | t"
-                (retry)="createDate()"
-              />
-            }
-            <div class="mb-3">
-              <label class="form-label" for="date-create-name">
-                {{ 'knowledgeDates.name' | t }}
-                <span class="required-marker text-danger" aria-hidden="true">*</span>
-              </label>
-              <input
-                id="date-create-name"
-                class="form-control"
-                formControlName="displayName"
-                required
-                [attr.maxlength]="validationLimits.shortText"
-              />
-              @if (createNameInvalid() && createNameMessage(); as message) {
-                <div class="invalid-feedback d-block">{{ message }}</div>
-              }
-            </div>
-            <fieldset formGroupName="date">
-              <legend class="fs-6">{{ 'knowledgeDates.date' | t }}</legend>
-              <div class="row g-2">
-                <div class="col-4">
-                  <label class="form-label" for="date-create-day">
-                    {{ 'knowledgeDates.day' | t }}
-                    <span class="required-marker text-danger" aria-hidden="true">*</span>
-                  </label>
-                  <ds-site-select
-                    inputId="date-create-day"
-                    [options]="dayOptions"
-                    controlSize="default"
-                    appearance="default"
-                    [required]="true"
-                    [invalid]="createDateInvalid()"
-                    [controlDisabled]="false"
-                    formControlName="day"
-                  />
-                </div>
-                <div class="col-4">
-                  <label class="form-label" for="date-create-month">
-                    {{ 'knowledgeDates.month' | t }}
-                    <span class="required-marker text-danger" aria-hidden="true">*</span>
-                  </label>
-                  <ds-site-select
-                    inputId="date-create-month"
-                    [options]="monthOptions()"
-                    controlSize="default"
-                    appearance="default"
-                    [required]="true"
-                    [invalid]="createDateInvalid()"
-                    [controlDisabled]="false"
-                    formControlName="month"
-                  />
-                </div>
-                <div class="col-4">
-                  <label class="form-label" for="date-create-year">{{
-                    'knowledgeDates.year' | t
-                  }}</label>
-                  <input
-                    id="date-create-year"
-                    type="number"
-                    min="1"
-                    max="9999"
-                    class="form-control"
-                    formControlName="year"
-                  />
-                </div>
-              </div>
-              @if (createDateInvalid()) {
-                <p class="text-danger small mt-2" role="alert">
-                  {{ 'knowledgeDates.dateInvalid' | t }}
-                </p>
-              }
-            </fieldset>
-          </div>
-          <div class="modal-footer">
-            <button
-              type="button"
-              class="btn btn-outline-secondary"
-              [disabled]="createSubmitting()"
-              (click)="closeCreateDialog()"
-            >
-              {{ 'shared.cancel' | t }}
-            </button>
-            <button type="submit" class="btn btn-success" [disabled]="createSubmitting()">
-              {{ 'knowledgeDates.createSubmit' | t }}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+    <app-knowledge-quick-create-dialog
+      kind="date"
+      [form]="createForm"
+      [submitting]="createSubmitting()"
+      [submitted]="createSubmitted()"
+      [error]="createError()"
+      (submitRequested)="createDate()"
+      (closeRequested)="closeCreateDialog()"
+    />
   }
 </div>

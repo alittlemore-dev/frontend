@@ -88,7 +88,7 @@
         {{ 'workspaceDashboard.calendar.view.year' | t }}
       </button>
     </div>
-    <button type="button" class="btn btn-success btn-sm" (click)="openCreate()">
+    <button #createButton type="button" class="btn btn-success btn-sm" (click)="openCreate()">
       {{ 'workspaceDashboard.calendar.create' | t }}
     </button>
   </div>
@@ -254,10 +254,14 @@
   </section>
 }
 @if (editorOpen()) {
-  <app-event-editor
-    [event]="editorEvent()"
-    [initial]="editorInitial()"
-    (saved)="onSaved()"
-    (closed)="closeEditor()"
-  />
+  @if (editorEvent()) {
+    <app-event-editor [event]="editorEvent()" (saved)="onSaved()" (closed)="closeEditor()" />
+  } @else {
+    <app-calendar-entry-create
+      [initial]="editorInitial()"
+      (eventSaved)="onSaved()"
+      (knowledgeSaved)="onKnowledgeSaved()"
+      (closed)="closeEditor()"
+    />
+  }
 }

@@ -13,6 +13,8 @@ import { Temporal } from 'temporal-polyfill';
 import { provideI18nTesting } from '../../../../testing/i18n-testing';
 import { EventsService } from '../../services/events.service';
 import { EventsCalendarComponent } from './events-calendar.component';
+import { PeopleService } from '../../knowledge/people/services/people.service';
+import { KnowledgeDatesService } from '../../knowledge/dates/services/dates.service';
 import { AccountSettingsService } from '../../../../core/auth/account-settings.service';
 
 // Match the third-party selector so the calendar can be replaced in this focus test.
@@ -47,6 +49,8 @@ describe('EventsCalendarComponent', () => {
         provideRouter([]),
         provideI18nTesting({ 'workspaceDashboard.dates.type.birthday': 'День рождения' }),
         { provide: EventsService, useValue: service },
+        { provide: PeopleService, useValue: { createPerson: jest.fn() } },
+        { provide: KnowledgeDatesService, useValue: { createDate: jest.fn() } },
         { provide: AccountSettingsService, useValue: { timeZone } },
       ],
     });
@@ -405,5 +409,66 @@ describe('EventsCalendarComponent', () => {
     fixture.destroy();
     (fixture.nativeElement as HTMLElement).remove();
     trigger.remove();
+  });
+  it('uses the selected day for knowledge creation and reloads the calendar after saving', async () => {
+    await TestBed.configureTestingModule({ imports: [EventsCalendarComponent] })
+      .overrideComponent(EventsCalendarComponent, {
+        remove: { imports: [FullCalendarModule] },
+        add: { imports: [StubFullCalendarComponent] },
+      })
+      .compileComponents();
+    const fixture = TestBed.createComponent(EventsCalendarComponent);
+    const component = fixture.componentInstance;
+    component.range.set({
+      startDate: '2026-10-01',
+      endDate: '2026-11-01',
+      viewType: 'dayGridMonth',
+    });
+    component.selectedDay.set('2026-10-03');
+    component.createOnSelectedDay();
+    expect(component.editorOpen()).toBe(true);
+    expect(component.editorInitial()?.start).toBe('2026-10-03');
+    expect(component.selectedDay()).toBeNull();
+    const created = jest.fn();
+    component.knowledgeCreated.subscribe(created);
+    component.onKnowledgeSaved();
+    expect(component.editorOpen()).toBe(false);
+    expect(service.occurrences).toHaveBeenCalledWith('2026-10-01', '2026-11-01');
+    expect(created).toHaveBeenCalledTimes(1);
+    component.openCreate();
+    expect(component.editorInitial()).toBeNull();
+  });
+  it('restores focus to the persistent toolbar after cancelling creation from a day dialog', async () => {
+    await TestBed.configureTestingModule({ imports: [EventsCalendarComponent] })
+      .overrideComponent(EventsCalendarComponent, {
+        remove: { imports: [FullCalendarModule] },
+        add: { imports: [StubFullCalendarComponent] },
+      })
+      .compileComponents();
+    const fixture = TestBed.createComponent(EventsCalendarComponent);
+    fixture.detectChanges();
+    fixture.componentInstance.openDay('2026-10-03');
+    fixture.detectChanges();
+    expect(
+      fixture.nativeElement.querySelectorAll('.calendar-toolbar > button.btn-success').length,
+    ).toBe(1);
+    expect(
+      fixture.nativeElement.querySelectorAll('section[role="dialog"] .modal-footer button').length,
+    ).toBe(2);
+    const toolbarButton = fixture.nativeElement.querySelector(
+      '.calendar-toolbar > button.btn-success',
+    );
+    const launch = fixture.nativeElement.querySelector(
+      'section[role="dialog"] .modal-footer button.btn-success',
+    );
+    launch.focus();
+    launch.click();
+    fixture.detectChanges();
+    fixture.nativeElement
+      .querySelector('app-calendar-entry-create .modal-footer button.btn-outline-secondary')
+      .click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(document.activeElement).toBe(toolbarButton);
   });
 });

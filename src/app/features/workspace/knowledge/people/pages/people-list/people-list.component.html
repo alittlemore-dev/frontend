@@ -202,87 +202,15 @@
   }
 
   @if (createDialogOpen()) {
-    <div
-      class="modal d-block bg-dark bg-opacity-50"
-      role="dialog"
-      aria-modal="true"
-      data-testid="people-create-dialog"
-      [attr.aria-label]="'knowledgePeople.createTitle' | t"
-      tabindex="0"
-      (click)="closeCreateDialog()"
-      (keyup.escape)="closeCreateDialog()"
-    >
-      <div
-        class="modal-dialog modal-dialog-centered"
-        role="document"
-        tabindex="-1"
-        (click)="$event.stopPropagation()"
-        (keydown)="$event.stopPropagation()"
-      >
-        <form class="modal-content" [formGroup]="createForm" (ngSubmit)="createPerson()">
-          <div class="modal-header">
-            <h3 class="h5 modal-title">{{ 'knowledgePeople.createTitle' | t }}</h3>
-            <button
-              type="button"
-              class="btn-close"
-              [disabled]="createSubmitting()"
-              [attr.aria-label]="'shared.close' | t"
-              (click)="closeCreateDialog()"
-            ></button>
-          </div>
-          <div class="modal-body">
-            @if (createError()) {
-              <ds-error-message
-                [error]="createError()!"
-                [retryLabel]="'shared.retry' | t"
-                (retry)="createPerson()"
-              />
-            }
-            <div class="mb-3">
-              <label class="form-label" for="person-create-first-name">
-                {{ 'knowledgePeople.firstName' | t }}
-              </label>
-              <input
-                id="person-create-first-name"
-                class="form-control"
-                formControlName="firstName"
-                [attr.maxlength]="validationLimits.shortText"
-              />
-              @if (createFieldInvalid('firstName') && createFieldMessage('firstName'); as message) {
-                <div class="invalid-feedback d-block">{{ message }}</div>
-              }
-            </div>
-            <div>
-              <label class="form-label" for="person-create-last-name">
-                {{ 'knowledgePeople.lastName' | t }}
-              </label>
-              <input
-                id="person-create-last-name"
-                class="form-control"
-                formControlName="lastName"
-                [attr.maxlength]="validationLimits.shortText"
-              />
-              @if (createFieldInvalid('lastName') && createFieldMessage('lastName'); as message) {
-                <div class="invalid-feedback d-block">{{ message }}</div>
-              }
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button
-              type="button"
-              class="btn btn-outline-secondary"
-              [disabled]="createSubmitting()"
-              (click)="closeCreateDialog()"
-            >
-              {{ 'shared.cancel' | t }}
-            </button>
-            <button type="submit" class="btn btn-success" [disabled]="createSubmitting()">
-              {{ 'knowledgePeople.createSubmit' | t }}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+    <app-knowledge-quick-create-dialog
+      kind="person"
+      [form]="createForm"
+      [submitting]="createSubmitting()"
+      [submitted]="createSubmitted()"
+      [error]="createError()"
+      (submitRequested)="createPerson()"
+      (closeRequested)="closeCreateDialog()"
+    />
   }
 
   @if (tagDialogOpen()) {

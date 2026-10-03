@@ -1,7 +1,7 @@
 import { NotificationService } from '@alittlemore.dev/design-system';
 import { DOCUMENT } from '@angular/common';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, output, signal } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { NEVER } from 'rxjs';
 import { I18nService } from '../../../core/i18n/i18n.service';
@@ -12,6 +12,7 @@ import { EventsService } from '../services/events.service';
 import { ImportantInfoService } from '../services/important-info.service';
 import { DashboardPageComponent } from './dashboard-page.component';
 import { EventsCalendarComponent } from '../components/events-calendar/events-calendar.component';
+import { VaultService } from '../services/vault.service';
 import { AccountSettingsService } from '../../../core/auth/account-settings.service';
 
 @Component({
@@ -20,7 +21,9 @@ import { AccountSettingsService } from '../../../core/auth/account-settings.serv
   template: '',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-class StubEventsCalendarComponent {}
+class StubEventsCalendarComponent {
+  readonly knowledgeCreated = output<void>();
+}
 
 const DASHBOARD_COLLAPSED_SECTIONS_STORAGE_KEY = 'dashboardCollapsedSections';
 
@@ -36,6 +39,10 @@ describe('DashboardPageComponent', () => {
     await TestBed.configureTestingModule({
       providers: [
         provideRouter([]),
+        {
+          provide: VaultService,
+          useValue: { recent: jest.fn(() => NEVER), statistics: jest.fn(() => NEVER) },
+        },
         provideI18nTesting(),
         { provide: CalendarService, useValue: { getCalendar } },
         { provide: AccountSettingsService, useValue: { timeZone } },
@@ -95,13 +102,21 @@ describe('DashboardPageComponent', () => {
   it('loads only known collapsed sections from browser storage', () => {
     localStorage.setItem(
       DASHBOARD_COLLAPSED_SECTIONS_STORAGE_KEY,
-      JSON.stringify(['upcoming-dates', 'tools', 'unknown-section']),
+      JSON.stringify([
+        'upcoming-dates',
+        'vault-recent',
+        'vault-statistics',
+        'tools',
+        'unknown-section',
+      ]),
     );
 
     fixture = TestBed.createComponent(DashboardPageComponent);
 
     expect(fixture.componentInstance.isSectionExpanded('upcoming-dates')).toBe(false);
-    expect(fixture.componentInstance.collapsedSectionKeys().size).toBe(1);
+    expect(fixture.componentInstance.isSectionExpanded('vault-recent')).toBe(false);
+    expect(fixture.componentInstance.isSectionExpanded('vault-statistics')).toBe(false);
+    expect(fixture.componentInstance.collapsedSectionKeys().size).toBe(3);
   });
 
   it('keeps sections expanded when no preference has been stored', () => {

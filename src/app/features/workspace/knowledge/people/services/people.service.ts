@@ -9,6 +9,7 @@ import {
   PeoplePage,
   PersonDetail,
   PersonQuickCreatePayload,
+  PersonBirthdayCreatePayload,
   PersonRelationshipType,
   PersonUpdatePayload,
   RelationshipTypePayload,
@@ -36,7 +37,9 @@ export class PeopleService {
       .pipe(map((page) => mapPeoplePage(page)));
   }
 
-  createPerson(payload: PersonQuickCreatePayload): Observable<PersonDetail> {
+  createPerson(
+    payload: PersonQuickCreatePayload | PersonBirthdayCreatePayload,
+  ): Observable<PersonDetail> {
     return this.api
       .post<PersonDetail>('/api/personal-workspace/knowledge/people', payload)
       .pipe(map((person) => mapPerson(person)));

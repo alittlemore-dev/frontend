@@ -33,6 +33,7 @@
       [hidden]="activeTab() !== 'home'"
     >
       <ds-foldable-section
+        class="d-block mb-3"
         sectionKey="important-info"
         [title]="'workspaceDashboard.importantInfo.title' | t"
         summary=""
@@ -42,6 +43,7 @@
         <app-important-info />
       </ds-foldable-section>
       <ds-foldable-section
+        class="d-block mb-3"
         sectionKey="upcoming-dates"
         [title]="'workspaceDashboard.dates.title' | t"
         [summary]="datesSummary()"
@@ -122,6 +124,13 @@
           </div>
         }
       </ds-foldable-section>
+      <app-vault-dashboard
+        class="d-block"
+        [recentExpanded]="isSectionExpanded('vault-recent')"
+        [statisticsExpanded]="isSectionExpanded('vault-statistics')"
+        [refreshVersion]="vaultRefreshVersion()"
+        (expandedChange)="setSectionExpanded($event.key, $event.expanded)"
+      />
     </div>
 
     <div
@@ -132,7 +141,7 @@
       [hidden]="activeTab() !== 'month-calendar'"
     >
       @if (activeTab() === 'month-calendar') {
-        <app-events-calendar />
+        <app-events-calendar (knowledgeCreated)="onKnowledgeCreated()" />
       }
     </div>
   </div>
