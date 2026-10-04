@@ -1,0 +1,403 @@
+<h1 class="h3">{{ 'account.apiAccess.title' | t }}</h1>
+<p class="text-body-secondary mb-4">
+  {{ 'account.apiAccess.description' | t }}
+  {{ 'account.apiAccess.docsIntro' | t }}
+  <a href="/api/docs" target="_blank" rel="noopener">{{ 'account.apiAccess.docs' | t }}</a
+  >.
+</p>
+@if (loading()) {
+  <p role="status">{{ 'shared.loading' | t }}</p>
+} @else if (loadFailed()) {
+  <div class="alert alert-danger" role="alert">
+    {{ 'account.apiAccess.loadFailed' | t }}
+    <button class="btn btn-outline-secondary ms-2" type="button" (click)="load()">
+      {{ 'shared.retry' | t }}
+    </button>
+  </div>
+} @else {
+  @if (busy() && !createOpen()) {
+    <p role="status">{{ 'shared.loading' | t }}</p>
+  }
+  @if (!createOpen() && message(); as key) {
+    <p
+      [class]="failed() ? 'alert alert-danger' : 'alert alert-success'"
+      [attr.role]="failed() ? 'alert' : 'status'"
+    >
+      {{ key | t }}
+    </p>
+  }
+  <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+    <h2 class="h5 mb-0">{{ 'account.apiAccess.tokens' | t }}</h2>
+    <button
+      type="button"
+      class="btn btn-primary"
+      [disabled]="busy() || !permissions().length"
+      (click)="openCreate()"
+    >
+      {{ 'account.apiAccess.create' | t }}
+    </button>
+  </div>
+  @for (token of tokens(); track token.id) {
+    <article class="border rounded p-3 mb-3" [attr.data-token-id]="token.id">
+      <h3 class="h6">{{ token.name }}</h3>
+      <dl class="row small">
+        <dt class="col-sm-3">{{ 'account.apiAccess.status' | t }}</dt>
+        <dd class="col-sm-9">{{ 'account.apiAccess.status.' + token.status | t }}</dd>
+        <dt class="col-sm-3">{{ 'account.apiAccess.createdAt' | t }}</dt>
+        <dd class="col-sm-9">
+          <time [attr.datetime]="token.createdAt">{{ date(token.createdAt) }}</time>
+        </dd>
+        <dt class="col-sm-3">{{ 'account.apiAccess.expiresAt' | t }}</dt>
+        <dd class="col-sm-9">
+          <time [attr.datetime]="token.expiresAt">{{ date(token.expiresAt) }}</time>
+        </dd>
+        <dt class="col-sm-3">{{ 'account.apiAccess.lastUsedAt' | t }}</dt>
+        <dd class="col-sm-9">
+          {{ token.lastUsedAt ? date(token.lastUsedAt) : ('account.apiAccess.neverUsed' | t) }}
+        </dd>
+        <dt class="col-sm-3">{{ 'account.apiAccess.permissions' | t }}</dt>
+        <dd class="col-sm-9">
+          <details>
+            <summary>
+              {{ 'account.apiAccess.permissionCount' | t: { count: token.permissions.length } }}
+            </summary>
+            <div class="d-flex flex-wrap gap-2 mt-2">
+              @for (permission of token.permissions; track permission) {
+                <code class="text-break">{{ permission }}</code>
+              }
+            </div>
+          </details>
+        </dd>
+      </dl>
+      <div class="d-flex align-items-center gap-2 mb-3">
+        <code class="text-break" data-testid="api-token-value">{{
+          revealed()?.id === token.id ? revealed()?.value : '••••••••••••••••'
+        }}</code>
+        @if (revealed()?.id === token.id) {
+          <button
+            class="btn btn-outline-secondary btn-sm flex-shrink-0"
+            type="button"
+            [attr.aria-label]="'account.apiAccess.copy' | t"
+            [title]="'account.apiAccess.copy' | t"
+            [disabled]="busy()"
+            (click)="requestSecret(token, 'copy')"
+          >
+            <svg
+              aria-hidden="true"
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <rect x="9" y="9" width="13" height="13" rx="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+          </button>
+        }
+      </div>
+      <div class="d-flex flex-wrap gap-2">
+        @if (revealed()?.id === token.id) {
+          <button class="btn btn-outline-secondary btn-sm" type="button" (click)="hide()">
+            {{ 'account.apiAccess.hide' | t }}
+          </button>
+        } @else {
+          <button
+            class="btn btn-outline-secondary btn-sm"
+            type="button"
+            [disabled]="busy() || token.status !== 'active'"
+            (click)="requestSecret(token, 'show')"
+          >
+            {{ 'account.apiAccess.show' | t }}
+          </button>
+        }
+        <button
+          class="btn btn-outline-danger btn-sm"
+          type="button"
+          [disabled]="busy() || token.status === 'revoked'"
+          (click)="revoke(token)"
+        >
+          {{ 'account.apiAccess.revoke' | t }}
+        </button>
+      </div>
+      @if (secretAction()?.id === token.id) {
+        <form class="mt-3" (submit)="confirmSecret(); $event.preventDefault()">
+          <label [for]="'api-action-password-' + token.id" class="form-label"
+            >{{ 'account.apiAccess.password' | t }}
+            <span class="required-marker text-danger" aria-hidden="true">*</span></label
+          >
+          <input
+            [id]="'api-action-password-' + token.id"
+            type="password"
+            class="form-control mb-2"
+            autocomplete="current-password"
+            [formControl]="actionPassword"
+            [class.is-invalid]="actionPassword.touched && actionPassword.invalid"
+            required
+          />
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary btn-sm" [disabled]="busy()">
+              {{
+                (secretAction()?.action === 'copy'
+                  ? 'account.apiAccess.copy'
+                  : 'account.apiAccess.show'
+                ) | t
+              }}
+            </button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" (click)="cancelSecret()">
+              {{ 'shared.cancel' | t }}
+            </button>
+          </div>
+        </form>
+      }
+    </article>
+  } @empty {
+    <p>{{ 'account.apiAccess.empty' | t }}</p>
+  }
+}
+<section class="mt-4" aria-labelledby="api-examples-title">
+  <h2 id="api-examples-title" class="h5 mb-3">{{ 'account.apiAccess.examples' | t }}</h2>
+  <div class="d-flex flex-column gap-2">
+    @for (example of examples; track example.id) {
+      <ds-foldable-section
+        [sectionKey]="'api-example-' + example.id"
+        [title]="'account.apiAccess.example.' + example.id + '.title' | t"
+        [summary]="'account.apiAccess.example.' + example.id + '.summary' | t"
+        [expanded]="expandedExamples().has(example.id)"
+        (expandedChange)="setExampleExpanded(example.id, $event)"
+      >
+        <p>{{ 'account.apiAccess.example.' + example.id + '.hint' | t }}</p>
+        <p class="small">
+          {{ 'account.apiAccess.requiredPermission' | t }} <code>{{ example.permission }}</code>
+        </p>
+        <p class="small text-body-secondary">{{ 'account.apiAccess.exampleTokenHint' | t }}</p>
+        <pre
+          class="border rounded p-3 bg-body-tertiary overflow-auto"
+        ><code>{{ example.command }}</code></pre>
+        @if (example.file; as file) {
+          <p>
+            <code>{{ file.name }}</code>
+          </p>
+          <pre
+            class="border rounded p-3 bg-body-tertiary overflow-auto mb-0"
+          ><code>{{ file.content }}</code></pre>
+        }
+      </ds-foldable-section>
+    }
+  </div>
+</section>
+
+@if (createOpen()) {
+  <dialog
+    dsModalDialog
+    class="modal api-token-modal"
+    [dismissible]="!busy()"
+    (dismissed)="closeCreate()"
+    aria-modal="true"
+    aria-labelledby="api-create-title"
+    [dsModalScroll]="createScrollArea"
+  >
+    <form
+      [formGroup]="form"
+      (ngSubmit)="create()"
+      class="modal-dialog modal-lg modal-dialog-scrollable modal-fullscreen-sm-down"
+      novalidate
+    >
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="api-create-title" class="modal-title h5">{{ 'account.apiAccess.create' | t }}</h2>
+          <button
+            type="button"
+            class="btn-close"
+            [attr.aria-label]="'shared.close' | t"
+            [disabled]="busy()"
+            (click)="closeCreate()"
+          ></button>
+        </div>
+        <div #createScrollArea class="modal-body">
+          @if (createOpen() && message(); as key) {
+            <p class="alert alert-danger" role="alert">{{ key | t }}</p>
+          }
+          <div class="row">
+            <div class="col-sm-7 mb-3">
+              <label for="api-token-name" class="form-label"
+                >{{ 'account.apiAccess.name' | t }}
+                <span class="required-marker text-danger" aria-hidden="true">*</span></label
+              >
+              <input
+                #tokenName
+                id="api-token-name"
+                class="form-control"
+                [class.is-invalid]="form.controls.name.touched && form.controls.name.invalid"
+                formControlName="name"
+                required
+                maxlength="100"
+                autocomplete="off"
+              />
+            </div>
+            <div class="col-sm-5 mb-3">
+              <label for="api-token-duration" class="form-label"
+                >{{ 'account.apiAccess.duration' | t }}
+                <span class="required-marker text-danger" aria-hidden="true">*</span></label
+              >
+              <select
+                id="api-token-duration"
+                class="form-select"
+                formControlName="duration"
+                required
+              >
+                @for (duration of durations; track duration) {
+                  <option [value]="duration">
+                    {{ 'account.apiAccess.duration.' + duration | t }}
+                  </option>
+                }
+              </select>
+            </div>
+          </div>
+          @if (customDuration()) {
+            <div class="mb-3">
+              <label for="api-token-expiry" class="form-label"
+                >{{ 'account.apiAccess.expiresAt' | t }}
+                <span class="required-marker text-danger" aria-hidden="true">*</span></label
+              >
+              <ds-localized-datetime-picker
+                inputId="api-token-expiry"
+                controlSize="default"
+                [invalid]="form.controls.expiresAt.touched && form.controls.expiresAt.invalid"
+                [readonly]="false"
+                formControlName="expiresAt"
+                [dateLocale]="i18n.dateLocale()"
+                [labels]="dateTimeLabels()"
+                [required]="true"
+                [controlDisabled]="busy()"
+              />
+              <p class="form-text">{{ 'account.apiAccess.invalidExpiry' | t }}</p>
+            </div>
+          }
+          <fieldset class="mb-0">
+            <legend class="h6">
+              {{ 'account.apiAccess.permissions' | t }}
+              <span class="required-marker text-danger" aria-hidden="true">*</span>
+            </legend>
+            <p class="small mb-2">{{ 'account.apiAccess.permissionsHint' | t }}</p>
+            <div class="d-flex gap-2 mb-2">
+              <button
+                type="button"
+                class="btn btn-outline-secondary btn-sm"
+                [disabled]="busy()"
+                (click)="selectAll()"
+              >
+                {{ 'account.apiAccess.selectAll' | t }}
+              </button>
+              <button
+                type="button"
+                class="btn btn-outline-secondary btn-sm"
+                [disabled]="busy()"
+                (click)="selectNone()"
+              >
+                {{ 'account.apiAccess.selectNone' | t }}
+              </button>
+            </div>
+            <div class="d-flex flex-column gap-2">
+              @for (service of permissionServices(); track service.name) {
+                <ds-foldable-section
+                  [sectionKey]="'api-permissions-' + service.name"
+                  [title]="'account.apiAccess.service.' + service.name | t"
+                  [summary]="
+                    'account.apiAccess.permissionSelection'
+                      | t: { selected: service.selected, total: service.total }
+                  "
+                  [expanded]="expandedPermissions().has(service.name)"
+                  (expandedChange)="setPermissionExpanded(service.name, $event)"
+                >
+                  <div class="row row-cols-1 row-cols-md-2 g-3">
+                    @for (group of service.groups; track group.name) {
+                      <div class="col">
+                        <fieldset class="border rounded p-3 h-100">
+                          <legend class="float-none w-auto h6 px-1">
+                            {{ 'account.apiAccess.domain.' + group.name | t }}
+                          </legend>
+                          @for (permission of group.permissions; track permission.code) {
+                            <div class="form-check mb-2">
+                              <input
+                                type="checkbox"
+                                class="form-check-input"
+                                [id]="'permission-' + permission.code"
+                                [checked]="selectedPermissions().has(permission.code)"
+                                [disabled]="busy()"
+                                (change)="togglePermission(permission.code, $event)"
+                              />
+                              <label
+                                class="form-check-label"
+                                [for]="'permission-' + permission.code"
+                              >
+                                {{ 'account.apiAccess.action.' + permission.action | t }}
+                                <code class="d-block small text-break">{{ permission.code }}</code>
+                              </label>
+                            </div>
+                          }
+                        </fieldset>
+                      </div>
+                    }
+                  </div>
+                </ds-foldable-section>
+              } @empty {
+                <p>{{ 'account.apiAccess.noPermissions' | t }}</p>
+              }
+            </div>
+          </fieldset>
+        </div>
+        <div class="modal-footer d-block">
+          <div class="row align-items-end g-2">
+            <div class="col-sm-7">
+              <label for="api-create-password" class="form-label small mb-1"
+                >{{ 'account.apiAccess.password' | t }}
+                <span class="required-marker text-danger" aria-hidden="true">*</span></label
+              >
+              <input
+                id="api-create-password"
+                type="password"
+                autocomplete="current-password"
+                class="form-control"
+                [class.is-invalid]="
+                  form.controls.password.touched && form.controls.password.invalid
+                "
+                formControlName="password"
+                required
+              />
+            </div>
+            <div class="col-sm-5 d-flex justify-content-end gap-2">
+              <button
+                type="button"
+                class="btn btn-outline-secondary"
+                [disabled]="busy()"
+                (click)="closeCreate()"
+              >
+                {{ 'shared.cancel' | t }}
+              </button>
+              <button
+                type="submit"
+                class="btn btn-primary"
+                [disabled]="busy() || permissions().length === 0"
+              >
+                {{ 'account.apiAccess.create' | t }}
+              </button>
+            </div>
+          </div>
+          <p class="small text-body-secondary mt-2 mb-0" role="status">
+            @if (busy()) {
+              {{ 'shared.loading' | t }}
+            } @else {
+              {{
+                'account.apiAccess.selectedPermissions' | t: { count: selectedPermissions().size }
+              }}
+            }
+          </p>
+        </div>
+      </div>
+    </form>
+  </dialog>
+}

@@ -9,15 +9,6 @@ export interface QueuedMatrixQuestionDto {
   subsection: string | null;
   suggestedByUsername: string;
   createdAt: string;
-  claim: QueuedMatrixQuestionClaimDto | null;
-}
-
-export interface QueuedMatrixQuestionClaimDto {
-  id: string;
-  agentClientId: string;
-  agentClientName: string;
-  claimedAt: string;
-  expiresAt: string;
 }
 
 export interface QueuedMatrixQuestionsDto {
@@ -65,15 +56,6 @@ export interface QueuedMatrixQuestion {
   subsection: string | null;
   suggestedByUsername: string;
   createdAt: string;
-  claim: QueuedMatrixQuestionClaim | null;
-}
-
-export interface QueuedMatrixQuestionClaim {
-  id: string;
-  agentClientId: string;
-  agentClientName: string;
-  claimedAt: string;
-  expiresAt: string;
 }
 
 export interface AdminMatrixItemDetailDto {
@@ -92,15 +74,5 @@ export function mapQueuedMatrixQuestionDto(dto: QueuedMatrixQuestionDto): Queued
     subsection: dto.subsection,
     suggestedByUsername: dto.suggestedByUsername,
     createdAt: dto.createdAt,
-    claim:
-      dto.claim === null
-        ? null
-        : {
-            id: dto.claim.id,
-            agentClientId: dto.claim.agentClientId,
-            agentClientName: dto.claim.agentClientName,
-            claimedAt: dto.claim.claimedAt,
-            expiresAt: dto.claim.expiresAt,
-          },
   };
 }

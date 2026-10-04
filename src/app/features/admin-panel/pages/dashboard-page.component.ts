@@ -89,7 +89,7 @@ export class DashboardPageComponent implements OnInit {
   readonly moderatorQueueSummary = computed(() => {
     this.i18n.language();
     const queue = this.moderatorQueueStats();
-    return `${this.i18n.translate('dashboard.moderator.queue.total')}: ${queue?.total ?? 0} · ${this.i18n.translate('dashboard.moderator.queue.available')}: ${queue?.available ?? 0} · ${this.i18n.translate('dashboard.moderator.queue.claimed')}: ${queue?.claimed ?? 0}`;
+    return `${this.i18n.translate('dashboard.moderator.queue.total')}: ${queue?.total ?? 0}`;
   });
   readonly moderatorMatrixSummary = computed(() => {
     this.i18n.language();

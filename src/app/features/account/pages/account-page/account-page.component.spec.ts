@@ -37,12 +37,12 @@ describe('AccountPageComponent', () => {
     fixture.detectChanges();
   });
 
-  it('renders a desktop side panel with Profile and Settings pages', () => {
+  it('renders a desktop side panel with Profile, Settings and API access pages', () => {
     const aside = fixture.nativeElement.querySelector('[data-testid="account-side-panel"]');
     const links = aside.querySelectorAll('a');
 
     expect(aside).not.toBeNull();
-    expect(links).toHaveLength(2);
+    expect(links).toHaveLength(3);
     expect(links[0].textContent?.trim()).toBe('Профиль');
     expect(links[0].getAttribute('href')).toBe('/account/me');
     expect(links[1].getAttribute('href')).toBe('/account/settings');
@@ -62,6 +62,6 @@ describe('AccountPageComponent', () => {
     fixture.detectChanges();
 
     expect(dialog.open).toBe(true);
-    expect(fixture.nativeElement.querySelectorAll('ds-drawer a')).toHaveLength(2);
+    expect(fixture.nativeElement.querySelectorAll('ds-drawer a')).toHaveLength(3);
   });
 });

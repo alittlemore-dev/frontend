@@ -72,6 +72,44 @@ describe('Unified OpenAPI', () => {
     jest.restoreAllMocks();
   });
 
+  it('preserves protected admin operations and PAT scope descriptions at the external service paths', async () => {
+    fetchSchema.mockImplementation(async (input) => {
+      const path = new URL(String(input)).pathname;
+      if (path === '/openapi/competency.json') {
+        const doc = schema('/api/admin/competency-matrix/questions');
+        doc.paths!['/api/admin/competency-matrix/questions'].get!.description =
+          'PAT permission: competency.matrix.read';
+        doc.security = [{ bearerAuth: [] }];
+        doc.components!.securitySchemes = {
+          bearerAuth: { type: 'http', scheme: 'bearer' },
+        };
+        return jsonResponse(doc);
+      }
+      if (path === '/openapi/personal-workspace.json') {
+        const doc = schema('/api/resumes');
+        doc.paths!['/api/resumes'].post = {
+          description: 'PAT permission: workspace.resumes.create',
+          responses: { '201': { description: 'Created' } },
+          security: [{ bearerAuth: [] }],
+        };
+        doc.components!.securitySchemes = {
+          bearerAuth: { type: 'http', scheme: 'bearer' },
+        };
+        return jsonResponse(doc);
+      }
+      return jsonResponse(
+        schema(path === '/openapi/auth.json' ? '/api/auth/account/me' : '/api/i18n/languages'),
+      );
+    });
+    const doc = await aggregator.getSchema();
+    const admin = doc.paths!['/api/competency/admin/competency-matrix/questions'].get!;
+    expect(admin.description).toContain('competency.matrix.read');
+    expect(admin.security).toEqual([{ CompetencybearerAuth: [] }]);
+    expect(doc.paths!['/api/personal-workspace/resumes'].post!.description).toContain(
+      'workspace.resumes.create',
+    );
+  });
+
   it('merges all external paths, refs, operation IDs, tags and effective security', async () => {
     const doc = await aggregator.getSchema();
     expect(Object.keys(doc.paths!)).toEqual([
@@ -84,11 +122,14 @@ describe('Unified OpenAPI', () => {
     expect(doc.servers).toEqual([{ url: '/' }]);
     expect(doc.security).toBeUndefined();
     expect(doc.paths!['/api/competency/articles'].get!.security).toEqual([]);
-    expect(doc.paths!['/api/auth/account/me'].get!.security).toEqual([{ bearerAuth: [] }]);
+    expect(doc.paths!['/api/auth/account/me'].get!.security).toEqual([{ AuthbearerAuth: [] }]);
     expect(doc.paths!['/api/personal-workspace/resumes'].get!.security).toEqual([
-      { bearerAuth: [] },
+      { PersonalWorkspacebearerAuth: [] },
     ]);
-    expect(Object.keys(doc.components!.securitySchemes!)).toEqual(['bearerAuth']);
+    expect(Object.keys(doc.components!.securitySchemes!)).toEqual([
+      'AuthbearerAuth',
+      'PersonalWorkspacebearerAuth',
+    ]);
     const operations = Object.values(doc.paths!).map((item) => item.get!);
     expect(new Set(operations.map((operation) => operation.operationId)).size).toBe(4);
     expect(operations[1].tags).toEqual(['Competency / items']);
@@ -107,6 +148,89 @@ describe('Unified OpenAPI', () => {
     ).toBe(true);
     expect(fetchSchema).toHaveBeenCalledTimes(4);
     expect(fetchSchema.mock.calls.every(([, options]) => options?.redirect === 'error')).toBe(true);
+  });
+
+  it('keeps conflicting nested file schemas and bearer security attached to their own service', async () => {
+    fetchSchema.mockImplementation(async (input) => {
+      const path = new URL(String(input)).pathname;
+      if (path === '/openapi/competency.json' || path === '/openapi/personal-workspace.json') {
+        const purpose = path === '/openapi/competency.json' ? 'article_image' : 'resume_attachment';
+        const doc = schema('/api/files');
+        doc.paths!['/api/files'].get!.responses['200'] = {
+          description: 'OK',
+          content: { 'application/json': { schema: { $ref: '#/components/schemas/File' } } },
+        };
+        doc.components = {
+          schemas: {
+            File: {
+              type: 'object',
+              properties: { purpose: { $ref: '#/components/schemas/FilePurpose' } },
+            },
+            FilePurpose: { type: 'string', enum: [purpose] },
+          },
+          securitySchemes: {
+            bearerAuth: {
+              type: 'http',
+              scheme: 'bearer',
+              bearerFormat: 'PASETO or personal API token',
+            },
+          },
+        };
+        doc.security = [{ bearerAuth: [] }];
+        return jsonResponse(doc);
+      }
+      const doc = schema(
+        path === '/openapi/auth.json' ? '/api/auth/account/me' : '/api/i18n/languages',
+      );
+      if (path === '/openapi/auth.json') {
+        doc.security = [{ bearerAuth: [] }];
+        doc.components!.securitySchemes = {
+          bearerAuth: {
+            type: 'http',
+            scheme: 'bearer',
+            bearerFormat: 'PASETO or personal API token',
+          },
+        };
+      }
+      return jsonResponse(doc);
+    });
+
+    const doc = await aggregator.getSchema();
+    for (const [path, purpose] of [
+      ['/api/competency/files', 'article_image'],
+      ['/api/personal-workspace/files', 'resume_attachment'],
+    ]) {
+      const response = doc.paths![path].get!.responses['200'];
+      if (!('content' in response)) throw new Error('Expected a response body');
+      const reference = response.content!['application/json'].schema;
+      if (!reference || !('$ref' in reference)) throw new Error('Expected a file reference');
+      const file = doc.components!.schemas![reference.$ref.split('/').at(-1)!];
+      if (!('properties' in file)) throw new Error('Expected file properties');
+      const purposeReference = file.properties!['purpose'];
+      if (!('$ref' in purposeReference)) throw new Error('Expected a purpose reference');
+      const purposeSchema = doc.components!.schemas![purposeReference.$ref.split('/').at(-1)!];
+      expect(purposeSchema).toEqual({ type: 'string', enum: [purpose] });
+    }
+    const protectedOperations = [
+      doc.paths!['/api/auth/account/me'].get!,
+      doc.paths!['/api/competency/files'].get!,
+      doc.paths!['/api/personal-workspace/files'].get!,
+    ];
+    expect(protectedOperations.map((operation) => Object.keys(operation.security![0]))).toEqual([
+      ['AuthbearerAuth'],
+      ['CompetencybearerAuth'],
+      ['PersonalWorkspacebearerAuth'],
+    ]);
+    for (const operation of protectedOperations) {
+      expect(operation.security).toHaveLength(1);
+      for (const scheme of Object.keys(operation.security![0])) {
+        expect(doc.components!.securitySchemes![scheme]).toEqual({
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'PASETO or personal API token',
+        });
+      }
+    }
   });
 
   it('shares an in-flight refresh and expires the complete cache after 30 seconds', async () => {

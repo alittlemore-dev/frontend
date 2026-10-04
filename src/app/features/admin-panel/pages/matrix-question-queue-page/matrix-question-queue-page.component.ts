@@ -58,19 +58,17 @@ const LINE_BREAKS_PATTERN = /[\r\n]+/g;
 const IMPORT_FILE_ACCEPT =
   '.txt,.csv,.xlsx,.xlsm,text/plain,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel.sheet.macroEnabled.12';
 const FILTER_URL_SYNC_DEBOUNCE_MS = 150;
-const QUEUE_QUERY_KEYS = ['q', 'sheet', 'grade', 'availability'] as const;
+const QUEUE_QUERY_KEYS = ['q', 'sheet', 'grade'] as const;
 const GRADES: readonly AdminMatrixGrade[] = ['Junior', 'Junior+', 'Middle', 'Middle+', 'Senior'];
 
 type QueueAddMode = 'manual' | 'import';
 type QueueCreateDestination = 'next' | 'edit';
 type QueueGradeFilter = '' | 'notSet' | AdminMatrixGrade;
-type QueueAvailabilityFilter = '' | 'available' | 'claimed';
 
 interface QueueFilters {
   searchQuery: string;
   sheet: string;
   grade: QueueGradeFilter;
-  availability: QueueAvailabilityFilter;
 }
 
 const IMPORT_ISSUE_KEY: Record<QueuedMatrixImportIssueCode, string> = {
@@ -122,13 +120,11 @@ export class MatrixQuestionQueuePageComponent implements OnInit {
     searchQuery: [''],
     sheet: [''],
     grade: this.formBuilder.control<QueueGradeFilter>(''),
-    availability: this.formBuilder.control<QueueAvailabilityFilter>(''),
   });
   private readonly filters = signal<QueueFilters>({
     searchQuery: '',
     sheet: '',
     grade: '',
-    availability: '',
   });
   readonly loading = signal(false);
   readonly error = signal<ApiError | null>(null);
@@ -136,7 +132,6 @@ export class MatrixQuestionQueuePageComponent implements OnInit {
   readonly submitting = signal(false);
   readonly formError = signal<ApiError | null>(null);
   readonly rejectingQuestionId = signal<string | null>(null);
-  readonly releasingClaimQuestionId = signal<string | null>(null);
   readonly manualAddVisible = signal(false);
   readonly addMode = signal<QueueAddMode>('manual');
   readonly manualAddQuestion = signal('');
@@ -193,17 +188,6 @@ export class MatrixQuestionQueuePageComponent implements OnInit {
       ...GRADES.map((grade) => ({ value: grade, label: this.gradeLabel(grade) })),
     ];
   });
-  readonly availabilitySelectOptions = computed<readonly SiteSelectOption[]>(() => {
-    this.i18n.language();
-    return [
-      { value: '', label: this.i18n.translate('adminMatrixQueue.filters.all') },
-      {
-        value: 'available',
-        label: this.i18n.translate('adminMatrixQueue.filters.available'),
-      },
-      { value: 'claimed', label: this.i18n.translate('adminMatrixQueue.filters.claimed') },
-    ];
-  });
   readonly filteredQuestions = computed(() => {
     const filters = this.filters();
     const searchQuery = normalizeSearch(filters.searchQuery);
@@ -225,21 +209,12 @@ export class MatrixQuestionQueuePageComponent implements OnInit {
       const matchesGrade =
         filters.grade === '' ||
         (filters.grade === 'notSet' ? question.grade === null : question.grade === filters.grade);
-      const matchesAvailability =
-        filters.availability === '' ||
-        (filters.availability === 'available' ? question.claim === null : question.claim !== null);
-      return matchesSearch && matchesSheet && matchesGrade && matchesAvailability;
+      return matchesSearch && matchesSheet && matchesGrade;
     });
   });
   readonly hasFilteredQuestions = computed(() => this.filteredQuestions().length > 0);
   readonly totalQuestionCount = computed(() => this.questions().length);
   readonly shownQuestionCount = computed(() => this.filteredQuestions().length);
-  readonly availableQuestionCount = computed(
-    () => this.filteredQuestions().filter((question) => question.claim === null).length,
-  );
-  readonly claimedQuestionCount = computed(
-    () => this.filteredQuestions().filter((question) => question.claim !== null).length,
-  );
   readonly manualAddQuestionError = computed(() => {
     const question = this.manualAddQuestion().trim();
     if (question.length === 0) return 'validation.required';
@@ -328,7 +303,6 @@ export class MatrixQuestionQueuePageComponent implements OnInit {
       searchQuery: '',
       sheet: '',
       grade: '',
-      availability: '',
     };
     this.filtersForm.reset(filters, { emitEvent: false });
     this.filters.set(filters);
@@ -362,15 +336,7 @@ export class MatrixQuestionQueuePageComponent implements OnInit {
     return formatLocalizedDate(value, this.i18n.dateLocale(), 'dateTime');
   }
 
-  formatClaimExpiresAt(value: string): string {
-    return formatLocalizedDate(value, this.i18n.dateLocale(), 'dateTime');
-  }
-
   selectQuestion(question: QueuedMatrixQuestion): void {
-    if (question.claim !== null) {
-      this.notifications.error(this.i18n.translate('adminMatrixQueue.claimBlocked'));
-      return;
-    }
     this.selectedQuestion.set(question);
     this.formError.set(null);
     this.submitting.set(false);
@@ -582,40 +548,7 @@ export class MatrixQuestionQueuePageComponent implements OnInit {
   }
 
   rejectQuestion(question: QueuedMatrixQuestion): void {
-    if (question.claim !== null) {
-      this.notifications.error(this.i18n.translate('adminMatrixQueue.claimBlocked'));
-      return;
-    }
     this.rejectQueuedQuestion(question, false);
-  }
-
-  releaseAgentClaim(question: QueuedMatrixQuestion): void {
-    if (question.claim === null || this.releasingClaimQuestionId() !== null) return;
-    const confirmed =
-      this.document.defaultView?.confirm(
-        this.i18n.translate('adminMatrixQueue.confirmReleaseClaim', {
-          agent: question.claim.agentClientName,
-        }),
-      ) ?? false;
-    if (!confirmed) return;
-    this.releasingClaimQuestionId.set(question.id);
-    this.queueService
-      .releaseAgentClaim(question.id)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: () => {
-          this.releasingClaimQuestionId.set(null);
-          this.questions.update((questions) =>
-            questions.map((item) => (item.id === question.id ? { ...item, claim: null } : item)),
-          );
-          this.notifications.success(this.i18n.translate('adminMatrixQueue.claimReleased'));
-        },
-        error: () => {
-          this.releasingClaimQuestionId.set(null);
-          this.notifications.error(this.i18n.translate('adminMatrixQueue.claimReleaseError'));
-          this.loadQueue();
-        },
-      });
   }
 
   rejectSelectedQuestionAndAdvance(): void {
@@ -673,13 +606,9 @@ export class MatrixQuestionQueuePageComponent implements OnInit {
           }
           this.notifications.success(this.i18n.translate('adminMatrixQueue.rejected'));
         },
-        error: (error: ApiError) => {
+        error: () => {
           this.rejectingQuestionId.set(null);
-          if (error.status === 409) {
-            this.handleClaimConflict();
-          } else {
-            this.notifications.error(this.i18n.translate('adminMatrixQueue.rejectError'));
-          }
+          this.notifications.error(this.i18n.translate('adminMatrixQueue.rejectError'));
         },
       });
   }
@@ -721,11 +650,7 @@ export class MatrixQuestionQueuePageComponent implements OnInit {
         error: (err: ApiError) => {
           this.submitting.set(false);
           this.formError.set(err);
-          if (err.status === 409) {
-            this.handleClaimConflict();
-          } else {
-            this.notifications.error(this.i18n.translate('adminMatrixQueue.createError'));
-          }
+          this.notifications.error(this.i18n.translate('adminMatrixQueue.createError'));
         },
       });
   }
@@ -767,12 +692,7 @@ export class MatrixQuestionQueuePageComponent implements OnInit {
     const questions = this.filteredQuestions();
     const questionIndex = questions.findIndex((question) => question.id === questionId);
     if (questionIndex < 0) return null;
-    return questions.slice(questionIndex + 1).find((question) => question.claim === null) ?? null;
-  }
-
-  private handleClaimConflict(): void {
-    this.notifications.error(this.i18n.translate('adminMatrixQueue.claimConflict'));
-    this.loadQueue();
+    return questions[questionIndex + 1] ?? null;
   }
 
   private setupFilters(): void {
@@ -794,7 +714,6 @@ export class MatrixQuestionQueuePageComponent implements OnInit {
     merge(
       this.filtersForm.controls.sheet.valueChanges,
       this.filtersForm.controls.grade.valueChanges,
-      this.filtersForm.controls.availability.valueChanges,
     )
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => this.syncFiltersToUrl(this.filtersForm.getRawValue()));
@@ -802,14 +721,11 @@ export class MatrixQuestionQueuePageComponent implements OnInit {
 
   private filtersFromQueryParams(params: ParamMap): QueueFilters {
     const gradeParam = readOptionalStringQuery(params, 'grade').value;
-    const availabilityParam = readOptionalStringQuery(params, 'availability').value;
     const grade = isQueueGradeFilter(gradeParam) ? gradeParam : '';
-    const availability = isQueueAvailabilityFilter(availabilityParam) ? availabilityParam : '';
     return {
       searchQuery: readOptionalStringQuery(params, 'q').value ?? '',
       sheet: readOptionalStringQuery(params, 'sheet').value ?? '',
       grade,
-      availability,
     };
   }
 
@@ -822,7 +738,6 @@ export class MatrixQuestionQueuePageComponent implements OnInit {
       q: queryString(filters.searchQuery),
       sheet: queryString(filters.sheet),
       grade: filters.grade || null,
-      availability: filters.availability || null,
     };
   }
 
@@ -874,10 +789,6 @@ function normalizeSearch(value: string): string {
 
 function isQueueGradeFilter(value: string | null): value is QueueGradeFilter {
   return value === '' || value === 'notSet' || GRADES.some((grade) => grade === value);
-}
-
-function isQueueAvailabilityFilter(value: string | null): value is QueueAvailabilityFilter {
-  return value === '' || value === 'available' || value === 'claimed';
 }
 
 function filesEqual(first: File, second: File): boolean {

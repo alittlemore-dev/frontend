@@ -28,10 +28,8 @@ describe('MatrixQuestionQueueService', () => {
   afterEach(() => httpMock.verify());
 
   it('loads queued questions in backend order', () => {
-    let claimName: string | null | undefined;
-
     service.listQueuedQuestions().subscribe((questions) => {
-      claimName = questions[0].claim?.agentClientName ?? null;
+      expect(questions[0].question).toBe('What is PEP 8?');
     });
 
     const req = httpMock.expectOne((r) =>
@@ -49,31 +47,9 @@ describe('MatrixQuestionQueueService', () => {
           subsection: null,
           suggestedByUsername: 'anon',
           createdAt: '2026-06-07T12:00:00+00:00',
-          claim: {
-            id: 'claim-1',
-            agentClientId: 'agent-1',
-            agentClientName: 'desktop-codex',
-            claimedAt: '2026-07-14T12:00:00+00:00',
-            expiresAt: '2026-07-14T14:00:00+00:00',
-          },
         },
       ],
     });
-
-    expect(claimName).toBe('desktop-codex');
-  });
-
-  it('releases an agent claim for a queued question', () => {
-    service.releaseAgentClaim(QUESTION_ID).subscribe();
-
-    const req = httpMock.expectOne((request) =>
-      request.url.endsWith(
-        `/api/admin/competency-matrix/queued-questions/${QUESTION_ID}/release-agent-claim`,
-      ),
-    );
-    expect(req.request.method).toBe('POST');
-    expect(req.request.body).toEqual({});
-    req.flush(null, { status: 204, statusText: 'No Content' });
   });
 
   it('rejects queued question', () => {
@@ -113,7 +89,6 @@ describe('MatrixQuestionQueueService', () => {
       subsection: null,
       suggestedByUsername: 'test',
       createdAt: '2026-06-07T12:00:00+00:00',
-      claim: null,
     });
 
     expect(createdQuestion).toBe('What is PEP 8?');
@@ -176,7 +151,6 @@ describe('MatrixQuestionQueueService', () => {
           subsection: null,
           suggestedByUsername: 'test',
           createdAt: '2026-06-07T12:00:00+00:00',
-          claim: null,
         },
         {
           id: SECOND_QUESTION_ID,
@@ -187,7 +161,6 @@ describe('MatrixQuestionQueueService', () => {
           subsection: null,
           suggestedByUsername: 'test',
           createdAt: '2026-06-07T12:01:00+00:00',
-          claim: null,
         },
       ],
     });

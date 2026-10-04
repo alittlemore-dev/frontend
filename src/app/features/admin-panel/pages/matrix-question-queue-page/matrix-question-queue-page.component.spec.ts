@@ -43,24 +43,12 @@ const queuedQuestion: QueuedMatrixQuestion = {
   subsection: 'Style',
   suggestedByUsername: 'anon',
   createdAt: '2026-06-07T12:00:00+00:00',
-  claim: null,
 };
 
-const claimedQuestion: QueuedMatrixQuestion = {
+const middleQuestion: QueuedMatrixQuestion = {
   ...queuedQuestion,
-  claim: {
-    id: 'claim-1',
-    agentClientId: 'agent-1',
-    agentClientName: 'desktop-codex',
-    claimedAt: '2026-07-14T12:00:00+00:00',
-    expiresAt: '2026-07-14T14:00:00+00:00',
-  },
-};
-
-const claimedMiddleQuestion: QueuedMatrixQuestion = {
-  ...claimedQuestion,
   id: IMPORTED_QUESTION_ID,
-  question: 'Claimed middle question',
+  question: 'Middle question',
 };
 
 const importedQuestion: QueuedMatrixQuestion = {
@@ -181,7 +169,6 @@ describe('MatrixQuestionQueuePageComponent', () => {
     importQueuedQuestions: jest.Mock;
     rejectQueuedQuestion: jest.Mock;
     createQuestionFromQueue: jest.Mock;
-    releaseAgentClaim: jest.Mock;
   };
   let workspaceService: jest.Mocked<MatrixQuestionWorkspaceService>;
   let notificationService: { success: jest.Mock; error: jest.Mock };
@@ -200,7 +187,6 @@ describe('MatrixQuestionQueuePageComponent', () => {
       createQuestionFromQueue: jest
         .fn()
         .mockReturnValue(of({ id: CREATED_QUESTION_ID, slug: 'pep-8' })),
-      releaseAgentClaim: jest.fn().mockReturnValue(of(undefined)),
     };
     workspaceService = {
       getStructure: jest.fn().mockReturnValue(of(matrixStructure)),
@@ -297,7 +283,7 @@ describe('MatrixQuestionQueuePageComponent', () => {
   it('filters the queue with AND semantics without reloading or changing FIFO order', () => {
     loadQueueWithQuestions([
       queuedQuestion,
-      claimedMiddleQuestion,
+      middleQuestion,
       queuedQuestionWithMissingSheet,
       unassignedQuestion,
       pythonMiddleQuestion,
@@ -306,8 +292,6 @@ describe('MatrixQuestionQueuePageComponent', () => {
 
     expectStatistic('matrix-queue-stat-total', '5');
     expectStatistic('matrix-queue-stat-shown', '5');
-    expectStatistic('matrix-queue-stat-available', '4');
-    expectStatistic('matrix-queue-stat-claimed', '1');
 
     setSelectValue('[data-testid="matrix-queue-filter-sheet"]', 'python');
     expect(visibleQuestionIds()).toEqual([
@@ -316,18 +300,13 @@ describe('MatrixQuestionQueuePageComponent', () => {
       PYTHON_MIDDLE_QUESTION_ID,
     ]);
     expectStatistic('matrix-queue-stat-shown', '3');
-    expectStatistic('matrix-queue-stat-available', '2');
-    expectStatistic('matrix-queue-stat-claimed', '1');
 
-    setSelectValue('[data-testid="matrix-queue-filter-availability"]', 'available');
     setSelectValue('[data-testid="matrix-queue-filter-grade"]', 'Middle');
     setInputValue('[data-testid="matrix-queue-filter-search"]', 'BLACK');
 
     expect(visibleQuestionIds()).toEqual([PYTHON_MIDDLE_QUESTION_ID]);
     expectStatistic('matrix-queue-stat-total', '5');
     expectStatistic('matrix-queue-stat-shown', '1');
-    expectStatistic('matrix-queue-stat-available', '1');
-    expectStatistic('matrix-queue-stat-claimed', '0');
     expect(queueService.listQueuedQuestions).toHaveBeenCalledTimes(loadCalls);
   });
 
@@ -361,14 +340,11 @@ describe('MatrixQuestionQueuePageComponent', () => {
   it('restores filters from URL and writes normalized changes back', fakeAsync(() => {
     loadQueueWithQuestions([queuedQuestion, queuedQuestionWithMissingSheet, unassignedQuestion]);
 
-    routeQueryParamMap.next(
-      convertToParamMap({ sheet: 'sql', availability: 'available', q: 'what' }),
-    );
+    routeQueryParamMap.next(convertToParamMap({ sheet: 'sql', q: 'what' }));
     fixture.detectChanges();
 
     expect(inputValue('[data-testid="matrix-queue-filter-search"]')).toBe('what');
     expect(select('[data-testid="matrix-queue-filter-sheet"]').value).toBe('sql');
-    expect(select('[data-testid="matrix-queue-filter-availability"]').value).toBe('available');
     expect(visibleQuestionIds()).toEqual([MISSING_SHEET_QUESTION_ID]);
 
     jest.mocked(router.navigate).mockClear();
@@ -382,7 +358,6 @@ describe('MatrixQuestionQueuePageComponent', () => {
           q: 'what',
           sheet: 'sql',
           grade: 'Junior',
-          availability: 'available',
         },
         queryParamsHandling: 'merge',
         replaceUrl: true,
@@ -393,15 +368,14 @@ describe('MatrixQuestionQueuePageComponent', () => {
   it('ignores and removes invalid finite URL filters', () => {
     jest.mocked(router.navigate).mockClear();
 
-    routeQueryParamMap.next(convertToParamMap({ grade: 'Lead', availability: 'busy' }));
+    routeQueryParamMap.next(convertToParamMap({ grade: 'Lead' }));
     fixture.detectChanges();
 
     expect(select('[data-testid="matrix-queue-filter-grade"]').value).toBe('');
-    expect(select('[data-testid="matrix-queue-filter-availability"]').value).toBe('');
     expect(router.navigate).toHaveBeenCalledWith(
       [],
       expect.objectContaining({
-        queryParams: { q: null, sheet: null, grade: null, availability: null },
+        queryParams: { q: null, sheet: null, grade: null },
         queryParamsHandling: 'merge',
         replaceUrl: true,
       }),
@@ -419,67 +393,10 @@ describe('MatrixQuestionQueuePageComponent', () => {
     expect(router.navigate).toHaveBeenCalledWith(
       [],
       expect.objectContaining({
-        queryParams: { q: null, sheet: null, grade: null, availability: null },
+        queryParams: { q: null, sheet: null, grade: null },
         queryParamsHandling: 'merge',
         replaceUrl: true,
       }),
-    );
-  });
-
-  it('shows an active agent claim and blocks create and reject actions', () => {
-    queueService.listQueuedQuestions.mockReturnValue(of([claimedQuestion]));
-    component.loadQueue();
-    fixture.detectChanges();
-
-    expect(fixture.nativeElement.textContent).toContain('desktop-codex');
-    expect(fixture.nativeElement.textContent).toContain('Вопрос занят AI-агентом');
-    expect(
-      fixture.nativeElement.querySelector<HTMLButtonElement>(
-        `[data-testid="matrix-queue-question-${QUESTION_ID}"]`,
-      )?.disabled,
-    ).toBe(true);
-    expect(
-      fixture.nativeElement.querySelector<HTMLButtonElement>(
-        `[data-testid="matrix-queue-reject-${QUESTION_ID}"]`,
-      )?.disabled,
-    ).toBe(true);
-  });
-
-  it('lets a content manager explicitly release an agent claim', () => {
-    queueService.listQueuedQuestions.mockReturnValue(of([claimedQuestion]));
-    component.loadQueue();
-    fixture.detectChanges();
-
-    fixture.nativeElement
-      .querySelector<HTMLButtonElement>(`[data-testid="matrix-queue-release-${QUESTION_ID}"]`)!
-      .click();
-    fixture.detectChanges();
-
-    expect(queueService.releaseAgentClaim).toHaveBeenCalledWith(QUESTION_ID);
-    expect(component.questions()[0].claim).toBeNull();
-    expect(notificationService.success).toHaveBeenCalledWith('Блокировка агента снята.');
-  });
-
-  it('reloads the queue and explains a claim race returned as 409', () => {
-    queueService.rejectQueuedQuestion.mockReturnValueOnce(
-      throwError(
-        () =>
-          ({
-            code: 'conflict',
-            type: 'ConflictHTTPException',
-            message: 'claimed',
-            status: 409,
-            location: null,
-            attr: null,
-          }) satisfies ApiError,
-      ),
-    );
-
-    component.rejectQuestion(queuedQuestion);
-
-    expect(queueService.listQueuedQuestions).toHaveBeenCalledTimes(2);
-    expect(notificationService.error).toHaveBeenCalledWith(
-      'Вопрос уже занят AI-агентом. Очередь обновлена.',
     );
   });
 
@@ -1201,8 +1118,8 @@ describe('MatrixQuestionQueuePageComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('По выбранным фильтрам вопросов нет.');
   });
 
-  it('skips over claimed rows when advancing without changing the queue', () => {
-    loadQueueWithClaimedMiddle();
+  it('advances to the next queued row when advancing without changing the queue', () => {
+    loadQueueWithMiddle();
     openCreateModalFromQueue();
 
     fixture.nativeElement
@@ -1212,24 +1129,24 @@ describe('MatrixQuestionQueuePageComponent', () => {
 
     expect(component.questions()).toEqual([
       queuedQuestion,
-      claimedMiddleQuestion,
+      middleQuestion,
       queuedQuestionWithMissingSheet,
     ]);
-    expect(component.selectedQuestion()?.id).toBe(MISSING_SHEET_QUESTION_ID);
+    expect(component.selectedQuestion()?.id).toBe(IMPORTED_QUESTION_ID);
   });
 
-  it('skips over claimed rows after creating a question', () => {
-    loadQueueWithClaimedMiddle();
+  it('advances to the next queued row after creating a question', () => {
+    loadQueueWithMiddle();
     openCreateModalFromQueue();
 
     component.createQuestion(minimumQuestionPayload());
 
-    expect(component.selectedQuestion()?.id).toBe(MISSING_SHEET_QUESTION_ID);
-    expect(component.questions()).toEqual([claimedMiddleQuestion, queuedQuestionWithMissingSheet]);
+    expect(component.selectedQuestion()?.id).toBe(IMPORTED_QUESTION_ID);
+    expect(component.questions()).toEqual([middleQuestion, queuedQuestionWithMissingSheet]);
   });
 
-  it('skips over claimed rows after rejecting a question', () => {
-    loadQueueWithClaimedMiddle();
+  it('advances to the next queued row after rejecting a question', () => {
+    loadQueueWithMiddle();
     openCreateModalFromQueue();
 
     fixture.nativeElement
@@ -1237,23 +1154,8 @@ describe('MatrixQuestionQueuePageComponent', () => {
       .click();
     fixture.detectChanges();
 
-    expect(component.selectedQuestion()?.id).toBe(MISSING_SHEET_QUESTION_ID);
-    expect(component.questions()).toEqual([claimedMiddleQuestion, queuedQuestionWithMissingSheet]);
-  });
-
-  it('closes the modal when only claimed rows remain after the current question', () => {
-    queueService.listQueuedQuestions.mockReturnValue(of([queuedQuestion, claimedMiddleQuestion]));
-    component.loadQueue();
-    fixture.detectChanges();
-    openCreateModalFromQueue();
-
-    fixture.nativeElement
-      .querySelector<HTMLButtonElement>('[data-testid="matrix-queue-skip"]')!
-      .click();
-    fixture.detectChanges();
-
-    expect(component.selectedQuestion()).toBeNull();
-    expect(component.questions()).toEqual([queuedQuestion, claimedMiddleQuestion]);
+    expect(component.selectedQuestion()?.id).toBe(IMPORTED_QUESTION_ID);
+    expect(component.questions()).toEqual([middleQuestion, queuedQuestionWithMissingSheet]);
   });
 
   it('keeps the selected question and its draft when skip is cancelled', () => {
@@ -1469,8 +1371,8 @@ describe('MatrixQuestionQueuePageComponent', () => {
     fixture.detectChanges();
   }
 
-  function loadQueueWithClaimedMiddle(): void {
-    loadQueueWithQuestions([queuedQuestion, claimedMiddleQuestion, queuedQuestionWithMissingSheet]);
+  function loadQueueWithMiddle(): void {
+    loadQueueWithQuestions([queuedQuestion, middleQuestion, queuedQuestionWithMissingSheet]);
   }
 
   function loadQueueWithQuestions(questions: QueuedMatrixQuestion[]): void {

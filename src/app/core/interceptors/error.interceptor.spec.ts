@@ -33,6 +33,26 @@ describe('errorInterceptor', () => {
     return new HttpErrorResponse({ status, error });
   }
 
+  it('leaves password confirmation failures local without retrying credentials or clearing the session', (done) => {
+    const refreshAccessToken = jest.fn(() => of(void 0));
+    const clearLocalSession = jest.fn();
+    const openLogin = jest.fn();
+    const next: HttpHandlerFn = jest.fn(() => throwError(() => httpError(403, {})));
+    setup({ refreshAccessToken, clearLocalSession }, openLogin);
+    const request = new HttpRequest('POST', '/api/auth/account/me/api-tokens/example/reveal', {
+      password: 'example-password',
+    });
+    TestBed.runInInjectionContext(() => errorInterceptor(request, next)).subscribe({
+      error: () => {
+        expect(next).toHaveBeenCalledTimes(1);
+        expect(refreshAccessToken).not.toHaveBeenCalled();
+        expect(clearLocalSession).not.toHaveBeenCalled();
+        expect(openLogin).not.toHaveBeenCalled();
+        done();
+      },
+    });
+  });
+
   it('maps HttpErrorResponse to ApiError', (done) => {
     const req = new HttpRequest('GET', '/api/test');
     const next: HttpHandlerFn = () =>

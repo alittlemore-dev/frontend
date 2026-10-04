@@ -55,6 +55,14 @@
       >
         {{ 'account.settings.title' | t }}
       </a>
+      <a
+        class="account-nav-link"
+        routerLink="/account/api-access"
+        routerLinkActive="account-nav-link-active"
+        ariaCurrentWhenActive="page"
+        (click)="closeSidePanel()"
+        >{{ 'account.apiAccess.title' | t }}</a
+      >
     </nav>
   </ng-template>
 </main>

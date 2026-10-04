@@ -40,7 +40,7 @@ describe('DashboardPageComponent', () => {
     canManageTeam = signal(true);
     currentUser = signal({ username: 'admin', role: 'admin' });
     window.localStorage.clear();
-    moderatorQueueResponse = of({ total: 3, available: 1, claimed: 2 });
+    moderatorQueueResponse = of({ total: 3 });
     moderatorMatrixResponse = of({ draft: 8, missingDraft: 4, dangerousPublished: 2 });
     getQueueStats = jest.fn(() => moderatorQueueResponse);
     getMatrixStats = jest.fn(() => moderatorMatrixResponse);
@@ -159,9 +159,7 @@ describe('DashboardPageComponent', () => {
     ) as HTMLElement;
     expect(view.textContent).toContain('Всего в очереди');
     expect(view.textContent).toContain('Черновики с пропусками');
-    expect(
-      view.querySelector('a[href="/admin-panel/matrix-question-queue?availability=available"]'),
-    ).not.toBeNull();
+    expect(view.querySelector('a[href="/admin-panel/matrix-question-queue"]')).not.toBeNull();
     expect(
       view.querySelector(
         'a[href="/admin-panel/matrix-questions?publishStatus=Draft&hasMissingFields=true"]',
@@ -187,7 +185,7 @@ describe('DashboardPageComponent', () => {
     expect(matrixBody.querySelector('ds-error-message')).toBeNull();
     expect(matrixBody.textContent).toContain('Черновики с пропусками');
 
-    moderatorQueueResponse = of({ total: 3, available: 1, claimed: 2 });
+    moderatorQueueResponse = of({ total: 3 });
     (queueBody.querySelector('ds-error-message button') as HTMLButtonElement).click();
     fixture.detectChanges();
 

@@ -37,22 +37,6 @@
         <strong data-testid="matrix-queue-stat-shown">{{ shownQuestionCount() }}</strong>
       </div>
     </div>
-    <div class="col-6 col-xl-3">
-      <div class="border rounded p-2 h-100">
-        <span class="d-block small text-body-secondary">
-          {{ 'adminMatrixQueue.stats.available' | t }}
-        </span>
-        <strong data-testid="matrix-queue-stat-available">{{ availableQuestionCount() }}</strong>
-      </div>
-    </div>
-    <div class="col-6 col-xl-3">
-      <div class="border rounded p-2 h-100">
-        <span class="d-block small text-body-secondary">
-          {{ 'adminMatrixQueue.stats.claimed' | t }}
-        </span>
-        <strong data-testid="matrix-queue-stat-claimed">{{ claimedQuestionCount() }}</strong>
-      </div>
-    </div>
   </div>
 
   @if (hasQuestions()) {
@@ -102,22 +86,6 @@
           formControlName="grade"
         />
       </div>
-      <div class="col-6 col-md-4 col-xl">
-        <label class="form-label" for="matrix-queue-filter-availability">
-          {{ 'adminMatrixQueue.filters.availability' | t }}
-        </label>
-        <ds-site-select
-          inputId="matrix-queue-filter-availability"
-          [options]="availabilitySelectOptions()"
-          controlSize="small"
-          appearance="default"
-          [required]="false"
-          [invalid]="false"
-          [controlDisabled]="false"
-          testId="matrix-queue-filter-availability"
-          formControlName="availability"
-        />
-      </div>
       <div class="col-6 col-md-8 col-xl-auto">
         <button
           type="button"
@@ -155,7 +123,6 @@
             [class.list-group-item-success]="selectedQuestion()?.id === question.id"
             [attr.aria-current]="selectedQuestion()?.id === question.id ? 'true' : null"
             [attr.data-testid]="'matrix-queue-question-' + question.id"
-            [disabled]="question.claim !== null"
             (click)="selectQuestion(question)"
           >
             <span class="d-block fw-semibold">{{ question.question }}</span>
@@ -179,35 +146,14 @@
                 </span>
               }
             </span>
-            @if (question.claim; as claim) {
-              <span class="d-block small text-warning-emphasis mt-2" role="status">
-                {{ 'adminMatrixQueue.claimedBy' | t: { agent: claim.agentClientName } }}
-                <time [attr.datetime]="claim.expiresAt">{{
-                  formatClaimExpiresAt(claim.expiresAt)
-                }}</time>
-              </span>
-            }
           </button>
           <app-admin-remove-button
             class="matrix-queue-reject"
             [testId]="'matrix-queue-reject-' + question.id"
             [ariaLabel]="'adminMatrixQueue.rejectQuestion' | t: { question: question.question }"
-            [disabled]="question.claim !== null || rejectingQuestionId() !== null"
+            [disabled]="rejectingQuestionId() !== null"
             (remove)="rejectQuestion(question)"
           />
-          @if (question.claim !== null) {
-            <div class="d-flex justify-content-end px-3 pb-3">
-              <button
-                type="button"
-                class="btn btn-outline-warning btn-sm"
-                [attr.data-testid]="'matrix-queue-release-' + question.id"
-                [disabled]="releasingClaimQuestionId() !== null"
-                (click)="releaseAgentClaim(question)"
-              >
-                {{ 'adminMatrixQueue.releaseClaim' | t }}
-              </button>
-            </div>
-          }
         </div>
       }
     </div>

@@ -13,14 +13,6 @@ export const ADMIN_PANEL_NAVIGATION_SECTIONS: readonly AdminPanelNavigationSecti
         adminOnly: true,
         ownerOnly: false,
       },
-      {
-        key: 'agent-clients',
-        labelKey: 'adminPanel.section.agentClients',
-        route: '/admin-panel/workspace/agent-clients',
-        badgeTextKey: null,
-        adminOnly: false,
-        ownerOnly: true,
-      },
     ],
   },
   {

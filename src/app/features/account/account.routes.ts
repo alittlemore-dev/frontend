@@ -9,6 +9,14 @@ export const accountRoutes: Routes = [
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'me' },
       {
+        path: 'api-access',
+        title: 'account.apiAccess.title',
+        loadComponent: () =>
+          import('./pages/api-access-page/api-access-page.component').then(
+            (m) => m.ApiAccessPageComponent,
+          ),
+      },
+      {
         path: 'settings',
         title: 'account.settings.title',
         loadComponent: () =>

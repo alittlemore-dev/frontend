@@ -3,8 +3,6 @@ import { AdminMatrixWorkspaceSummary } from './matrix-question-workspace.model';
 
 export interface ModeratorDashboardQueueStats {
   total: number;
-  available: number;
-  claimed: number;
 }
 
 export interface ModeratorDashboardMatrixStats {
@@ -16,11 +14,8 @@ export interface ModeratorDashboardMatrixStats {
 export function mapModeratorDashboardQueueStats(
   questions: readonly QueuedMatrixQuestion[],
 ): ModeratorDashboardQueueStats {
-  const available = questions.filter((question) => question.claim === null).length;
   return {
     total: questions.length,
-    available,
-    claimed: questions.length - available,
   };
 }
 

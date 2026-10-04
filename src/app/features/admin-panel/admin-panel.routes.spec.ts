@@ -1,4 +1,4 @@
-import { ownerGuard, teamGuard } from '../../core/auth/auth.guard';
+import { teamGuard } from '../../core/auth/auth.guard';
 import { adminUnsavedChangesGuard } from './guards/admin-unsaved-changes.guard';
 import { adminPanelRoutes } from './admin-panel.routes';
 
@@ -33,16 +33,6 @@ describe('adminPanelRoutes', () => {
 
     expect(tagRoute).toBeDefined();
     expect(tagRoute?.canDeactivate).toEqual([adminUnsavedChangesGuard]);
-  });
-
-  it('keeps agent client management behind the owner guard', () => {
-    const route = (adminPanelRoutes[0].children ?? []).find(
-      (child) => child.path === 'workspace/agent-clients',
-    );
-
-    expect(route).toBeDefined();
-    expect(route?.canActivate).toEqual([ownerGuard]);
-    expect(route?.canDeactivate).toEqual([adminUnsavedChangesGuard]);
   });
 
   it('redirects the legacy operational tools route to the standalone dashboard', () => {

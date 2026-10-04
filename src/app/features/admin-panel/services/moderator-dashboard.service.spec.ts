@@ -12,11 +12,7 @@ describe('ModeratorDashboardService', () => {
     listQueuedQuestions
       .mockReset()
       .mockReturnValue(
-        of([
-          queuedQuestion('available', null),
-          queuedQuestion('claimed-1', { id: 'claim-1' }),
-          queuedQuestion('claimed-2', { id: 'claim-2' }),
-        ]),
+        of([queuedQuestion('first'), queuedQuestion('second'), queuedQuestion('third')]),
       );
     listWorkspaceItems.mockReset().mockReturnValue(
       of({
@@ -41,7 +37,7 @@ describe('ModeratorDashboardService', () => {
     });
   });
 
-  it('loads queue availability independently', () => {
+  it('loads queue totals independently', () => {
     let result: unknown;
 
     TestBed.inject(ModeratorDashboardService)
@@ -50,7 +46,7 @@ describe('ModeratorDashboardService', () => {
         result = stats;
       });
 
-    expect(result).toEqual({ total: 3, available: 1, claimed: 2 });
+    expect(result).toEqual({ total: 3 });
     expect(listQueuedQuestions).toHaveBeenCalledTimes(1);
     expect(listWorkspaceItems).not.toHaveBeenCalled();
   });
@@ -75,7 +71,7 @@ describe('ModeratorDashboardService', () => {
   });
 });
 
-function queuedQuestion(id: string, claim: { id: string } | null): object {
+function queuedQuestion(id: string): object {
   return {
     id,
     question: id,
@@ -85,15 +81,5 @@ function queuedQuestion(id: string, claim: { id: string } | null): object {
     subsection: null,
     suggestedByUsername: 'moderator',
     createdAt: '2026-07-31T12:00:00Z',
-    claim:
-      claim === null
-        ? null
-        : {
-            ...claim,
-            agentClientId: 'agent-id',
-            agentClientName: 'Agent',
-            claimedAt: '2026-07-31T12:00:00Z',
-            expiresAt: '2026-07-31T14:00:00Z',
-          },
   };
 }

@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { ownerGuard, teamGuard } from '../../core/auth/auth.guard';
+import { teamGuard } from '../../core/auth/auth.guard';
 import { adminUnsavedChangesGuard } from './guards/admin-unsaved-changes.guard';
 
 export const adminPanelRoutes: Routes = [
@@ -107,16 +107,6 @@ export const adminPanelRoutes: Routes = [
         path: 'workspace/tools',
         pathMatch: 'full',
         redirectTo: '/admin-panel/dashboard',
-      },
-      {
-        path: 'workspace/agent-clients',
-        title: 'adminAgentClients.title',
-        canActivate: [ownerGuard],
-        canDeactivate: [adminUnsavedChangesGuard],
-        loadComponent: () =>
-          import('./pages/agent-clients-page/agent-clients-page.component').then(
-            (m) => m.AgentClientsPageComponent,
-          ),
       },
       {
         path: 'workspace/team',

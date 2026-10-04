@@ -96,7 +96,7 @@ describe('AdminPanelPageComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Дашборд');
   });
 
-  it('shows owner-only agent client navigation without retired pages', () => {
+  it('shows the owner team workspace', () => {
     currentUser.set({ username: 'owner', role: 'owner' });
     isAdmin.set(false);
     isOwner.set(true);
@@ -105,7 +105,6 @@ describe('AdminPanelPageComponent', () => {
 
     expect(fixture.nativeElement.textContent).toContain('Рабочая область');
     expect(fixture.nativeElement.textContent).toContain('Команда');
-    expect(fixture.nativeElement.textContent).toContain('AI-агенты');
     expect(fixture.nativeElement.textContent).not.toContain('Резюме');
     expect(fixture.nativeElement.textContent).not.toContain('База знаний');
   });

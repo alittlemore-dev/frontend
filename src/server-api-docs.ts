@@ -59,7 +59,7 @@ export class ApiSchemaAggregator {
     const inputs: MergeInput = await Promise.all(
       SOURCES.map(async (source) => ({
         oas: await this.loadSource(origin, source),
-        dispute: { prefix: source.name.replaceAll(' ', '') },
+        dispute: { prefix: source.name.replaceAll(' ', ''), alwaysApply: true },
         ...(source.publicPrefix === null
           ? {}
           : { pathModification: { stripStart: '/api', prepend: source.publicPrefix } }),
