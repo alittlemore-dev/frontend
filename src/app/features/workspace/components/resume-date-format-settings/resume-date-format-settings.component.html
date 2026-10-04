@@ -1,0 +1,34 @@
+<fieldset
+  class="border-0 p-0 m-0"
+  [attr.aria-invalid]="invalid()"
+  [attr.aria-describedby]="invalid() ? 'resume-date-format-error' : null"
+>
+  <legend class="h6 mb-3">
+    {{ 'resumeWorkspace.field.dateFormat' | t }}
+    <span class="required-marker text-danger" aria-hidden="true">*</span>
+  </legend>
+  <div class="date-options">
+    @for (option of options(); track option.value) {
+      <label class="date-option" [for]="'resume-date-format-' + option.value">
+        <input
+          type="radio"
+          class="form-check-input m-0"
+          name="resume-date-format"
+          [id]="'resume-date-format-' + option.value"
+          [attr.data-testid]="'resume-date-format-' + option.value"
+          [value]="option.value"
+          [formControl]="control()"
+          [class.is-invalid]="invalid()"
+          required
+        />
+        <span>
+          <span class="d-block">{{ option.label }}</span>
+          <span class="small text-body-secondary d-block">{{ option.example }}</span>
+        </span>
+      </label>
+    }
+  </div>
+  @if (invalid() && message()) {
+    <div id="resume-date-format-error" class="invalid-feedback d-block">{{ message() }}</div>
+  }
+</fieldset>

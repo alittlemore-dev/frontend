@@ -5,3 +5,20 @@
 @use '@alittlemore.dev/design-system/styles/markdown';
 @use './components';
 @use './resume-limits';
+@use './resume-reorder';
+
+textarea.app-textarea-autosize {
+  overflow-y: hidden;
+  resize: none;
+}
+
+:root {
+  --resume-paper-bg: #fff;
+  --resume-paper-text: #111;
+  --resume-paper-accent-text: #1e293b;
+  --resume-paper-accent: #255487;
+  --resume-paper-muted: #526174;
+  --resume-paper-company-bg: #f1f7fc;
+  --resume-paper-band-bg: #f6f9fc;
+  --resume-paper-border: #c9d9e8;
+}

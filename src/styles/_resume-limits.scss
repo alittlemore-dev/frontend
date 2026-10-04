@@ -13,6 +13,7 @@
   }
 
   .resume-text-limit-counter {
+    opacity: 0;
     color: var(--bs-secondary-color);
     display: block;
     font-size: 0.7rem;
@@ -25,6 +26,12 @@
     text-align: end;
     transform: translateY(-1.55rem);
     z-index: 1;
+  }
+
+  .resume-limited-input:focus + .resume-text-limit-counter,
+  .resume-text-limit-counter.resume-limit-near,
+  .resume-text-limit-counter.resume-limit-exceeded {
+    opacity: 1;
   }
 
   .resume-text-limit-counter.resume-limit-near {

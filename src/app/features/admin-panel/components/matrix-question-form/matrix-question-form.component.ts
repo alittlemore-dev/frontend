@@ -1,3 +1,4 @@
+import { TextareaAutosizeDirective } from '../../../../shared/directives/textarea-autosize.directive';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -135,6 +136,7 @@ interface AdminMatrixResourceDraft {
   selector: 'app-admin-matrix-question-form',
   standalone: true,
   imports: [
+    TextareaAutosizeDirective,
     ReactiveFormsModule,
     MarkdownEditorComponent,
     MarkdownEditorStickyBottomInsetDirective,

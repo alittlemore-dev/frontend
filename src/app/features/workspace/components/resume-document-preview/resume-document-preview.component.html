@@ -1,0 +1,73 @@
+<div class="document-toolbar">
+  <span>{{
+    (format() === 'pdf' ? 'resumeWorkspace.document.a4' : 'resumeWorkspace.document.letter') | t
+  }}</span>
+  <button
+    type="button"
+    class="btn btn-sm btn-outline-secondary"
+    [attr.aria-pressed]="fit()"
+    (click)="fit.set(!fit())"
+  >
+    {{ (fit() ? 'resumeWorkspace.document.actualSize' : 'resumeWorkspace.document.fitWidth') | t }}
+  </button>
+</div>
+<p class="document-note">{{ 'resumeWorkspace.document.previewNote' | t }}</p>
+<div #viewport class="document-viewport">
+  <article
+    #paper
+    class="resume-preview document-paper"
+    [class.document-accent]="theme() === 'accent'"
+    [class.document-word]="format() === 'docx'"
+    [style.zoom]="scale()"
+    [attr.lang]="payload().language"
+    data-testid="resume-preview"
+  >
+    @for (block of blocks(); track $index) {
+      @switch (block.kind) {
+        @case ('photo') {
+          <img
+            class="document-photo"
+            [src]="block.text"
+            [alt]="'resumeWorkspace.field.photo' | t"
+          />
+        }
+        @case ('name') {
+          <h2 class="document-name">{{ block.text }}</h2>
+        }
+        @case ('section') {
+          <h3 class="document-section">{{ block.text }}</h3>
+        }
+        @case ('contacts') {
+          @if (block.contacts) {
+            <div class="document-contacts-grid">
+              @for (contact of block.contacts; track $index) {
+                <p>{{ contact.label }}: {{ contact.value }}</p>
+              }
+            </div>
+          } @else {
+            <p class="document-contacts">{{ block.text }}</p>
+          }
+        }
+        @case ('company') {
+          <div class="document-company">
+            <div class="document-company-heading">
+              <strong>{{ block.text }}</strong
+              ><span>{{ block.detail }}</span>
+            </div>
+            @for (line of block.lines; track $index) {
+              <p class="document-muted">{{ line }}</p>
+            }
+          </div>
+        }
+        @default {
+          <p [class]="'document-' + block.kind">
+            @if (block.kind === 'bullet') {
+              <span aria-hidden="true">{{ theme() === 'accent' ? '•' : '-' }} </span>
+            }
+            {{ block.text }}
+          </p>
+        }
+      }
+    }
+  </article>
+</div>

@@ -1,0 +1,205 @@
+@font-face {
+  font-family: ResumeExportNoto;
+  src: url('/fonts/resume/NotoSans-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: ResumeExportNoto;
+  src: url('/fonts/resume/NotoSans-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-display: swap;
+}
+:host {
+  display: block;
+  min-width: 0;
+}
+.document-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.75rem;
+  color: var(--bs-secondary-color);
+}
+.document-toolbar .btn {
+  font-size: 0.75rem;
+}
+.document-note {
+  margin: 0.625rem 0 1rem;
+  font-size: 0.75rem;
+  color: var(--bs-secondary-color);
+}
+.document-viewport {
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+}
+.document-paper {
+  box-sizing: border-box;
+  width: 210mm;
+  min-height: 297mm;
+  padding: 14mm 17mm;
+  background: var(--resume-paper-bg);
+  color: var(--resume-paper-text);
+  box-shadow: var(--bs-box-shadow-sm);
+  font-family: ResumeExportNoto, sans-serif;
+  font-size: 8pt;
+  line-height: 11pt;
+  overflow-wrap: anywhere;
+}
+.document-paper p {
+  margin: 0 0 1pt;
+  white-space: pre-wrap;
+}
+.document-name {
+  font:
+    700 16pt/19pt ResumeExportNoto,
+    sans-serif;
+  margin: 0 0 1pt;
+}
+.document-role {
+  font-size: 10pt;
+  line-height: 13pt;
+  margin-bottom: 2pt !important;
+}
+.document-contacts {
+  font-size: 8pt;
+  line-height: 10pt;
+  margin-bottom: 6pt !important;
+}
+.document-section {
+  font-size: 10pt;
+  font-weight: 700;
+  line-height: 12pt;
+  margin: 6pt 0 2pt;
+}
+.document-title {
+  font-size: 9pt;
+  font-weight: 700;
+  margin-top: 2pt !important;
+}
+.document-bullet {
+  margin-left: 8pt !important;
+}
+.document-photo {
+  display: block;
+  width: 26mm;
+  height: auto;
+}
+.document-accent {
+  padding: 45pt 42pt;
+  color: var(--resume-paper-accent-text);
+  font-size: 8.8pt;
+  line-height: 11.3pt;
+}
+.document-accent p {
+  margin-bottom: 1.5pt;
+}
+.document-accent .document-name {
+  font-size: 22pt;
+  line-height: 26pt;
+}
+.document-accent .document-role {
+  color: var(--resume-paper-accent);
+  font-size: 11pt;
+  line-height: 14pt;
+  margin-bottom: 3pt !important;
+}
+.document-accent .document-section {
+  color: var(--resume-paper-accent);
+  font-size: 10.5pt;
+  line-height: 13pt;
+  text-transform: uppercase;
+  border-bottom: 0.7pt solid var(--resume-paper-accent);
+  margin: 6pt 0 3pt;
+}
+.document-contacts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  font-size: 8.5pt;
+  line-height: 11pt;
+  gap: 1pt 8pt;
+}
+.document-location,
+.document-muted {
+  color: var(--resume-paper-muted);
+  font-size: 8.5pt;
+}
+.document-company {
+  padding: 1pt 6pt;
+  background: var(--resume-paper-company-bg);
+  border: 0.5pt solid var(--resume-paper-border);
+  margin-top: 3pt;
+}
+.document-company strong {
+  font-size: 10pt;
+}
+.document-company span {
+  color: var(--resume-paper-muted);
+  font-size: 8.5pt;
+  text-align: right;
+}
+.document-project {
+  background: var(--resume-paper-band-bg);
+  border-left: 2pt solid var(--resume-paper-accent);
+  padding: 2pt 7pt;
+  font-size: 9pt;
+  font-weight: 700;
+  margin-top: 2pt !important;
+}
+.document-band {
+  background: var(--resume-paper-band-bg);
+  color: var(--resume-paper-muted);
+  font-size: 8.2pt;
+  line-height: 10.5pt;
+  padding: 1.5pt 5pt;
+}
+.document-link {
+  color: var(--resume-paper-accent);
+}
+.document-accent .document-bullet {
+  margin-left: 0 !important;
+  margin-bottom: 0.5pt;
+}
+.document-word {
+  width: 8.5in;
+  min-height: 11in;
+  padding: 0.55in;
+  font-family: Arial, sans-serif;
+  font-size: 9pt;
+  line-height: 1.2;
+}
+.document-word .document-name {
+  font-family: Arial, sans-serif;
+  line-height: 1.2;
+}
+.document-word .document-section {
+  line-height: 1.2;
+}
+.document-word.document-accent {
+  padding: 0.65in 0.7in 0.7in;
+  font-size: 9.5pt;
+}
+.document-word.document-accent .document-section {
+  font-size: 11pt;
+}
+.document-word.document-accent .document-company {
+  border: 0;
+}
+.document-word.document-accent .document-company strong {
+  font-size: 9pt;
+}
+.document-word.document-accent .document-project {
+  border: 0;
+  background: var(--resume-paper-company-bg);
+}
+.document-word.document-accent .document-band {
+  font-size: 8.5pt;
+  line-height: 1.2;
+}
+
+.document-company-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 8pt;
+}

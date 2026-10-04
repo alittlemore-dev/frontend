@@ -224,8 +224,7 @@
                   data-testid="resume-create-summary"
                   [appResumeTextLimit]="validationLimits.summary"
                   formControlName="summary"
-                  cdkTextareaAutosize
-                  cdkAutosizeMinRows="1"
+                  appTextareaAutosize
                 ></textarea>
                 @if (createFieldInvalid('summary') && createFieldMessage('summary'); as message) {
                   <div class="invalid-feedback d-block">{{ message }}</div>

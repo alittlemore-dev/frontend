@@ -1,3 +1,4 @@
+import { TextareaAutosizeDirective } from '../../../../shared/directives/textarea-autosize.directive';
 import { DOCUMENT } from '@angular/common';
 import {
   ChangeDetectionStrategy,
@@ -43,7 +44,7 @@ interface TranslationWorkspaceRow {
 @Component({
   selector: 'app-matrix-question-translation-workspace',
   standalone: true,
-  imports: [MarkdownEditorComponent, TranslatePipe],
+  imports: [TextareaAutosizeDirective, MarkdownEditorComponent, TranslatePipe],
   templateUrl: './matrix-question-translation-workspace.component.html',
   styleUrl: './matrix-question-translation-workspace.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

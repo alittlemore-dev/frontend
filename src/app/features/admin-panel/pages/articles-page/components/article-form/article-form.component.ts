@@ -1,3 +1,4 @@
+import { TextareaAutosizeDirective } from '../../../../../../shared/directives/textarea-autosize.directive';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -111,6 +112,7 @@ type ArticleFormViewMode = 'edit' | 'preview';
   selector: 'app-admin-article-form',
   standalone: true,
   imports: [
+    TextareaAutosizeDirective,
     ReactiveFormsModule,
     RouterLink,
     MarkdownEditorComponent,

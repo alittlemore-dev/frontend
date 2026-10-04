@@ -27,7 +27,7 @@
           </ng-template>
           @if (editingId() === item.id) {
             <textarea
-              cdkTextareaAutosize
+              appTextareaAutosize
               rows="1"
               class="important-info-text form-control form-control-sm border-0 bg-transparent"
               [id]="'important-info-edit-' + item.id"

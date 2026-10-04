@@ -1,3 +1,4 @@
+import { TextareaAutosizeDirective } from '../../../../shared/directives/textarea-autosize.directive';
 import {
   LocalizedDatePickerComponent,
   LocalizedDatePickerLabels,
@@ -55,6 +56,7 @@ interface EventFormValue extends Omit<EventDraft, 'start' | 'end' | 'untilDate'>
   selector: 'app-event-editor',
   standalone: true,
   imports: [
+    TextareaAutosizeDirective,
     CdkTrapFocus,
     NgTemplateOutlet,
     LocalizedDatePickerComponent,

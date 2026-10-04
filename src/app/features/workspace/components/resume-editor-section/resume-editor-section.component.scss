@@ -1,0 +1,123 @@
+:host {
+  --resume-section-offset: 3.5rem;
+  display: block;
+  min-width: 0;
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.5rem;
+  background: var(--bs-body-bg);
+  scroll-margin-top: calc(var(--resume-section-offset) + 0.5rem);
+}
+
+:host(.resume-nested-section) {
+  --resume-section-offset: 7.75rem;
+}
+
+.resume-section-marker {
+  display: block;
+  height: 1px;
+  margin-bottom: -1px;
+}
+
+.resume-section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 4.25rem;
+  padding-inline-end: 0.75rem;
+  border-radius: 0.5rem;
+  background: var(--bs-body-bg);
+  top: var(--resume-section-offset);
+}
+
+.resume-section-header-sticky {
+  position: sticky;
+  z-index: 3;
+  border-block-end: 1px solid var(--bs-border-color);
+  border-end-start-radius: 0;
+  border-end-end-radius: 0;
+}
+
+:host(.resume-nested-section) .resume-section-header-sticky {
+  z-index: 2;
+}
+
+.resume-section-invalid {
+  box-shadow: inset 0.2rem 0 var(--bs-danger);
+}
+
+.resume-section-heading {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.resume-section-toggle {
+  // CDK handles disable touch scrolling; quick swipes must still scroll this editor.
+  touch-action: pan-y !important;
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border: 0;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--bs-body-color);
+  text-align: start;
+}
+
+.resume-section-toggle:focus-visible {
+  outline: 2px solid var(--bs-primary);
+  outline-offset: -2px;
+}
+
+.resume-section-toggle:hover {
+  background: var(--bs-secondary-bg);
+}
+
+.resume-section-label {
+  flex: 1;
+  min-width: 0;
+}
+
+.resume-section-title,
+.resume-section-summary {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.5;
+}
+
+.resume-section-title {
+  font-weight: 600;
+}
+.resume-section-summary {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--bs-secondary-color);
+}
+.resume-section-chevron {
+  flex-shrink: 0;
+  order: 1;
+}
+.resume-section-chevron-expanded {
+  transform: rotate(90deg);
+}
+.resume-section-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+.resume-section-top {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 2rem;
+  width: 2rem;
+  padding: 0;
+}
+.resume-section-body:not([hidden]) {
+  display: flow-root;
+}

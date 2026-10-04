@@ -1,0 +1,197 @@
+<header class="resume-editor-header">
+  <div class="resume-header-context">
+    <button
+      type="button"
+      class="btn btn-link btn-sm p-0 d-inline-flex align-items-center gap-1 text-decoration-none"
+      (click)="back.emit()"
+    >
+      <svg
+        aria-hidden="true"
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="m12 19-7-7 7-7M19 12H5"></path>
+      </svg>
+      {{ 'shared.back' | t }}
+    </button>
+    <span>{{ 'resumeWorkspace.detailTitle' | t }}</span>
+  </div>
+  <div class="resume-title-field">
+    @if (ready() && mode() === 'edit') {
+      <h1 class="visually-hidden">{{ 'resumeWorkspace.detailTitle' | t }}</h1>
+      <label class="visually-hidden" for="resume-title">
+        {{ 'resumeWorkspace.field.title' | t }}
+        <span class="required-marker text-danger" aria-hidden="true">*</span>
+      </label>
+      <input
+        id="resume-title"
+        class="form-control resume-title-input"
+        [title]="title()"
+        [class.is-invalid]="titleInvalid()"
+        data-testid="resume-title"
+        required
+        [appResumeTextLimit]="titleMax()"
+        formControlName="title"
+      />
+      @if (titleInvalid() && titleMessage(); as message) {
+        <div class="invalid-feedback d-block">{{ message }}</div>
+      }
+    } @else {
+      <h1 class="h5 mb-0">{{ title() || ('resumeWorkspace.detailTitle' | t) }}</h1>
+    }
+    @if (ready()) {
+      <p class="small text-body-secondary mb-0 mt-1" role="status" data-testid="resume-save-state">
+        {{ (unsaved() ? 'resumeWorkspace.editor.unsaved' : 'resumeWorkspace.editor.clean') | t }}
+      </p>
+    }
+  </div>
+  <div class="resume-header-actions">
+    @if (ready() && mode() === 'edit') {
+      <div class="resume-language-field">
+        <label class="visually-hidden" for="resume-language">{{
+          'resumeWorkspace.field.language' | t
+        }}</label>
+        <ds-site-select
+          inputId="resume-language"
+          [options]="languageOptions()"
+          controlSize="small"
+          appearance="default"
+          [required]="true"
+          [invalid]="languageInvalid()"
+          [controlDisabled]="false"
+          testId="resume-language"
+          formControlName="language"
+        />
+        @if (languageInvalid() && languageMessage(); as message) {
+          <div class="invalid-feedback d-block">{{ message }}</div>
+        }
+      </div>
+    }
+    <button
+      type="button"
+      class="btn btn-sm resume-toolbar-button resume-save-button"
+      [attr.aria-label]="'resumeWorkspace.save' | t"
+      [attr.title]="'resumeWorkspace.save' | t"
+      [disabled]="saveDisabled()"
+      (click)="save.emit()"
+    >
+      <svg
+        aria-hidden="true"
+        xmlns="http://www.w3.org/2000/svg"
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path
+          d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"
+        ></path>
+        <path d="M17 21v-7H7v7"></path>
+        <path d="M7 3v5h8"></path>
+      </svg>
+      <span>{{ 'resumeWorkspace.save' | t }}</span>
+    </button>
+    <button
+      type="button"
+      class="btn btn-outline-secondary btn-sm resume-toolbar-button resume-mode-button"
+      [attr.aria-pressed]="mode() === 'preview'"
+      (click)="mode() === 'edit' ? preview.emit() : edit.emit()"
+    >
+      <svg
+        aria-hidden="true"
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        @if (mode() === 'edit') {
+          <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7S2 12 2 12Z"></path>
+          <circle cx="12" cy="12" r="3"></circle>
+        } @else {
+          <path d="m16 3 5 5-12 12H4v-5L16 3Z"></path>
+        }
+      </svg>
+      {{ (mode() === 'edit' ? 'resumeWorkspace.preview' : 'resumeWorkspace.edit') | t }}
+    </button>
+    <button
+      type="button"
+      class="btn btn-outline-secondary btn-sm resume-toolbar-button resume-export-button"
+      [attr.aria-label]="'resumeWorkspace.export' | t"
+      [attr.title]="'resumeWorkspace.export' | t"
+      [disabled]="saveDisabled()"
+      (click)="exportResume.emit()"
+    >
+      <svg
+        aria-hidden="true"
+        xmlns="http://www.w3.org/2000/svg"
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"></path>
+        <path d="M14 2v4a2 2 0 0 0 2 2h4"></path>
+        <path d="M12 18v-6"></path>
+        <path d="m9 15 3-3 3 3"></path>
+      </svg>
+      <span>{{ 'resumeWorkspace.export' | t }}</span>
+    </button>
+    <details class="resume-actions-menu" data-testid="resume-actions-menu">
+      <summary
+        class="btn btn-outline-secondary btn-sm resume-toolbar-button"
+        [attr.aria-label]="'shared.actions' | t"
+        [title]="'shared.actions' | t"
+      >
+        ⋯
+      </summary>
+      <div class="resume-actions-dropdown">
+        <button
+          type="button"
+          class="btn btn-link text-danger btn-sm d-flex gap-2 align-items-center text-nowrap text-decoration-none"
+          [attr.aria-label]="'resumeWorkspace.delete' | t"
+          [attr.title]="'resumeWorkspace.delete' | t"
+          [disabled]="deleteDisabled()"
+          (click)="deleteResume.emit()"
+        >
+          <svg
+            aria-hidden="true"
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M3 6h18"></path>
+            <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            <path d="m19 6-.9 14a2 2 0 0 1-2 2H7.9a2 2 0 0 1-2-2L5 6"></path>
+            <path d="M10 11v6"></path>
+            <path d="M14 11v6"></path>
+          </svg>
+          <span>{{ 'resumeWorkspace.delete' | t }}</span>
+        </button>
+      </div>
+    </details>
+  </div>
+</header>

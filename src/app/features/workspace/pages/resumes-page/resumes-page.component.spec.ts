@@ -209,7 +209,7 @@ describe('ResumesPageComponent', () => {
         title: 'Target resume',
         language,
         content: expect.objectContaining({
-          settings: { dateFormat },
+          settings: { dateFormat, sectionOrder: [], hiddenSections: [] },
           profile: expect.objectContaining({
             fullName: 'Dmitriy',
             role: 'Backend engineer',
@@ -341,7 +341,7 @@ function resume(): Resume {
     createdAt: '2026-01-01T03:04:05+00:00',
     updatedAt: '2026-01-02T03:04:05+00:00',
     content: {
-      settings: { dateFormat: 'monthYearNumeric' },
+      settings: { dateFormat: 'monthYearNumeric', sectionOrder: [], hiddenSections: [] },
       profile: {
         fullName: 'Candidate Name',
         photoFileId: '',

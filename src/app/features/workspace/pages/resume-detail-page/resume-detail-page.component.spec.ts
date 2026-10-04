@@ -129,6 +129,69 @@ describe('ResumeDetailPageComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Навыки');
   });
 
+  it('starts existing groups collapsed with identifying content and preserves expansion across tabs', () => {
+    fixture.componentInstance.setActiveTab('skills');
+    fixture.detectChanges();
+    const toggle = elementByTestId<HTMLButtonElement>('resume-group-toggle-skill-0');
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    expect(toggle.textContent).toContain('Backend');
+    expect(toggle.textContent).toContain('Python');
+    expect(elementByTestId<HTMLElement>('resume-group-body-skill-0').hidden).toBe(true);
+
+    toggle.click();
+    fixture.detectChanges();
+    expect(elementByTestId<HTMLElement>('resume-group-body-skill-0').hidden).toBe(false);
+    fixture.componentInstance.setActiveTab('summary');
+    fixture.detectChanges();
+    fixture.componentInstance.setActiveTab('skills');
+    fixture.detectChanges();
+    expect(
+      elementByTestId<HTMLButtonElement>('resume-group-toggle-skill-0').getAttribute(
+        'aria-expanded',
+      ),
+    ).toBe('true');
+  });
+
+  it('starts nested projects collapsed and opens newly added groups for editing', () => {
+    fixture.componentInstance.setActiveTab('experience');
+    fixture.detectChanges();
+    elementByTestId<HTMLButtonElement>('resume-group-toggle-experience-0').click();
+    fixture.detectChanges();
+    expect(
+      elementByTestId<HTMLButtonElement>('resume-group-toggle-project-0-0').getAttribute(
+        'aria-expanded',
+      ),
+    ).toBe('false');
+    fixture.componentInstance.addExperienceProject(0);
+    fixture.detectChanges();
+    expect(
+      elementByTestId<HTMLButtonElement>('resume-group-toggle-project-0-1').getAttribute(
+        'aria-expanded',
+      ),
+    ).toBe('true');
+    fixture.componentInstance.addExperienceItem();
+    fixture.detectChanges();
+    expect(
+      elementByTestId<HTMLButtonElement>('resume-group-toggle-experience-1').getAttribute(
+        'aria-expanded',
+      ),
+    ).toBe('true');
+  });
+
+  it('reveals invalid nested fields when saving a collapsed group', () => {
+    fixture.componentInstance.experience.at(0).controls.projects.at(0).controls.name.setValue('');
+    fixture.componentInstance.saveResume();
+    fixture.detectChanges();
+    expect(service.updateResume).not.toHaveBeenCalled();
+    expect(elementByTestId<HTMLElement>('resume-group-body-experience-0').hidden).toBe(false);
+    expect(elementByTestId<HTMLElement>('resume-group-body-project-0-0').hidden).toBe(false);
+    expect(
+      elementById<HTMLInputElement>('resume-experience-0-project-0-name').getAttribute(
+        'aria-invalid',
+      ),
+    ).toBe('true');
+  });
+
   it('edits and saves an explicit update payload', () => {
     setInputValue('resume-title', 'Target backend resume');
     setInputValue('resume-language', 'en');
@@ -355,6 +418,16 @@ describe('ResumeDetailPageComponent', () => {
       configurable: true,
       value: () => compressed,
     });
+    const component = fixture.componentInstance;
+    component.resumeForm.controls.profile.controls.photoFileId.setValue('old-photo-id');
+    component.resumeForm.controls.profile.controls.photoDataUrl.setValue(
+      'data:image/jpeg;base64,old',
+    );
+    component.removePhoto();
+    component.removeSkillItem(0, 0);
+    const uploaded = resume();
+    uploaded.content.profile.photoFileId = 'new-photo-id';
+    service.uploadPhoto.mockReturnValueOnce(of(uploaded));
     try {
       const input = fixture.nativeElement.querySelector(
         '#resume-profile-photo',
@@ -368,6 +441,12 @@ describe('ResumeDetailPageComponent', () => {
       expect(
         fixture.componentInstance.resumeForm.controls.profile.controls.photoDataUrl.value,
       ).toBe(compressed);
+      expect(component.resumeForm.controls.profile.controls.photoFileId.value).toBe('new-photo-id');
+      expect(component.removalCount()).toBe(1);
+      component.undoRemoval();
+      component.undoRemoval();
+      expect(component.resumeForm.controls.profile.controls.photoFileId.value).toBe('new-photo-id');
+      expect(component.skillItems(0).getRawValue()).toEqual(['Python', 'SQLAlchemy']);
     } finally {
       if (originalReader) Object.defineProperty(window, 'FileReader', originalReader);
       if (originalImage) Object.defineProperty(window, 'Image', originalImage);
@@ -394,31 +473,36 @@ describe('ResumeDetailPageComponent', () => {
     );
   });
 
-  it('warns before exporting a resume without contact details', () => {
-    const confirm = jest.spyOn(window, 'confirm').mockReturnValue(false);
+  it('shows contact advice without blocking export or opening a confirmation', () => {
+    const confirm = jest.spyOn(window, 'confirm');
     setElementValueById('resume-profile-email', '');
     fixture.componentInstance.openExportModal();
     fixture.componentInstance.selectExportFormat('pdf');
-
+    fixture.componentInstance.selectExportTheme('simple');
+    fixture.detectChanges();
+    const advice = elementByTestId<HTMLDetailsElement>('resume-export-recommendations');
+    expect(advice.open).toBe(false);
+    expect(advice.textContent).toContain('способ связи');
     fixture.componentInstance.exportResume();
-
-    expect(confirm).toHaveBeenCalledWith(expect.stringContaining('В резюме нет контактов'));
-    expect(service.exportResume).not.toHaveBeenCalled();
+    expect(confirm).not.toHaveBeenCalled();
+    expect(service.exportResume).toHaveBeenCalled();
   });
 
-  it('reports the actual PDF page count when an export exceeds two pages', () => {
-    service.exportResume.mockReturnValueOnce(
-      of({ blob: new Blob(['resume'], { type: 'application/pdf' }), pageCount: 3 }),
-    );
-    fixture.componentInstance.openExportModal();
-    fixture.componentInstance.selectExportFormat('pdf');
+  it.each([2, 3, 4])(
+    'reports the actual PDF page count (%s) without unsolicited advice',
+    (pages) => {
+      service.exportResume.mockReturnValueOnce(
+        of({ blob: new Blob(['resume'], { type: 'application/pdf' }), pageCount: pages }),
+      );
+      fixture.componentInstance.openExportModal();
+      fixture.componentInstance.selectExportFormat('pdf');
+      fixture.componentInstance.selectExportTheme('simple');
 
-    fixture.componentInstance.exportResume();
+      fixture.componentInstance.exportResume();
 
-    expect(notifications.success).toHaveBeenCalledWith(
-      'Резюме экспортировано (3 стр.). Рекомендуем сократить его до 1–2 страниц.',
-    );
-  });
+      expect(notifications.success).toHaveBeenCalledWith(`Резюме экспортировано (${pages} стр.).`);
+    },
+  );
 
   it('tracks the complete editor against the loaded and saved resume', () => {
     const unsavedChanges = TestBed.inject(UnsavedChangesService);
@@ -445,6 +529,7 @@ describe('ResumeDetailPageComponent', () => {
 
     fixture.componentInstance.openExportModal();
     fixture.componentInstance.selectExportFormat('pdf');
+    fixture.componentInstance.selectExportTheme('simple');
     fixture.componentInstance.exportResume();
     expect(unsavedChanges.hasChanges()).toBe(true);
   });
@@ -482,9 +567,9 @@ describe('ResumeDetailPageComponent', () => {
 
     expect(fixture.nativeElement.textContent).toContain('Backend инженер');
     expect(fixture.nativeElement.textContent).toContain('Сильный backend опыт.');
-    expect(fixture.nativeElement.textContent).toContain('Саммари');
+    expect(elementByTestId('resume-preview').textContent).toContain('Профессиональный профиль');
     expect(fixture.nativeElement.textContent).not.toContain('Strong backend experience.');
-    expect(fixture.nativeElement.textContent).not.toContain('Summary');
+    expect(elementByTestId('resume-preview').textContent).not.toContain('Professional Summary');
   });
 
   it('renders the back action with a left arrow icon', () => {
@@ -495,7 +580,7 @@ describe('ResumeDetailPageComponent', () => {
     expect(backButton?.querySelector('svg')).not.toBeNull();
   });
 
-  it('renders save, export, and delete as accessible icon buttons', () => {
+  it('labels save and export and keeps deletion in the actions menu', () => {
     const saveButton = buttonByLabel('Сохранить');
     const exportButton = buttonByLabel('Экспорт');
     const deleteButton = buttonByLabel('Удалить');
@@ -503,33 +588,70 @@ describe('ResumeDetailPageComponent', () => {
     expect(saveButton.querySelector('svg')).not.toBeNull();
     expect(exportButton.querySelector('svg')).not.toBeNull();
     expect(deleteButton.querySelector('svg')).not.toBeNull();
-    expect(textNodeContent(saveButton)).toBe('');
-    expect(textNodeContent(exportButton)).toBe('');
-    expect(textNodeContent(deleteButton)).toBe('');
+    expect(saveButton.textContent).toContain('Сохранить');
+    expect(exportButton.textContent).toContain('Экспорт');
+    const menu = elementByTestId<HTMLDetailsElement>('resume-actions-menu');
+    expect(menu.open).toBe(false);
+    expect(menu.contains(deleteButton)).toBe(true);
+    menu.open = true;
+    expect(deleteButton.textContent).toContain('Удалить');
   });
 
-  it('renders resume editor tabs without horizontal scrolling classes', () => {
-    const tabs = fixture.nativeElement.querySelector('.nav-tabs') as HTMLElement | null;
-
-    expect(tabs).not.toBeNull();
-    expect(tabs?.classList.contains('flex-wrap')).toBe(true);
-    expect(tabs?.classList.contains('flex-nowrap')).toBe(false);
-    expect(tabs?.classList.contains('overflow-auto')).toBe(false);
+  it('shows unsaved status and returns to saved status after a full manual revert', () => {
+    const original = inputValue('resume-title');
+    expect(elementByTestId('resume-save-state').textContent).toContain('Все изменения сохранены');
+    setInputValue('resume-title', 'Edited title');
+    expect(elementByTestId('resume-save-state').textContent).toContain(
+      'Есть несохранённые изменения',
+    );
+    setInputValue('resume-title', original);
+    expect(elementByTestId('resume-save-state').textContent).toContain('Все изменения сохранены');
   });
 
-  it('renders the resume language control as a compact dropdown', () => {
+  it('switches editor sections through desktop and mobile navigation without creating a draft', () => {
+    const summary = fixture.componentInstance.resumeForm.controls.summary.controls.text.value;
+    elementByTestId<HTMLButtonElement>('resume-section-nav-summary').click();
+    fixture.detectChanges();
+    expect(elementByTestId('resume-section-nav-summary').getAttribute('aria-current')).toBe('page');
+    expect(inputValue('resume-summary')).toBe(summary);
+    chooseSiteSelectOption(fixture, '#resume-section-select', 'skills');
+    fixture.detectChanges();
+    expect(inputValue('resume-skill-0-item-0')).toBe('Python');
+    expect(TestBed.inject(UnsavedChangesService).hasChanges()).toBe(false);
+  });
+
+  it('retains required language selection in the editor header', () => {
     const languageField = fixture.nativeElement.querySelector(
       '.resume-language-field',
     ) as HTMLElement | null;
     const languageSelect = elementByTestId<HTMLButtonElement>('resume-language');
     const languageSelectHost = languageSelect.closest('ds-site-select');
 
-    expect(languageField?.classList.contains('col-md-auto')).toBe(true);
-    expect(languageSelect.classList.contains('form-select-sm')).toBe(false);
-    expect(languageSelectHost?.classList.contains('resume-language-select')).toBe(true);
+    expect(languageField).not.toBeNull();
+    expect(languageSelectHost).not.toBeNull();
+    expect(languageSelect.getAttribute('aria-required')).toBe('true');
+    setInputValue('resume-language', 'en');
+    expect(fixture.componentInstance.resumeForm.controls.language.value).toBe('en');
   });
 
-  it('renders top-level repeatable add actions after their lists', () => {
+  it('toggles preview and returns to editing through the header action without losing edits', () => {
+    setInputValue('resume-title', 'Unsaved header title');
+    const action = fixture.nativeElement.querySelector(
+      '.resume-header-actions button[aria-pressed]',
+    ) as HTMLButtonElement;
+    action.click();
+    fixture.detectChanges();
+    expect(elementByTestId('resume-preview')).not.toBeNull();
+    expect(action.getAttribute('aria-pressed')).toBe('true');
+    action.click();
+    fixture.detectChanges();
+    expect(inputValue('resume-title')).toBe('Unsaved header title');
+    expect(elementByTestId('resume-save-state').textContent).toContain(
+      'Есть несохранённые изменения',
+    );
+  });
+
+  it('offers labeled top-level add actions that expand a new record', () => {
     const cases = [
       { tab: 'skills', label: 'Добавить группу навыков' },
       { tab: 'experience', label: 'Добавить компанию' },
@@ -547,8 +669,11 @@ describe('ResumeDetailPageComponent', () => {
       const addButton = buttonByLabel(item.label);
 
       expect(list).not.toBeNull();
-      expect(textNodeContent(addButton)).toBe('+');
-      expect(list?.compareDocumentPosition(addButton)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+      expect(addButton.textContent).toContain(item.label);
+      addButton.click();
+      fixture.detectChanges();
+      const bodies = list?.querySelectorAll<HTMLElement>('[data-testid^="resume-group-body-"]');
+      expect(Array.from(bodies ?? []).at(-1)?.hidden).toBe(false);
     }
   });
 
@@ -561,11 +686,10 @@ describe('ResumeDetailPageComponent', () => {
     const addProjectButton = buttonByLabel('Добавить проект');
     const removeProjectButton = buttonByLabel('Удалить проект');
 
-    expect(textNodeContent(addCompanyButton)).toBe('+');
+    expect(addCompanyButton.textContent).toContain('Добавить компанию');
     expect(textNodeContent(removeCompanyButton)).toBe('−');
     expect(textNodeContent(addProjectButton)).toBe('+');
     expect(textNodeContent(removeProjectButton)).toBe('−');
-    expect(fixture.nativeElement.textContent).toContain('Компания 1');
   });
 
   it('loads list values into individual controls instead of newline textareas', () => {
@@ -617,7 +741,6 @@ describe('ResumeDetailPageComponent', () => {
     expect(fieldColumn(projectHighlights).classList.contains('col-12')).toBe(true);
     expect(fieldColumn(projectTechnologies).classList.contains('col-12')).toBe(true);
     expect(companyHighlights.tagName).toBe('TEXTAREA');
-    expect(companyHighlights.classList).toContain('cdk-textarea-autosize');
     expect(fieldColumn(projectName).classList.contains('col-md-6')).toBe(true);
     expect(fieldColumn(projectRole).classList.contains('col-md-6')).toBe(true);
     expect(projectHighlights.tagName).toBe('TEXTAREA');
@@ -738,6 +861,45 @@ describe('ResumeDetailPageComponent', () => {
     expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeNull();
   });
 
+  it('requires both choices, previews draft content locally, and resets choices when reopened', () => {
+    fixture.componentInstance.setActiveTab('summary');
+    fixture.detectChanges();
+    setInputValue('resume-summary', 'Draft export preview');
+    buttonByLabel('Экспорт').click();
+    fixture.detectChanges();
+    expect(siteSelectValue(fixture, '[data-testid="resume-export-theme"]')).toBe('');
+    expect(fixture.nativeElement.querySelector('[data-testid="resume-export-preview"]')).toBeNull();
+    setInputValue('resume-export-format', 'pdf');
+    expect(elementByTestId<HTMLButtonElement>('resume-export-submit').disabled).toBe(true);
+    expect(fixture.nativeElement.querySelector('[data-testid="resume-export-preview"]')).toBeNull();
+    setInputValue('resume-export-theme', 'accent');
+    expect(elementByTestId<HTMLButtonElement>('resume-export-submit').disabled).toBe(false);
+    expect(elementByTestId('resume-export-preview').textContent).toContain('Draft export preview');
+    expect(service.exportResume).not.toHaveBeenCalled();
+    expect(service.updateResume).not.toHaveBeenCalled();
+    setInputValue('resume-export-theme', '');
+    expect(fixture.nativeElement.querySelector('[data-testid="resume-export-preview"]')).toBeNull();
+    expect(elementByTestId<HTMLButtonElement>('resume-export-submit').disabled).toBe(true);
+    fixture.componentInstance.closeExportModal();
+    fixture.componentInstance.openExportModal();
+    fixture.detectChanges();
+    expect(siteSelectValue(fixture, '[data-testid="resume-export-format"]')).toBe('');
+    expect(siteSelectValue(fixture, '[data-testid="resume-export-theme"]')).toBe('');
+  });
+
+  it('shows feedback for an export without both choices and closes on Escape', () => {
+    buttonByLabel('Экспорт').click();
+    fixture.detectChanges();
+    fixture.componentInstance.exportResume();
+    expect(notifications.error).toHaveBeenCalled();
+    expect(service.exportResume).not.toHaveBeenCalled();
+    fixture.nativeElement
+      .querySelector('[role="dialog"]')
+      .dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeNull();
+  });
+
   it('scrolls the export form body when the wheel is used over its header', () => {
     buttonByLabel('Экспорт').click();
     fixture.detectChanges();
@@ -751,6 +913,21 @@ describe('ResumeDetailPageComponent', () => {
 
     expect(modalBody.scrollTop).toBe(80);
     expect(event.defaultPrevented).toBe(true);
+  });
+
+  it('preserves native document scrolling when the export options also overflow', () => {
+    buttonByLabel('Экспорт').click();
+    fixture.detectChanges();
+    setInputValue('resume-export-format', 'pdf');
+    setInputValue('resume-export-theme', 'simple');
+    const modalBody = elementByTestId<HTMLElement>('resume-export-modal-body');
+    const preview = elementByTestId<HTMLElement>('resume-export-preview');
+    makeElementScrollable(modalBody, 600, 160);
+    makeElementScrollable(preview, 1200, 160);
+    const event = new WheelEvent('wheel', { bubbles: true, cancelable: true, deltaY: 80 });
+    preview.dispatchEvent(event);
+    expect(modalBody.scrollTop).toBe(0);
+    expect(event.defaultPrevented).toBe(false);
   });
 
   it('exports unsaved form edits in the selected format', () => {
@@ -787,6 +964,7 @@ describe('ResumeDetailPageComponent', () => {
     buttonByLabel('Экспорт').click();
     fixture.detectChanges();
     setInputValue('resume-export-format', 'pdf');
+    setInputValue('resume-export-theme', 'simple');
     elementByTestId<HTMLButtonElement>('resume-export-submit').click();
     fixture.detectChanges();
 
@@ -1347,6 +1525,7 @@ describe('ResumeDetailPageComponent', () => {
     buttonByLabel('Экспорт').click();
     fixture.detectChanges();
     setInputValue('resume-export-format', 'pdf');
+    setInputValue('resume-export-theme', 'simple');
     elementByTestId<HTMLButtonElement>('resume-export-submit').click();
     fixture.detectChanges();
 
@@ -1581,6 +1760,7 @@ describe('ResumeDetailPageComponent', () => {
     buttonByLabel('Экспорт').click();
     fixture.detectChanges();
     setInputValue('resume-export-format', 'pdf');
+    setInputValue('resume-export-theme', 'simple');
     elementByTestId<HTMLButtonElement>('resume-export-submit').click();
     fixture.detectChanges();
 
@@ -1674,23 +1854,24 @@ describe('ResumeDetailPageComponent', () => {
   it('offers settings last, tracks changes and preserves the chosen format through language changes and export', () => {
     const component = fixture.componentInstance;
     const unsaved = TestBed.inject(UnsavedChangesService);
-    expect(
-      Array.from(fixture.nativeElement.querySelectorAll('.nav-tabs button')).at(-1),
-    ).toHaveProperty('textContent', expect.stringContaining('Настройки'));
+    expect(elementByTestId('resume-section-nav-settings')).toHaveProperty(
+      'textContent',
+      expect.stringContaining('Настройки'),
+    );
     component.setActiveTab('settings');
     fixture.detectChanges();
-    expect(
-      elementByTestId<HTMLButtonElement>('resume-date-format').closest('ds-site-select'),
-    ).not.toBeNull();
-    expect(inputValue('resume-date-format')).toBe('monthYearNumeric');
-    setInputValue('resume-date-format', 'year');
+    expect(elementByTestId<HTMLInputElement>('resume-date-format-monthYearNumeric').checked).toBe(
+      true,
+    );
+    elementByTestId<HTMLInputElement>('resume-date-format-year').click();
     expect(unsaved.hasChanges()).toBe(true);
-    setInputValue('resume-date-format', 'monthYearNumeric');
+    elementByTestId<HTMLInputElement>('resume-date-format-monthYearNumeric').click();
     expect(unsaved.hasChanges()).toBe(false);
-    setInputValue('resume-date-format', 'fullDate');
+    elementByTestId<HTMLInputElement>('resume-date-format-fullDate').click();
     setInputValue('resume-language', 'en');
     component.openExportModal();
     component.selectExportFormat('pdf');
+    component.selectExportTheme('simple');
     component.exportResume();
     expect(service.exportResume).toHaveBeenCalledWith(
       RESUME_ID,
@@ -1698,14 +1879,18 @@ describe('ResumeDetailPageComponent', () => {
       'simple',
       expect.objectContaining({
         language: 'en',
-        content: expect.objectContaining({ settings: { dateFormat: 'fullDate' } }),
+        content: expect.objectContaining({
+          settings: { dateFormat: 'fullDate', sectionOrder: [], hiddenSections: [] },
+        }),
       }),
     );
     component.saveResume();
     expect(service.updateResume).toHaveBeenCalledWith(
       RESUME_ID,
       expect.objectContaining({
-        content: expect.objectContaining({ settings: { dateFormat: 'fullDate' } }),
+        content: expect.objectContaining({
+          settings: { dateFormat: 'fullDate', sectionOrder: [], hiddenSections: [] },
+        }),
       }),
     );
   });
@@ -2023,6 +2208,232 @@ describe('ResumeDetailPageComponent', () => {
     }
   }
 
+  it('restores a removed company with its nested data and control state', () => {
+    const component = fixture.componentInstance;
+    const company = component.experience.at(0);
+    const highlight = company.controls.projects.at(0).controls.highlights.at(0);
+    highlight.setValue('x'.repeat(5000));
+    highlight.markAsTouched();
+    const original = component.resumeForm.getRawValue();
+    component.setActiveTab('experience');
+    component.removeExperienceItem(0);
+    fixture.detectChanges();
+    expect(component.experience.length).toBe(0);
+    elementByTestId<HTMLElement>('resume-removal-feedback').querySelector('button')?.click();
+    fixture.detectChanges();
+    expect(component.resumeForm.getRawValue()).toEqual(original);
+    expect(component.experience.at(0)).toBe(company);
+    expect(highlight.touched).toBe(true);
+    expect(highlight.invalid).toBe(true);
+  });
+
+  it('undoes nested and parent deletions in reverse order', () => {
+    const component = fixture.componentInstance;
+    const original = component.resumeForm.getRawValue();
+    component.removeProjectHighlight(0, 0, 0);
+    component.removeExperienceItem(0);
+    component.undoRemoval();
+    component.undoRemoval();
+    expect(component.resumeForm.getRawValue()).toEqual(original);
+    expect(component.unsavedChanges()).toBe(false);
+  });
+
+  it('expires removal feedback within five seconds and clears history after saving', () => {
+    jest.useFakeTimers();
+    try {
+      const component = fixture.componentInstance;
+      component.removeSkillItem(0, 0);
+      fixture.detectChanges();
+      expect(elementByTestId<HTMLElement>('resume-removal-feedback')).not.toBeNull();
+      jest.advanceTimersByTime(5000);
+      fixture.detectChanges();
+      expect(
+        fixture.nativeElement.querySelector('[data-testid="resume-removal-feedback"]'),
+      ).toBeNull();
+      component.undoRemoval();
+      expect(component.skillItems(0).getRawValue()).toEqual(['SQLAlchemy']);
+      component.removeExperienceItem(0);
+      component.saveResume();
+      fixture.detectChanges();
+      expect(component.removalCount()).toBe(0);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('restores a removed photo without another upload', () => {
+    const component = fixture.componentInstance;
+    const controls = component.resumeForm.controls.profile.controls;
+    controls.photoFileId.setValue('photo-id');
+    controls.photoDataUrl.setValue('data:image/jpeg;base64,dGVzdA==');
+    component.removePhoto();
+    expect(controls.photoFileId.value).toBe('');
+    component.undoRemoval();
+    expect(controls.photoFileId.value).toBe('photo-id');
+    expect(controls.photoDataUrl.value).toContain('dGVzdA==');
+    expect(service.uploadPhoto).not.toHaveBeenCalled();
+  });
+
+  it('reorders complete companies from their header with the keyboard', () => {
+    const component = fixture.componentInstance;
+    component.setActiveTab('experience');
+    const first = component.experience.at(0);
+    component.addExperienceItem();
+    const second = component.experience.at(1);
+    second.controls.company.setValue('Second company');
+    fixture.detectChanges();
+    const header = elementByTestId<HTMLButtonElement>('resume-group-toggle-experience-1');
+    header.focus();
+    header.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        key: 'ArrowUp',
+        altKey: true,
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+    fixture.detectChanges();
+    expect(component.experience.at(0)).toBe(second);
+    expect(component.experience.at(1)).toBe(first);
+    expect(document.activeElement).toBe(header);
+    expect(
+      elementByTestId<HTMLButtonElement>('resume-group-toggle-experience-0').textContent,
+    ).toContain('Second company');
+    header.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'ArrowDown', altKey: true, bubbles: true }),
+    );
+    fixture.detectChanges();
+    expect(document.activeElement).toBe(header);
+    expect(component.experience.at(1)).toBe(second);
+    expect(component.buildPayload().content.experience[0].projects[0].name).toBe('Портфолио');
+    expect(component.unsavedChanges()).toBe(true);
+  });
+
+  it('reorders list items from their field without changing entered text', () => {
+    const component = fixture.componentInstance;
+    component.setActiveTab('skills');
+    component.setGroupExpanded(component.skills.at(0), true);
+    fixture.detectChanges();
+    const input = elementByTestId<HTMLInputElement>('resume-skill-0-item-1');
+    input.focus();
+    input.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        key: 'ArrowUp',
+        altKey: true,
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+    fixture.detectChanges();
+    expect(component.skillItems(0).getRawValue()).toEqual(['SQLAlchemy', 'Python']);
+    expect(elementByTestId<HTMLInputElement>('resume-skill-0-item-0').value).toBe('SQLAlchemy');
+    expect(document.activeElement).toBe(input);
+    input.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'ArrowDown', altKey: true, bubbles: true }),
+    );
+    fixture.detectChanges();
+    expect(document.activeElement).toBe(input);
+    expect(component.skillItems(0).getRawValue()).toEqual(['Python', 'SQLAlchemy']);
+    expect(component.unsavedChanges()).toBe(false);
+  });
+
+  it.each(['ctrlKey', 'metaKey'] as const)(
+    'saves with %s + S and prevents the browser save-page action',
+    (modifier) => {
+      const event = new KeyboardEvent('keydown', {
+        key: 's',
+        [modifier]: true,
+        bubbles: true,
+        cancelable: true,
+      });
+      document.dispatchEvent(event);
+      expect(event.defaultPrevented).toBe(true);
+      expect(service.updateResume).toHaveBeenCalledTimes(1);
+      expect(notifications.success).toHaveBeenCalled();
+    },
+  );
+
+  it('keeps shortcut validation feedback and ignores shortcut auto-repeat', () => {
+    setElementValueById('resume-profile-full-name', '');
+    document.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'S', ctrlKey: true, bubbles: true, cancelable: true }),
+    );
+    fixture.detectChanges();
+    expect(service.updateResume).not.toHaveBeenCalled();
+    expect(elementByTestId<HTMLInputElement>('resume-profile-full-name').classList).toContain(
+      'is-invalid',
+    );
+    expect(notifications.error).toHaveBeenCalled();
+    setElementValueById('resume-profile-full-name', 'Candidate');
+    document.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 's', ctrlKey: true, repeat: true, bubbles: true }),
+    );
+    expect(service.updateResume).not.toHaveBeenCalled();
+  });
+
+  it('reveals invalid optional company fields even after manually closing them', () => {
+    const component = fixture.componentInstance;
+    component.setActiveTab('experience');
+    component.setGroupExpanded(component.experience.at(0), true);
+    fixture.detectChanges();
+    const details = fixture.nativeElement.querySelector(
+      '.resume-optional-fields',
+    ) as HTMLDetailsElement;
+    details.querySelector('summary')?.click();
+    component.experience.at(0).controls.companyWebsiteUrl.setValue('ftp://bad');
+    details.open = false;
+    component.saveResume();
+    fixture.detectChanges();
+    expect(details.open).toBe(true);
+    expect(
+      fixture.nativeElement.querySelector('#resume-experience-0-company-website').classList,
+    ).toContain('is-invalid');
+    details.querySelector('summary')?.click();
+    expect(details.open).toBe(false);
+    fixture.componentInstance.saveResume();
+    fixture.detectChanges();
+    expect(details.open).toBe(true);
+    expect(service.updateResume).not.toHaveBeenCalled();
+  });
+
+  it('saves document visibility and order while retaining hidden author data', () => {
+    const component = fixture.componentInstance;
+    const originalSkills = component.skills.getRawValue();
+    component.setActiveTab('settings');
+    fixture.detectChanges();
+    const checkbox = fixture.nativeElement.querySelector(
+      '[aria-label="Показывать раздел «Навыки»"]',
+    ) as HTMLInputElement;
+    checkbox.click();
+    fixture.detectChanges();
+    const row = fixture.nativeElement.querySelector('[aria-label="Опыт"]') as HTMLElement;
+    row.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'ArrowUp', altKey: true, bubbles: true }),
+    );
+    fixture.detectChanges();
+    expect(component.skills.getRawValue()).toEqual(originalSkills);
+    component.saveResume();
+    expect(service.updateResume).toHaveBeenCalledWith(
+      RESUME_ID,
+      expect.objectContaining({
+        content: expect.objectContaining({
+          settings: expect.objectContaining({
+            hiddenSections: ['skills'],
+            sectionOrder: [
+              'summary',
+              'experience',
+              'skills',
+              'education',
+              'certifications',
+              'languages',
+              'additionalSections',
+            ],
+          }),
+        }),
+      }),
+    );
+  });
+
   function textNodeContent(button: HTMLButtonElement): string {
     return Array.from(button.childNodes)
       .filter((node) => node.nodeType === Node.TEXT_NODE)
@@ -2039,7 +2450,7 @@ function resume(overrides: Partial<Resume> = {}): Resume {
     createdAt: '2026-01-01T03:04:05+00:00',
     updatedAt: '2026-01-02T03:04:05+00:00',
     content: {
-      settings: { dateFormat: 'monthYearNumeric' },
+      settings: { dateFormat: 'monthYearNumeric', sectionOrder: [], hiddenSections: [] },
       profile: {
         fullName: 'Candidate Name',
         photoFileId: '',

@@ -1,0 +1,77 @@
+<span #marker class="resume-section-marker" aria-hidden="true"></span>
+<header
+  #header
+  class="resume-section-header"
+  [class.resume-section-header-sticky]="expanded()"
+  [class.resume-section-invalid]="invalid()"
+>
+  <h3 class="resume-section-heading" [attr.aria-level]="nested() ? 4 : 3">
+    <button
+      #toggle
+      cdkDragHandle
+      type="button"
+      class="resume-section-toggle"
+      [attr.data-testid]="'resume-group-toggle-' + sectionKey()"
+      [attr.aria-expanded]="expanded()"
+      [attr.aria-controls]="'resume-group-body-' + sectionKey()"
+      [attr.aria-describedby]="reorderHelpId()"
+      (click)="expandedChange.emit(!expanded())"
+    >
+      <svg
+        class="resume-section-chevron"
+        [class.resume-section-chevron-expanded]="expanded()"
+        aria-hidden="true"
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
+        <path d="m9 18 6-6-6-6"></path>
+      </svg>
+      <span class="resume-section-label">
+        <span class="resume-section-title" [title]="title()">{{ title() }}</span>
+        <span class="resume-section-summary" [title]="summary()">{{ summary() }}</span>
+      </span>
+    </button>
+  </h3>
+  <div class="resume-section-actions">
+    @if (expanded() && stuck()) {
+      <button
+        type="button"
+        class="btn btn-outline-secondary btn-sm resume-section-top"
+        [attr.aria-label]="backToStartLabel()"
+        [title]="backToStartLabel()"
+        (click)="backToStart()"
+      >
+        <svg
+          aria-hidden="true"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path d="m6 12 6-6 6 6M12 6v14"></path>
+        </svg>
+      </button>
+    }
+    <ng-content select="[resumeSectionActions]" />
+  </div>
+</header>
+<div
+  class="resume-section-body"
+  [id]="'resume-group-body-' + sectionKey()"
+  [attr.data-testid]="'resume-group-body-' + sectionKey()"
+  [hidden]="!expanded()"
+>
+  <ng-content />
+</div>
+<ng-template cdkDragPreview>
+  <div class="resume-reorder-group-preview">
+    <strong class="resume-section-title">{{ title() }}</strong>
+    <span class="resume-section-summary">{{ summary() }}</span>
+  </div>
+</ng-template>

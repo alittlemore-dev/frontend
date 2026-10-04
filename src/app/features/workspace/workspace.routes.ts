@@ -88,6 +88,7 @@ export const workspaceRoutes: Routes = [
       {
         path: 'resumes/:id',
         title: 'resumeWorkspace.detailTitle',
+        data: { workspaceNavigation: 'contextual' },
         canDeactivate: [unsavedChangesGuard],
         loadComponent: () =>
           import('./pages/resume-detail-page/resume-detail-page.component').then(

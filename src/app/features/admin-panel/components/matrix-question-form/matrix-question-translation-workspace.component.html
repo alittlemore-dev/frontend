@@ -120,6 +120,7 @@
               </div>
             } @else if (isContextField(row.field)) {
               <textarea
+                appTextareaAutosize
                 class="form-control"
                 [id]="'matrix-translation-target-' + fieldTestId(row.field)"
                 [attr.data-testid]="'matrix-translation-target-' + fieldTestId(row.field)"
@@ -172,6 +173,7 @@
     </h4>
     <p class="form-text mt-0">{{ 'matrix.translation.import.help' | t }}</p>
     <textarea
+      appTextareaAutosize
       class="form-control font-monospace"
       data-testid="matrix-translation-import-input"
       rows="10"

@@ -4,6 +4,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import { provideI18nTesting } from '../../../../testing/i18n-testing';
 import { WorkspacePageComponent } from './workspace-page.component';
+import { workspaceRoutes } from '../../workspace.routes';
 
 @Component({ standalone: true, template: '' })
 class EmptyRouteComponent {}
@@ -16,7 +17,17 @@ describe('WorkspacePageComponent', () => {
     await TestBed.configureTestingModule({
       imports: [WorkspacePageComponent],
       providers: [
-        provideRouter([{ path: '**', component: EmptyRouteComponent }]),
+        provideRouter([
+          {
+            path: 'personal-workspace',
+            children: workspaceRoutes[0].children?.map((route) => ({
+              ...route,
+              component: EmptyRouteComponent,
+              loadComponent: undefined,
+              canDeactivate: undefined,
+            })),
+          },
+        ]),
         provideI18nTesting(),
       ],
     }).compileComponents();
@@ -47,6 +58,58 @@ describe('WorkspacePageComponent', () => {
 
     expect(peopleItem.getAttribute('aria-current')).toBe('page');
     expect(dashboardItem.getAttribute('aria-current')).toBeNull();
+  });
+
+  it('removes the workspace navigation on direct resume editor entry', async () => {
+    fixture.destroy();
+    await router.navigateByUrl('/personal-workspace/resumes/resume-1?preview=true#contacts');
+    fixture = TestBed.createComponent(WorkspacePageComponent);
+    fixture.detectChanges();
+
+    const host = fixture.nativeElement as HTMLElement;
+    expect(host.querySelector('[data-testid="workspace-side-panel"]')).toBeNull();
+    expect(host.querySelector('[data-testid="workspace-side-panel-toggle"]')).toBeNull();
+    expect(host.querySelector('ds-drawer')).toBeNull();
+    expect(host.querySelector('h1')).toBeNull();
+    expect(host.querySelector('router-outlet')).not.toBeNull();
+  });
+
+  it.each([
+    '/personal-workspace/resumes',
+    '/personal-workspace/knowledge/people/resumes',
+    '/personal-workspace/knowledge/dates/date-1',
+    '/personal-workspace/events',
+  ])('keeps the workspace tree at %s', async (url) => {
+    await router.navigateByUrl(url);
+    fixture.detectChanges();
+
+    const host = fixture.nativeElement as HTMLElement;
+    expect(host.querySelector('[data-testid="workspace-side-panel"]')).not.toBeNull();
+    expect(host.querySelector('[data-testid="workspace-side-panel-toggle"]')).not.toBeNull();
+    expect(host.querySelector('ds-drawer')).not.toBeNull();
+    expect(navigationItem('Резюме')).toBeDefined();
+  });
+
+  it('removes an open workspace drawer on editor entry and restores navigation on return', async () => {
+    const host = fixture.nativeElement as HTMLElement;
+    const dialog = host.querySelector('ds-drawer dialog') as HTMLDialogElement;
+    dialog.showModal = () => dialog.setAttribute('open', '');
+    dialog.close = () => dialog.removeAttribute('open');
+    fixture.componentInstance.toggleSidePanel();
+    fixture.detectChanges();
+    expect(dialog.open).toBe(true);
+
+    await router.navigateByUrl('/personal-workspace/resumes/resume-1');
+    fixture.detectChanges();
+    expect(host.querySelector('ds-drawer')).toBeNull();
+    expect(host.querySelector('[data-testid="workspace-side-panel"]')).toBeNull();
+
+    await router.navigateByUrl('/personal-workspace/resumes?sort=updated#list');
+    fixture.detectChanges();
+    expect(host.querySelector('[data-testid="workspace-side-panel"]')).not.toBeNull();
+    expect(host.querySelector('[data-testid="workspace-side-panel-toggle"]')).not.toBeNull();
+    expect((host.querySelector('ds-drawer dialog') as HTMLDialogElement).open).toBe(false);
+    expect(navigationItem('Резюме').getAttribute('aria-current')).toBe('page');
   });
 
   it('closes the DS mobile drawer after navigating to a selected workspace page', async () => {

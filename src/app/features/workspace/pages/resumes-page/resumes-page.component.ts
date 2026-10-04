@@ -18,7 +18,7 @@ import {
   signal,
 } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { CdkTextareaAutosize } from '@angular/cdk/text-field';
+import { TextareaAutosizeDirective } from '../../../../shared/directives/textarea-autosize.directive';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, ParamMap, Router, RouterLink } from '@angular/router';
 import { ApiError } from '../../../../core/models/api-error.model';
@@ -69,7 +69,7 @@ const RESUME_LANGUAGE_OPTIONS: readonly ResumeLanguageOption[] = [
   standalone: true,
   imports: [
     ReactiveFormsModule,
-    CdkTextareaAutosize,
+    TextareaAutosizeDirective,
     ResumeTextLimitDirective,
     RouterLink,
     TranslatePipe,
@@ -305,7 +305,11 @@ export class ResumesPageComponent implements OnInit {
       title: value.title.trim(),
       language: toResumeLanguage(value.language),
       content: {
-        settings: { dateFormat: value.language === 'ru' ? 'monthYearNumeric' : 'monthYear' },
+        settings: {
+          dateFormat: value.language === 'ru' ? 'monthYearNumeric' : 'monthYear',
+          sectionOrder: [],
+          hiddenSections: [],
+        },
         profile: {
           fullName: value.fullName.trim(),
           photoFileId: '',

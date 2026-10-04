@@ -56,7 +56,11 @@ describe('ResumeWorkspaceService', () => {
 
     service.getResume(RESUME_ID).subscribe((resume) => {
       fullName = resume.content.profile.fullName;
-      expect(resume.content.settings).toEqual({ dateFormat: 'monthYear' });
+      expect(resume.content.settings).toEqual({
+        dateFormat: 'monthYear',
+        sectionOrder: [],
+        hiddenSections: [],
+      });
     });
 
     const detailReq = httpMock.expectOne((request) =>
@@ -218,7 +222,7 @@ function resumeDto(): {
 
 function resumeContent(): ResumePayload['content'] {
   return {
-    settings: { dateFormat: 'monthYear' },
+    settings: { dateFormat: 'monthYear', sectionOrder: [], hiddenSections: [] },
     profile: {
       fullName: 'Candidate Name',
       photoFileId: '',

@@ -1,3 +1,4 @@
+import { TextareaAutosizeDirective } from '../../../../../../shared/directives/textarea-autosize.directive';
 import { ChangeDetectionStrategy, Component, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { LanguageCode } from '../../../../../../core/i18n/i18n.model';
@@ -17,7 +18,7 @@ export interface MatrixResourceDraft extends Omit<MatrixAttachedResource, 'trans
 @Component({
   selector: 'app-matrix-resource-picker',
   standalone: true,
-  imports: [FormsModule, TranslatePipe],
+  imports: [TextareaAutosizeDirective, FormsModule, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './matrix-resource-picker.component.html',
 })

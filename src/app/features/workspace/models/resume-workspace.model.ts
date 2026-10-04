@@ -5,9 +5,47 @@ export type ResumeLanguage = LanguageCode;
 export type ResumeExportFormat = 'pdf' | 'docx';
 export type ResumeTheme = 'simple' | 'accent';
 export type ResumeDateFormat = 'monthYear' | 'monthYearNumeric' | 'fullDate' | 'year';
+export type ResumeSectionKey =
+  | 'summary'
+  | 'skills'
+  | 'experience'
+  | 'education'
+  | 'languages'
+  | 'certifications'
+  | 'additionalSections';
+
+export const RESUME_SECTION_KEYS: readonly ResumeSectionKey[] = [
+  'summary',
+  'skills',
+  'experience',
+  'education',
+  'certifications',
+  'languages',
+  'additionalSections',
+];
 
 export interface ResumeSettings {
   dateFormat: ResumeDateFormat;
+  sectionOrder: ResumeSectionKey[];
+  hiddenSections: ResumeSectionKey[];
+}
+
+export function resumeSectionOrder(
+  settings: ResumeSettings,
+  theme: ResumeTheme,
+): ResumeSectionKey[] {
+  if (settings.sectionOrder.length) return [...settings.sectionOrder];
+  return theme === 'accent'
+    ? [
+        'summary',
+        'skills',
+        'education',
+        'languages',
+        'experience',
+        'certifications',
+        'additionalSections',
+      ]
+    : [...RESUME_SECTION_KEYS];
 }
 
 export interface ResumeProfileDto {
@@ -290,7 +328,11 @@ export function toResumeExportPayloadDto(
 
 export function mapResumeContentDto(dto: ResumeContentDto): ResumeContent {
   return {
-    settings: { ...dto.settings },
+    settings: {
+      ...dto.settings,
+      sectionOrder: [...dto.settings.sectionOrder],
+      hiddenSections: [...dto.settings.hiddenSections],
+    },
     profile: { ...dto.profile, photoDataUrl: '' },
     summary: { ...dto.summary },
     skills: dto.skills.map((skill) => ({
@@ -322,7 +364,11 @@ export function mapResumeContentDto(dto: ResumeContentDto): ResumeContent {
 
 function mapResumeContentToDto(content: ResumeContent): ResumeContentDto {
   return {
-    settings: { ...content.settings },
+    settings: {
+      ...content.settings,
+      sectionOrder: [...content.settings.sectionOrder],
+      hiddenSections: [...content.settings.hiddenSections],
+    },
     profile: {
       fullName: content.profile.fullName,
       photoFileId: content.profile.photoFileId,

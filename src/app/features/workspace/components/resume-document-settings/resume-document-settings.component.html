@@ -1,0 +1,42 @@
+<section class="mb-4">
+  <p class="visually-hidden" role="status">{{ positionNotice() }}</p>
+  <h2 class="h6">{{ 'resumeWorkspace.editor.documentSections' | t }}</h2>
+  <p class="small text-body-secondary">{{ 'resumeWorkspace.editor.documentSectionsHelp' | t }}</p>
+  <div
+    cdkDropList
+    [cdkDropListData]="sections()"
+    [cdkDropListDisabled]="disabled()"
+    (cdkDropListDropped)="move($event.previousIndex, $event.currentIndex)"
+    class="section-list"
+  >
+    @for (section of sections(); track section.key; let index = $index) {
+      <div
+        cdkDrag
+        appResumeReorder
+        [appResumeReorderDisabled]="disabled()"
+        (reorderStep)="move(index, index + $event)"
+        class="section-row"
+        tabindex="0"
+        [attr.aria-label]="section.label"
+        aria-describedby="resume-reorder-help"
+      >
+        <span class="small text-body-secondary" aria-hidden="true">{{ index + 1 }}</span>
+        <span class="flex-grow-1">{{ section.label }}</span>
+        <input
+          #visibility
+          type="checkbox"
+          class="form-check-input m-0"
+          [checked]="section.visible"
+          [disabled]="disabled()"
+          [attr.aria-label]="'resumeWorkspace.editor.showSection' | t: { section: section.label }"
+          (change)="setVisible(section.key, visibility.checked)"
+        />
+      </div>
+    }
+  </div>
+  @if (!settings().sectionOrder.length) {
+    <p class="small text-body-secondary mt-2">
+      {{ 'resumeWorkspace.editor.defaultSectionOrder' | t }}
+    </p>
+  }
+</section>

@@ -1,0 +1,43 @@
+<nav [attr.aria-label]="label()">
+  <div class="resume-desktop-navigation">
+    @for (item of items(); track item.key) {
+      <button
+        type="button"
+        class="resume-section-link"
+        [attr.data-testid]="'resume-section-nav-' + item.key"
+        [class.active]="activeKey() === item.key"
+        [class.text-danger]="item.errors > 0"
+        [attr.aria-current]="activeKey() === item.key ? 'page' : null"
+        [attr.aria-invalid]="item.errors > 0 ? 'true' : null"
+        (click)="selected.emit(item.key)"
+      >
+        <span>{{ item.label }}</span>
+        @if (item.errors > 0) {
+          <span class="badge text-bg-danger">{{ item.errors }}</span>
+        } @else if (item.count !== null) {
+          <span class="resume-section-count">{{ item.count }}</span>
+        }
+      </button>
+    }
+  </div>
+  <div class="resume-mobile-navigation">
+    <label class="visually-hidden" for="resume-section-select">{{ label() }}</label>
+    <ds-site-select
+      inputId="resume-section-select"
+      testId="resume-section-select"
+      [options]="options()"
+      controlSize="small"
+      appearance="default"
+      [required]="false"
+      [invalid]="invalid()"
+      [controlDisabled]="false"
+      [value]="activeKey()"
+      (valueChange)="selected.emit($event)"
+    />
+  </div>
+  <div class="resume-total-count small" role="status">
+    <span [class.text-danger]="textCount() > textMax()" [title]="textTitle()"
+      >{{ textLabel() }}: {{ textCount() }}/{{ textMax() }}</span
+    >
+  </div>
+</nav>

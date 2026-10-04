@@ -21,6 +21,46 @@ const I18N_TEST_MESSAGES: Record<string, string> = {
   'shared.update': 'Обновить',
   'shared.draft': 'Черновик',
   'shared.notSet': 'Не задано',
+  'resumeWorkspace.action.sectionStart': 'К началу секции',
+  'resumeWorkspace.exportThemePlaceholder': 'Выберите тему',
+  'resumeWorkspace.exportIntro':
+    'Выберите оформление и формат файла. Рядом появится ваше резюме в выбранном виде.',
+  'resumeWorkspace.exportGuidance': 'Как выбрать',
+  'resumeWorkspace.exportChooseBoth':
+    'Выберите тему и формат, чтобы увидеть документ и продолжить экспорт.',
+  'resumeWorkspace.exportYourResume': 'Ваше резюме',
+  'resumeWorkspace.exportHelp.themes':
+    'Simple — спокойное линейное оформление. Accent — цветовые акценты на разделах, компаниях и проектах.',
+  'resumeWorkspace.exportHelp.simple':
+    'Simple — для откликов через ATS и строгого делового оформления. Одна колонка и простая структура облегчают извлечение текста. Для автоматического разбора лучше обойтись без фото; результат зависит от системы работодателя.',
+  'resumeWorkspace.exportHelp.accent':
+    'Accent — для отправки напрямую HR или нанимающему руководителю. Цветные заголовки и блоки помогают быстро просмотреть опыт и проекты. Если важен автоматический разбор в ATS, предпочтительнее Simple.',
+  'resumeWorkspace.exportHelp.pdf':
+    'PDF — для отправки готового документа: оформление сохраняется при открытии. Текст остаётся доступным для выделения и копирования. Учитывайте требования вакансии к формату.',
+  'resumeWorkspace.exportHelp.docx':
+    'DOCX — когда работодатель просит Word или документ нужно отредактировать. Шрифты и переносы могут немного отличаться в Word и LibreOffice. Учитывайте требования вакансии к формату.',
+  'resumeWorkspace.document.a4': 'PDF · A4',
+  'resumeWorkspace.document.letter': 'DOCX · Letter',
+  'resumeWorkspace.document.actualSize': '100%',
+  'resumeWorkspace.document.fitWidth': 'По ширине',
+  'resumeWorkspace.document.previewNote':
+    'Оформление выбранного шаблона. Переносы строк и разбивка на страницы в файле могут немного отличаться.',
+  'resumeWorkspace.document.summary': 'Профессиональный профиль',
+  'resumeWorkspace.document.skills': 'Навыки',
+  'resumeWorkspace.document.experience': 'Опыт работы',
+  'resumeWorkspace.document.project': 'Проект',
+  'resumeWorkspace.document.education': 'Образование',
+  'resumeWorkspace.document.languages': 'Языки',
+  'resumeWorkspace.document.certifications': 'Сертификаты',
+  'resumeWorkspace.document.present': 'настоящее время',
+  'resumeWorkspace.document.technologies': 'Технологии',
+  'resumeWorkspace.document.issued': 'Выдан',
+  'resumeWorkspace.document.expires': 'Истекает',
+  'resumeWorkspace.document.phone': 'Телефон',
+  'resumeWorkspace.document.website': 'Сайт',
+  'resumeWorkspace.document.teamSize': 'Размер команды',
+  'resumeWorkspace.document.scale': 'Масштаб и нагрузка',
+  'resumeWorkspace.document.contacts': 'Контактные данные',
   'shell.account.profile': 'Профиль',
   'account.title': 'Личный кабинет',
   'account.navigation': 'Разделы профиля',
@@ -987,6 +1027,10 @@ const I18N_TEST_MESSAGES: Record<string, string> = {
     'Есть несохранённые изменения. Если продолжить, они будут потеряны. Продолжить?',
   'resumeWorkspace.title': 'Резюме',
   'resumeWorkspace.detailTitle': 'Редактирование резюме',
+  'resumeWorkspace.editor.sections': 'Секции резюме',
+  'resumeWorkspace.editor.clean': 'Все изменения сохранены',
+  'resumeWorkspace.editor.unsaved': 'Есть несохранённые изменения',
+  'resumeWorkspace.editor.sectionErrors': 'Ошибок: {count}',
   'resumeWorkspace.create': 'Создать резюме',
   'resumeWorkspace.createTitle': 'Новое резюме',
   'resumeWorkspace.createSubmit': 'Создать',
@@ -1022,6 +1066,44 @@ const I18N_TEST_MESSAGES: Record<string, string> = {
   'resumeWorkspace.validation.dateOrder': 'Дата окончания раньше даты начала.',
   'resumeWorkspace.validation.currentEnd': 'У текущей работы не должно быть даты окончания.',
   'resumeWorkspace.validation.textTotal': 'Общий текст превышает {max} символов.',
+  'resumeWorkspace.editor.removed': 'Удалено: {count}.',
+  'resumeWorkspace.editor.undo': 'Отменить',
+  'resumeWorkspace.editor.restored': 'Элемент восстановлен.',
+  'resumeWorkspace.editor.undoUnavailable':
+    'Не удалось восстановить элемент: его родительская запись уже удалена.',
+  'resumeWorkspace.editor.moved': 'Позиция {index} из {count}.',
+  'resumeWorkspace.editor.reorderHelp':
+    'Удерживайте элемент для переноса. Alt + ↑ / ↓ — изменить порядок с клавиатуры. В активном поле доступно обычное выделение текста.',
+  'resumeWorkspace.editor.reorderHint':
+    'Удерживайте элемент для переноса · Alt + ↑ / ↓ с клавиатуры',
+  'resumeWorkspace.editor.documentSections': 'Разделы итогового документа',
+  'resumeWorkspace.editor.documentSectionsHelp':
+    'Удерживайте строку для переноса или используйте Alt + ↑ / ↓. Чекбокс включает раздел в предпросмотр и экспорт; данные скрытого раздела сохраняются. Имя и контакты остаются в шапке документа.',
+  'resumeWorkspace.editor.showSection': 'Показывать раздел «{section}»',
+  'resumeWorkspace.editor.defaultSectionOrder':
+    'Пока порядок не изменён, используется порядок выбранного шаблона.',
+  'resumeWorkspace.editor.additionalDetails': 'Дополнительные сведения',
+  'resumeWorkspace.editor.additionalLinks': 'Дополнительные ссылки',
+  'resumeWorkspace.editor.profileLinks': 'Ссылки',
+  'resumeWorkspace.recommendation.title': 'Рекомендации перед отправкой',
+  'resumeWorkspace.recommendation.contacts':
+    'Укажите хотя бы один способ связи, чтобы получатель мог с вами связаться.',
+  'resumeWorkspace.recommendation.summary':
+    'Краткий профессиональный профиль помогает обозначить целевую роль и ключевой опыт. Добавьте его, если это не повторяет остальные разделы.',
+  'resumeWorkspace.recommendation.skills':
+    'Укажите навыки, относящиеся к целевой роли. Необязательно перечислять все инструменты, с которыми вы когда-либо работали.',
+  'resumeWorkspace.recommendation.experience':
+    'Добавьте релевантный опыт: работу, стажировку или проекты. Если опыта пока нет, можно опереться на образование и учебные проекты.',
+  'resumeWorkspace.recommendation.education':
+    'Укажите образование, если оно относится к позиции или помогает объяснить вашу подготовку.',
+  'resumeWorkspace.recommendation.certifications':
+    'Добавьте действующие сертификаты, если они относятся к целевой роли. Если таких сертификатов нет, раздел можно оставить пустым.',
+  'resumeWorkspace.recommendation.companies':
+    'В резюме указано компаний: {count}. Проверьте, нужен ли весь ранний опыт для выбранной позиции. Недавние релевантные роли можно описать подробнее, остальные — короче.',
+  'resumeWorkspace.recommendation.projects':
+    'В резюме указано проектов: {count}. Выделите наиболее релевантные, а похожие проекты можно объединить в описание роли или компании.',
+  'resumeWorkspace.recommendation.length':
+    'По предпросмотру объём — около {pages} страниц; разбиение в файле может отличаться. Проверьте, можно ли сократить повторяющиеся подробности и описание раннего опыта.',
   'resumeWorkspace.exportMissingContact': 'В резюме нет контактов. Экспортировать всё равно?',
   'resumeWorkspace.exportSparse':
     'В резюме пока нет содержательных разделов. Экспортировать всё равно?',
@@ -1029,8 +1111,7 @@ const I18N_TEST_MESSAGES: Record<string, string> = {
     'Резюме может оказаться длиннее двух страниц. Экспортировать всё равно?',
   'resumeWorkspace.exportPossibleDuplicates':
     'Проверьте возможные дубли опыта или сертификатов. Экспортировать всё равно?',
-  'resumeWorkspace.exportedLong':
-    'Резюме экспортировано ({pages} стр.). Рекомендуем сократить его до 1–2 страниц.',
+  'resumeWorkspace.exportedWithPages': 'Резюме экспортировано ({pages} стр.).',
   'resumeWorkspace.delete': 'Удалить',
   'resumeWorkspace.deleted': 'Резюме удалено.',
   'resumeWorkspace.deleteError': 'Не удалось удалить резюме.',
@@ -1159,6 +1240,82 @@ const I18N_TEST_MESSAGES: Record<string, string> = {
 };
 
 const I18N_TEST_MESSAGES_EN: Record<string, string> = {
+  'resumeWorkspace.exportThemePlaceholder': 'Select theme',
+  'resumeWorkspace.exportIntro':
+    'Choose a theme and file format. Your resume will appear alongside these options.',
+  'resumeWorkspace.exportGuidance': 'Choosing an option',
+  'resumeWorkspace.exportChooseBoth':
+    'Choose a theme and format to preview the document and continue exporting.',
+  'resumeWorkspace.exportYourResume': 'Your resume',
+  'resumeWorkspace.exportHelp.themes':
+    'Simple offers a restrained, linear layout. Accent highlights sections, companies and projects with color.',
+  'resumeWorkspace.editor.removed': 'Removed: {count}.',
+  'resumeWorkspace.editor.undo': 'Undo',
+  'resumeWorkspace.editor.restored': 'Item restored.',
+  'resumeWorkspace.editor.undoUnavailable':
+    'Could not restore the item: its parent entry has already been removed.',
+  'resumeWorkspace.editor.moved': 'Position {index} of {count}.',
+  'resumeWorkspace.editor.reorderHelp':
+    'Hold an item to drag it. Alt + ↑ / ↓ changes its position using the keyboard. Text selection works normally in the active field.',
+  'resumeWorkspace.editor.reorderHint': 'Hold to reorder · Alt + ↑ / ↓ with the keyboard',
+  'resumeWorkspace.editor.documentSections': 'Sections in the final document',
+  'resumeWorkspace.editor.documentSectionsHelp':
+    'Hold a row to drag it, or use Alt + ↑ / ↓. Check a section to include it in preview and export; hidden sections retain their data. Your name and contacts remain in the document header.',
+  'resumeWorkspace.editor.showSection': 'Show the “{section}” section',
+  'resumeWorkspace.editor.defaultSectionOrder':
+    'Until you change the order, the selected template’s order is used.',
+  'resumeWorkspace.editor.additionalDetails': 'Additional details',
+  'resumeWorkspace.editor.additionalLinks': 'Additional links',
+  'resumeWorkspace.editor.profileLinks': 'Links',
+  'resumeWorkspace.recommendation.title': 'Recommendations before sharing',
+  'resumeWorkspace.recommendation.contacts':
+    'Include at least one way to contact you so the recipient can get in touch.',
+  'resumeWorkspace.recommendation.summary':
+    'A short professional profile can clarify your target role and key experience. Add one if it does not repeat other sections.',
+  'resumeWorkspace.recommendation.skills':
+    'List skills relevant to your target role. You do not need to include every tool you have ever used.',
+  'resumeWorkspace.recommendation.experience':
+    'Include relevant work, internships or projects. If you have no experience yet, focus on education and learning projects.',
+  'resumeWorkspace.recommendation.education':
+    'Include education if it relates to the position or helps explain your preparation.',
+  'resumeWorkspace.recommendation.certifications':
+    'Include current certifications relevant to your target role. Leave this section empty if you have none.',
+  'resumeWorkspace.recommendation.companies':
+    'Companies listed: {count}. Review whether all earlier experience is relevant to the position. Describe recent relevant roles in more detail and earlier roles briefly.',
+  'resumeWorkspace.recommendation.projects':
+    'Projects listed: {count}. Focus on the most relevant ones; similar projects can be combined into the role or company description.',
+  'resumeWorkspace.recommendation.length':
+    'The preview suggests about {pages} pages; page breaks in the file may differ. Review whether repeated details and earlier experience can be shortened.',
+  'resumeWorkspace.exportHelp.simple':
+    'Simple — for ATS applications and a restrained professional look. One column and a simple structure make text extraction easier. For automated parsing, consider leaving out the photo; results depend on the employer’s system.',
+  'resumeWorkspace.exportHelp.accent':
+    'Accent — for sending directly to HR or a hiring manager. Colored headings and blocks make experience and projects easier to scan. Prefer Simple when automated ATS parsing is a priority.',
+  'resumeWorkspace.exportHelp.pdf':
+    'PDF — for sharing a finished document with consistent formatting. Text remains selectable and copyable. Follow the file requirements in the job posting.',
+  'resumeWorkspace.exportHelp.docx':
+    'DOCX — when the employer requests Word or you need to edit the file. Fonts and line breaks may vary slightly in Word and LibreOffice. Follow the file requirements in the job posting.',
+  'resumeWorkspace.document.a4': 'PDF · A4',
+  'resumeWorkspace.document.letter': 'DOCX · Letter',
+  'resumeWorkspace.document.actualSize': '100%',
+  'resumeWorkspace.document.fitWidth': 'Fit width',
+  'resumeWorkspace.document.previewNote':
+    'Selected template layout. Line breaks and pagination may differ slightly in the exported file.',
+  'resumeWorkspace.document.summary': 'Professional Summary',
+  'resumeWorkspace.document.skills': 'Skills',
+  'resumeWorkspace.document.experience': 'Work Experience',
+  'resumeWorkspace.document.project': 'Project',
+  'resumeWorkspace.document.education': 'Education',
+  'resumeWorkspace.document.languages': 'Languages',
+  'resumeWorkspace.document.certifications': 'Certifications',
+  'resumeWorkspace.document.present': 'Present',
+  'resumeWorkspace.document.technologies': 'Technologies',
+  'resumeWorkspace.document.issued': 'Issued',
+  'resumeWorkspace.document.expires': 'Expires',
+  'resumeWorkspace.document.phone': 'Phone',
+  'resumeWorkspace.document.website': 'Website',
+  'resumeWorkspace.document.teamSize': 'Team size',
+  'resumeWorkspace.document.scale': 'Scale and load',
+  'resumeWorkspace.document.contacts': 'Contacts',
   'adminPanel.section.dashboard': 'Dashboard',
   'dashboard.title': 'Dashboard',
   'dashboard.tools.title': 'Tools',

@@ -16,7 +16,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
+import { NavigationEnd, PRIMARY_OUTLET, Router, RouterOutlet } from '@angular/router';
 import { filter, map } from 'rxjs';
 
 import { I18nService } from '../../../../core/i18n/i18n.service';
@@ -51,6 +51,13 @@ export class WorkspacePageComponent {
       map((event) => event.urlAfterRedirects),
     ),
     { initialValue: this.router.url },
+  );
+  readonly contextualNavigation = toSignal(
+    this.router.events.pipe(
+      filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+      map(() => this.hasContextualNavigation()),
+    ),
+    { initialValue: this.hasContextualNavigation() },
   );
   readonly visibleNavigationSections = computed<readonly WorkspaceNavigationSection[]>(
     () => WORKSPACE_NAVIGATION_SECTIONS,
@@ -101,8 +108,20 @@ export class WorkspacePageComponent {
 
   constructor() {
     effect(() => {
-      if (this.desktop() || this.authModal.isLoginOpen()) this.closeSidePanel();
+      if (this.desktop() || this.authModal.isLoginOpen() || this.contextualNavigation()) {
+        this.closeSidePanel();
+      }
     });
+  }
+
+  private hasContextualNavigation(): boolean {
+    let route = this.router.routerState.snapshot.root;
+    let child = route.children.find((item) => item.outlet === PRIMARY_OUTLET);
+    while (child !== undefined) {
+      route = child;
+      child = route.children.find((item) => item.outlet === PRIMARY_OUTLET);
+    }
+    return route.data['workspaceNavigation'] === 'contextual';
   }
 
   toggleSidePanel(): void {

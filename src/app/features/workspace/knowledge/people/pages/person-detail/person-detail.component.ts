@@ -1,3 +1,4 @@
+import { TextareaAutosizeDirective } from '../../../../../../shared/directives/textarea-autosize.directive';
 import {
   NotificationService,
   ErrorMessageComponent,
@@ -114,6 +115,7 @@ const RELATED_DATE_PREVIEW_LIMIT = 10;
   selector: 'app-person-detail',
   standalone: true,
   imports: [
+    TextareaAutosizeDirective,
     ReactiveFormsModule,
     TranslatePipe,
     MarkdownEditorComponent,

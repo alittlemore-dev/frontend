@@ -1,0 +1,164 @@
+:host {
+  display: block;
+  margin-bottom: 1.25rem;
+}
+
+.resume-editor-header {
+  display: grid;
+  grid-template-columns: minmax(15rem, 1fr) auto;
+  align-items: start;
+  gap: 1rem 1.5rem;
+  padding: 0.25rem 0 1.25rem;
+  border-bottom: 1px solid var(--bs-border-color);
+}
+
+.resume-header-context {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--bs-secondary-color);
+  font-size: 0.75rem;
+}
+
+.resume-title-field {
+  min-width: 0;
+}
+
+.resume-title-input {
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.5;
+  padding: 0.25rem 0.5rem;
+}
+
+.resume-title-input:not(:focus, .is-invalid, .resume-limit-exceeded) {
+  border-color: transparent;
+  background: transparent;
+}
+
+.resume-title-input:hover:not(:focus, .is-invalid, .resume-limit-exceeded) {
+  border-color: var(--bs-border-color);
+}
+
+.resume-title-field .resume-title-input:not(:focus, .resume-limit-near, .resume-limit-exceeded) {
+  padding-inline-end: 0.5rem !important;
+  text-overflow: ellipsis;
+}
+
+.resume-title-field:not(:focus-within)
+  ::ng-deep
+  .resume-text-limit-counter:not(.resume-limit-exceeded, .resume-limit-near) {
+  opacity: 0;
+}
+
+.resume-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-top: 0.3125rem;
+}
+
+.resume-toolbar-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  height: 1.9375rem;
+  white-space: nowrap;
+  background: var(--bs-body-bg);
+  border-color: var(--bs-border-color);
+  color: var(--bs-body-color);
+}
+
+.resume-save-button {
+  background: var(--bs-body-bg);
+  border-color: var(--accent-color);
+  color: var(--link-readable-color);
+}
+
+.resume-save-button:hover:not(:disabled),
+.resume-save-button:focus-visible:not(:disabled) {
+  background: var(--accent-soft-color);
+  color: var(--link-readable-color);
+}
+
+.resume-actions-menu {
+  position: relative;
+}
+
+.resume-actions-menu summary {
+  width: 1.9375rem;
+  list-style: none;
+}
+
+.resume-actions-menu summary::-webkit-details-marker {
+  display: none;
+}
+
+.resume-actions-dropdown {
+  position: absolute;
+  inset-inline-end: 0;
+  top: calc(100% + 0.5rem);
+  z-index: 10;
+  padding: 0.5rem;
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.375rem;
+  background: var(--bs-body-bg);
+  box-shadow: var(--bs-box-shadow-sm);
+}
+
+.resume-language-field {
+  width: 4.5rem;
+  flex-shrink: 0;
+}
+
+@media (width < 1200px) {
+  .resume-editor-header {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.75rem;
+  }
+}
+
+@media (width < 576px) {
+  .resume-header-context {
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+
+  .resume-header-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  }
+
+  .resume-language-field {
+    grid-area: 1 / 1;
+  }
+
+  .resume-mode-button {
+    grid-area: 1 / 2 / 2 / 4;
+    justify-self: end;
+  }
+
+  .resume-save-button {
+    grid-area: 2 / 1;
+  }
+
+  .resume-export-button {
+    grid-area: 2 / 2;
+  }
+
+  .resume-actions-menu {
+    grid-area: 2 / 3;
+  }
+}
+
+@media (pointer: coarse) {
+  .resume-toolbar-button {
+    min-height: 2.75rem;
+  }
+
+  :host ::ng-deep .resume-language-field .site-select-trigger {
+    min-height: 2.75rem;
+  }
+}

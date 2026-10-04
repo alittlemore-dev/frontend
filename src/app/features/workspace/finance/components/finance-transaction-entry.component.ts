@@ -1,3 +1,4 @@
+import { TextareaAutosizeDirective } from '../../../../shared/directives/textarea-autosize.directive';
 import {
   LocalizedDateTimePickerComponent,
   LocalizedDateTimePickerLabels,
@@ -32,6 +33,7 @@ import {
   selector: 'app-finance-transaction-entry',
   standalone: true,
   imports: [
+    TextareaAutosizeDirective,
     ReactiveFormsModule,
     LocalizedDateTimePickerComponent,
     SiteSelectComponent,

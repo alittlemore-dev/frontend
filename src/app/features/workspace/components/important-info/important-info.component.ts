@@ -24,7 +24,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, Validators } from '@angular/forms';
-import { CdkTextareaAutosize } from '@angular/cdk/text-field';
+import { TextareaAutosizeDirective } from '../../../../shared/directives/textarea-autosize.directive';
 import { I18nService } from '../../../../core/i18n/i18n.service';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
 import { ApiError } from '../../../../core/models/api-error.model';
@@ -40,7 +40,7 @@ import { ImportantInfoService } from '../../services/important-info.service';
   standalone: true,
   imports: [
     CdkDrag,
-    CdkTextareaAutosize,
+    TextareaAutosizeDirective,
     CdkDragPlaceholder,
     CdkDropList,
     ErrorMessageComponent,

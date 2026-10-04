@@ -122,6 +122,10 @@ See `README.md` for the current integration and local setup.
 
 ## Styles
 
+- On wide screens, arrange distinct form or settings groups in responsive columns when this
+  reduces unused space and vertical scrolling. Keep fields at readable widths, preserve logical
+  groupings and a clear reading order, and stack groups on narrow screens. Use one column when
+  splitting the content would make it harder to understand.
 - Prefer Bootstrap utilities and existing CSS variables before adding component SCSS.
 - Component SCSS must stay focused on local layout/overrides, not global theme concerns.
 - Add new colors through theme variables, not hardcoded component palettes.
