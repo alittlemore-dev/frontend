@@ -1,18 +1,19 @@
-FROM node:26.7.0-alpine AS builder
+FROM node:26.10.0-alpine AS builder
 WORKDIR /app
 
 COPY package*.json ./
 RUN npm ci
 
 COPY . .
+ARG NG_BUILD_MAX_WORKERS=1
 RUN npm run build
 
-FROM node:26.7.0-alpine AS runtime
+FROM node:26.10.0-alpine AS runtime
 WORKDIR /app
 
 ENV NODE_ENV=production
 
-RUN apk add --no-cache --upgrade libcrypto3=3.5.8-r0 libssl3=3.5.8-r0
+RUN apk add --no-cache --upgrade libcrypto3=3.5.9-r0 libssl3=3.5.9-r0
 
 COPY package*.json ./
 RUN npm ci --omit=dev \
