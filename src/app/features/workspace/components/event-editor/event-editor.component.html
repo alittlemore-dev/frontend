@@ -1,123 +1,125 @@
 <ng-template #editorFields>
-  <div class="vstack gap-3" [formGroup]="form">
+  <div class="event-editor-layout" [formGroup]="form">
     @if (validationError()) {
-      <p class="alert alert-danger mb-0" role="alert">{{ validationError()! | t }}</p>
+      <p class="event-editor-error alert alert-danger mb-0" role="alert">
+        {{ validationError()! | t }}
+      </p>
     }
-    <div>
-      <label class="form-label" for="event-title"
-        >{{ 'workspaceEvents.name' | t }}
-        <span class="required-marker text-danger" aria-hidden="true">*</span></label
-      >
-      <input
-        id="event-title"
-        cdkFocusInitial
-        class="form-control"
-        formControlName="title"
-        required
-        maxlength="255"
-        [class.is-invalid]="submitted() && form.controls.title.invalid"
-      />
-    </div>
-    <div>
-      <label class="form-label" for="event-description">{{
-        'workspaceEvents.description' | t
-      }}</label>
-      <textarea
-        appTextareaAutosize
-        id="event-description"
-        class="form-control"
-        formControlName="description"
-        rows="3"
-        maxlength="2000"
-        [class.is-invalid]="submitted() && form.controls.description.invalid"
-      ></textarea>
-    </div>
-    <div class="row g-3">
-      <div class="col-md-6">
-        <div class="form-check mb-2">
-          <input
-            id="event-all-day"
-            class="form-check-input"
-            type="checkbox"
-            formControlName="allDay"
-          /><label for="event-all-day" class="form-check-label">{{
-            'workspaceEvents.allDay' | t
-          }}</label>
-        </div>
-      </div>
-    </div>
-    @if (form.controls.allDay.value) {
+    <div class="event-editor-main vstack gap-3">
       <div>
-        <label class="form-label" for="event-date-range"
-          >{{ 'workspaceEvents.start' | t }} – {{ 'workspaceEvents.end' | t }}
+        <label class="form-label" for="event-title"
+          >{{ 'workspaceEvents.name' | t }}
           <span class="required-marker text-danger" aria-hidden="true">*</span></label
         >
-        <ds-localized-date-range-picker
-          inputId="event-date-range"
-          formControlName="dateRange"
-          controlSize="default"
-          [dateLocale]="dateLocale()"
-          [labels]="dateRangeLabels()"
-          [requirements]="rangeRequirements"
-          [invalid]="submitted() && form.controls.dateRange.invalid"
-          [controlDisabled]="submitting()"
-          [readonly]="false"
+        <input
+          id="event-title"
+          cdkFocusInitial
+          class="form-control form-control-sm"
+          formControlName="title"
+          required
+          maxlength="255"
+          [class.is-invalid]="submitted() && form.controls.title.invalid"
         />
       </div>
-    } @else {
       <div>
-        <label class="form-label" for="event-datetime-range"
-          >{{ 'workspaceEvents.start' | t }} – {{ 'workspaceEvents.end' | t }}
-          <span class="required-marker text-danger" aria-hidden="true">*</span></label
-        >
-        <ds-localized-datetime-range-picker
-          inputId="event-datetime-range"
-          formControlName="dateTimeRange"
-          controlSize="default"
-          [dateLocale]="dateLocale()"
-          [labels]="dateTimeRangeLabels()"
-          [requirements]="rangeRequirements"
-          [invalid]="submitted() && form.controls.dateTimeRange.invalid"
-          [controlDisabled]="submitting()"
-          [readonly]="false"
-          timePickerMode="auto"
-        />
-      </div>
-    }
-    <div class="row g-3">
-      <div class="col-md-6">
-        <label class="form-label" for="event-recurrence">{{
-          'workspaceEvents.recurrence' | t
+        <label class="form-label" for="event-description">{{
+          'workspaceEvents.description' | t
         }}</label>
-        <ds-site-select
-          inputId="event-recurrence"
-          [options]="frequencyOptions()"
-          controlSize="default"
-          appearance="default"
-          [required]="false"
-          [invalid]="submitted() && form.controls.frequency.invalid"
-          [controlDisabled]="submitting()"
-          formControlName="frequency"
-        />
+        <textarea
+          appTextareaAutosize
+          id="event-description"
+          class="form-control form-control-sm"
+          formControlName="description"
+          rows="3"
+          maxlength="2000"
+          [class.is-invalid]="submitted() && form.controls.description.invalid"
+        ></textarea>
       </div>
-      @if (form.controls.frequency.value !== 'none') {
-        <div class="col-md-6">
-          <label class="form-label" for="event-until-date">{{
-            'workspaceEvents.untilDate' | t
-          }}</label>
-          <ds-localized-date-picker
-            inputId="event-until-date"
-            formControlName="untilDate"
-            controlSize="default"
+    </div>
+    <div class="event-editor-schedule vstack gap-3">
+      <div class="form-check">
+        <input
+          id="event-all-day"
+          class="form-check-input"
+          type="checkbox"
+          formControlName="allDay"
+        /><label for="event-all-day" class="form-check-label">{{
+          'workspaceEvents.allDay' | t
+        }}</label>
+      </div>
+      @if (form.controls.allDay.value) {
+        <div>
+          <label class="form-label" for="event-date-range"
+            >{{ 'workspaceEvents.start' | t }} – {{ 'workspaceEvents.end' | t }}
+            <span class="required-marker text-danger" aria-hidden="true">*</span></label
+          >
+          <ds-localized-date-range-picker
+            inputId="event-date-range"
+            formControlName="dateRange"
+            controlSize="small"
             [dateLocale]="dateLocale()"
-            [labels]="datePickerLabels()"
-            [required]="false"
-            [invalid]="submitted() && form.controls.untilDate.invalid"
+            [labels]="dateRangeLabels()"
+            [requirements]="rangeRequirements"
+            [invalid]="submitted() && form.controls.dateRange.invalid"
             [controlDisabled]="submitting()"
             [readonly]="false"
           />
         </div>
+      } @else {
+        <div>
+          <label class="form-label" for="event-datetime-range"
+            >{{ 'workspaceEvents.start' | t }} – {{ 'workspaceEvents.end' | t }}
+            <span class="required-marker text-danger" aria-hidden="true">*</span></label
+          >
+          <ds-localized-datetime-range-picker
+            inputId="event-datetime-range"
+            formControlName="dateTimeRange"
+            controlSize="small"
+            [dateLocale]="dateLocale()"
+            [labels]="dateTimeRangeLabels()"
+            [requirements]="rangeRequirements"
+            [invalid]="submitted() && form.controls.dateTimeRange.invalid"
+            [controlDisabled]="submitting()"
+            [readonly]="false"
+            timePickerMode="auto"
+          />
+        </div>
       }
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label" for="event-recurrence">{{
+            'workspaceEvents.recurrence' | t
+          }}</label>
+          <ds-site-select
+            inputId="event-recurrence"
+            [options]="frequencyOptions()"
+            controlSize="small"
+            appearance="default"
+            [required]="false"
+            [invalid]="submitted() && form.controls.frequency.invalid"
+            [controlDisabled]="submitting()"
+            formControlName="frequency"
+          />
+        </div>
+        @if (form.controls.frequency.value !== 'none') {
+          <div class="col-md-6">
+            <label class="form-label" for="event-until-date">{{
+              'workspaceEvents.untilDate' | t
+            }}</label>
+            <ds-localized-date-picker
+              inputId="event-until-date"
+              formControlName="untilDate"
+              controlSize="small"
+              [dateLocale]="dateLocale()"
+              [labels]="datePickerLabels()"
+              [required]="false"
+              [invalid]="submitted() && form.controls.untilDate.invalid"
+              [controlDisabled]="submitting()"
+              [readonly]="false"
+            />
+          </div>
+        }
+      </div>
     </div>
   </div>
 </ng-template>
@@ -134,7 +136,7 @@
     [cdkTrapFocusAutoCapture]="true"
     (keydown.escape)="close()"
   >
-    <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
       <form class="modal-content" [formGroup]="form" (ngSubmit)="submit()">
         <div class="modal-header">
           <h2 id="event-editor-title" class="modal-title fs-5">
@@ -152,10 +154,10 @@
           <ng-container [ngTemplateOutlet]="editorFields" />
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-outline-secondary" (click)="close()">
+          <button type="button" class="btn btn-outline-secondary btn-sm" (click)="close()">
             {{ 'workspaceEvents.cancel' | t }}
           </button>
-          <button type="submit" class="btn btn-success" [disabled]="submitting()">
+          <button type="submit" class="btn btn-sm detail-save" [disabled]="submitting()">
             {{ 'workspaceEvents.save' | t }}
           </button>
         </div>

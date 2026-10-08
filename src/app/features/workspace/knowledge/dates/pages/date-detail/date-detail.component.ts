@@ -1,9 +1,11 @@
+import { WorkspaceDetailNavigationService } from '../../../../services/workspace-detail-navigation.service';
 import {
   NotificationService,
   ErrorMessageComponent,
   LoadingSpinnerComponent,
   SiteSelectComponent,
   SiteSelectOption,
+  ControlValidationStateDirective,
 } from '@alittlemore.dev/design-system';
 import { DOCUMENT } from '@angular/common';
 import {
@@ -82,6 +84,7 @@ const RELATED_PEOPLE_PREVIEW_LIMIT = 10;
     ErrorMessageComponent,
     LoadingSpinnerComponent,
     SiteSelectComponent,
+    ControlValidationStateDirective,
     ActionsDropdownComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -95,6 +98,7 @@ export class DateDetailComponent implements OnInit {
   private readonly notifications = inject(NotificationService);
   private readonly i18n = inject(I18nService);
   private readonly router = inject(Router);
+  private readonly detailNavigation = inject(WorkspaceDetailNavigationService);
   private readonly route = inject(ActivatedRoute);
   private readonly document = inject(DOCUMENT);
   private readonly formBuilder = inject(NonNullableFormBuilder);
@@ -105,6 +109,7 @@ export class DateDetailComponent implements OnInit {
   private dateId = '';
   private peopleSearchGeneration = 0;
 
+  readonly unsavedChanges = this.unsavedScope.hasChanges;
   readonly loading = signal(true);
   readonly error = signal<ApiError | null>(null);
   readonly date = signal<KnowledgeDateDetail | null>(null);
@@ -385,7 +390,9 @@ export class DateDetailComponent implements OnInit {
         next: () => {
           this.mainUnsavedSource.commit();
           this.notifications.success(this.i18n.translate('knowledgeDates.deleteSuccess'));
-          this.back();
+          void this.router.navigate(['/personal-workspace/knowledge/dates'], {
+            queryParamsHandling: 'preserve',
+          });
         },
         error: () => {
           this.deleting.set(false);
@@ -414,9 +421,7 @@ export class DateDetailComponent implements OnInit {
   }
 
   back(): void {
-    void this.router.navigate(['/personal-workspace/knowledge/dates'], {
-      queryParamsHandling: 'preserve',
-    });
+    this.detailNavigation.back('/personal-workspace/knowledge/dates');
   }
 
   setDescription(value: string): void {

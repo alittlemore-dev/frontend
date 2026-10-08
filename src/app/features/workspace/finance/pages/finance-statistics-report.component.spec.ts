@@ -4,6 +4,7 @@ import { FINANCE_TEST_STATISTICS as STATISTICS } from '../testing/finance-fixtur
 import { FinanceStatisticsReportComponent } from './finance-statistics-report.component';
 
 describe('FinanceStatisticsReportComponent', () => {
+  afterEach(() => jest.restoreAllMocks());
   beforeEach(() =>
     TestBed.configureTestingModule({
       imports: [FinanceStatisticsReportComponent],
@@ -71,4 +72,35 @@ describe('FinanceStatisticsReportComponent', () => {
     expect(root.textContent).toContain('13:00');
     expect(root.textContent).toContain('10');
   });
+
+  it.each(['income', 'expense'] as const)(
+    'shows past and current day rows for %s while preserving future buckets in the chart',
+    (kind) => {
+      jest.spyOn(Date, 'now').mockReturnValue(new Date('2026-10-07T22:00:00Z').getTime());
+      const fixture = TestBed.createComponent(FinanceStatisticsReportComponent);
+      fixture.componentRef.setInput('timeZone', 'Asia/Yerevan');
+      fixture.componentRef.setInput('statistics', {
+        ...STATISTICS,
+        [kind]: {
+          ...STATISTICS[kind],
+          timeline: [7, 8, 9].map((day) => ({
+            start: `2026-10-0${day}T00:00:00+04:00`,
+            end: `2026-10-${String(day + 1).padStart(2, '0')}T00:00:00+04:00`,
+            amount: String(day * 10),
+          })),
+        },
+      });
+      fixture.componentRef.setInput('tab', kind);
+      fixture.detectChanges();
+      const chart = (fixture.nativeElement as HTMLElement).querySelector(
+        '[role="tabpanel"]:not([hidden]) app-finance-chart',
+      )!;
+      const rows = chart.querySelectorAll('table tr');
+      expect(rows).toHaveLength(2);
+      expect(rows[0].textContent).toContain('70');
+      expect(rows[1].textContent).toContain('80');
+      expect(chart.querySelectorAll('svg[role="img"] rect')).toHaveLength(3);
+      expect(chart.querySelector('svg[role="img"]')?.textContent).toContain('90');
+    },
+  );
 });

@@ -157,6 +157,35 @@ describe('DateDetailComponent', () => {
     fixture.detectChanges();
   });
 
+  it('reflects edits, a full revert and successful saving in the header', () => {
+    const host = fixture.nativeElement as HTMLElement;
+    const state = (): string =>
+      host.querySelector('[data-testid="date-save-state"]')?.textContent ?? '';
+    const input = host.querySelector<HTMLInputElement>('#date-name')!;
+    const original = input.value;
+    const edit = (value: string): void => {
+      input.value = value;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      fixture.detectChanges();
+    };
+    expect(state()).toContain('Все изменения сохранены');
+    edit('Changed');
+    expect(state()).toContain('Есть несохранённые изменения');
+    edit(original);
+    expect(state()).toContain('Все изменения сохранены');
+    edit('Changed');
+    const response = new Subject<KnowledgeDateDetail>();
+    datesService.updateDate.mockReturnValue(response);
+    const save = host.querySelector<HTMLButtonElement>('[data-testid="date-detail-save"]')!;
+    save.click();
+    fixture.detectChanges();
+    expect(save.disabled).toBe(true);
+    response.next(DATE);
+    fixture.detectChanges();
+    expect(save.disabled).toBe(false);
+    expect(state()).toContain('Все изменения сохранены');
+  });
+
   it('saves numeric years and clearing through the native number input', () => {
     const component = fixture.componentInstance;
     for (const year of [2024, 2020, null, 2024]) {

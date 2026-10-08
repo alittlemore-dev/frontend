@@ -108,17 +108,20 @@
       {{ 'finance.statistics.comparison' | t }}: {{ date(data.previousWindow.start) }} —
       {{ periodEnd(data.previousWindow.end) }}
     </p>
-    <div class="finance-statistics-grid">
+    <div class="finance-statistics-grid finance-statistics-charts">
       <app-finance-chart
         [title]="'finance.statistics.dynamics' | t"
         [currency]="data.currency"
         [data]="timeline(data[kind])"
+        [tableData]="timelineTable(data[kind])"
+        [aligned]="true"
       />
       <app-finance-chart
         [title]="'finance.statistics.categories' | t"
         [currency]="data.currency"
         [data]="categories(data[kind])"
         kind="pie"
+        [aligned]="true"
       />
     </div>
   </div>

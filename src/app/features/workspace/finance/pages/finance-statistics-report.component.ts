@@ -119,6 +119,11 @@ export class FinanceStatisticsReportComponent {
     }));
   }
 
+  timelineTable(data: FinanceStatisticsBreakdown): FinanceChartDatum[] {
+    const now = Date.now();
+    return this.timeline(data).filter((point) => new Date(point.id).getTime() <= now);
+  }
+
   money(value: string, currency: FinanceCurrency): string {
     return formatFinanceMoney(value, currency, this.i18n.dateLocale());
   }

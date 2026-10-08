@@ -185,8 +185,9 @@
 }
 
 .finance-transaction-dialog {
-  width: min(92vw, 34rem);
-  max-width: min(92vw, 34rem);
+  width: 44rem;
+  max-width: 92vw;
+  max-height: 92dvh;
 }
 
 .finance-dialog-title {

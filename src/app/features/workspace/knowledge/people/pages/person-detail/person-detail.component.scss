@@ -1,5 +1,9 @@
+@use '../../../../styles/detail-editor';
+
+@include detail-editor.layout;
+
 .person-photo-frame {
-  width: min(100%, 14rem);
+  width: 7rem;
   aspect-ratio: 1;
   display: grid;
   place-items: center;
@@ -16,11 +20,19 @@
   object-fit: cover;
 }
 
-.person-detail-action-footer {
-  position: sticky;
-  bottom: 0;
-  z-index: 2;
-  background-color: var(--bs-body-bg);
+@media (width < 576px) {
+  .person-photo-column {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .person-photo-frame {
+    width: 3.5rem;
+    margin-bottom: 0 !important;
+    font-size: 1.5rem;
+  }
 }
 
 .relationship-dialog {

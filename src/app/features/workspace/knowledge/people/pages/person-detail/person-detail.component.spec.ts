@@ -138,6 +138,35 @@ describe('PersonDetailComponent', () => {
     };
   });
 
+  it('reflects edits, a full revert and successful saving in the header', () => {
+    const host = fixture.nativeElement as HTMLElement;
+    const state = (): string =>
+      host.querySelector('[data-testid="person-save-state"]')?.textContent ?? '';
+    const input = host.querySelector<HTMLInputElement>('#person-first-name')!;
+    const original = input.value;
+    const edit = (value: string): void => {
+      input.value = value;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      fixture.detectChanges();
+    };
+    expect(state()).toContain('Все изменения сохранены');
+    edit('Changed');
+    expect(state()).toContain('Есть несохранённые изменения');
+    edit(original);
+    expect(state()).toContain('Все изменения сохранены');
+    edit('Changed');
+    const response = new Subject<PersonDetail>();
+    peopleService.updatePerson.mockReturnValue(response);
+    const save = host.querySelector<HTMLButtonElement>('[data-testid="person-detail-save"]')!;
+    save.click();
+    fixture.detectChanges();
+    expect(save.disabled).toBe(true);
+    response.next(PERSON);
+    fixture.detectChanges();
+    expect(save.disabled).toBe(false);
+    expect(state()).toContain('Все изменения сохранены');
+  });
+
   it('reloads a reused card on relationship navigation and protects its unsaved draft', async () => {
     fixture.destroy();
     TestBed.resetTestingModule();
@@ -507,23 +536,18 @@ describe('PersonDetailComponent', () => {
     expect(fixture.componentInstance.fileSize(512)).not.toContain('МБ');
   });
 
-  it('loads and saves Telegram from the sticky form action footer', () => {
+  it('loads and saves Telegram from the detail header', () => {
     const component = fixture.componentInstance;
     const telegramInput = fixture.nativeElement.querySelector(
       '#person-telegram',
     ) as HTMLInputElement | null;
-    const footer = fixture.nativeElement.querySelector(
-      '[data-testid="person-detail-action-footer"]',
-    ) as HTMLElement | null;
     const save = fixture.nativeElement.querySelector(
       '[data-testid="person-detail-save"]',
     ) as HTMLButtonElement | null;
 
     expect(component.personForm.controls.telegram.value).toBe('@ivanov');
     expect(telegramInput?.value).toBe('@ivanov');
-    expect(footer).not.toBeNull();
     expect(save).not.toBeNull();
-    expect(footer?.contains(save)).toBe(true);
 
     if (telegramInput !== null) {
       telegramInput.value = ' @new_ivanov ';
@@ -542,7 +566,7 @@ describe('PersonDetailComponent', () => {
     expect(notifications.error).toHaveBeenCalled();
   });
 
-  it('deletes through the detail actions dropdown without a top save action', () => {
+  it('keeps deletion in the detail actions dropdown', () => {
     const navigate = jest.spyOn(router, 'navigate').mockResolvedValue(true);
     jest.spyOn(window, 'confirm').mockReturnValue(true);
 

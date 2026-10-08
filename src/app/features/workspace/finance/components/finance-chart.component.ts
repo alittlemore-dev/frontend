@@ -18,6 +18,7 @@ export interface FinanceChartDatum {
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './finance-chart.component.html',
   styleUrl: './finance-chart.component.scss',
+  host: { '[class.finance-chart-aligned]': 'aligned()' },
 })
 export class FinanceChartComponent {
   private readonly i18n = inject(I18nService);
@@ -25,6 +26,8 @@ export class FinanceChartComponent {
   readonly symbol = computed(() => FINANCE_CURRENCY_SYMBOLS[this.currency()]);
   readonly currency = input.required<FinanceCurrency>();
   readonly data = input.required<readonly FinanceChartDatum[]>();
+  readonly tableData = input<readonly FinanceChartDatum[] | null>(null);
+  readonly aligned = input(false);
   readonly kind = input<'vertical' | 'horizontal' | 'pie'>('vertical');
   readonly scale = input<readonly number[]>([]);
   readonly height = computed(() =>
@@ -75,7 +78,7 @@ export class FinanceChartComponent {
   readonly legendRows = computed(() =>
     this.kind() === 'pie'
       ? this.pieRows()
-      : this.data().map((row) => ({ ...row, fill: null, percentage: 0 })),
+      : (this.tableData() ?? this.data()).map((row) => ({ ...row, fill: null, percentage: 0 })),
   );
   readonly slices = computed(() => {
     let angle = -Math.PI / 2;

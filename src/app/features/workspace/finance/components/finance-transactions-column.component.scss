@@ -141,26 +141,30 @@
   width: 100%;
   overflow-wrap: anywhere;
 
-  strong,
-  span {
-    display: block;
-  }
-
-  strong {
-    font-weight: 550;
-  }
-
-  span {
-    color: var(--bs-secondary-color);
-    font-size: 0.75rem;
-    margin-top: 0.2rem;
-  }
-
   &:hover:not(:disabled),
   &:focus-visible {
     background: var(--bs-tertiary-bg);
     outline-color: var(--accent-color);
   }
+}
+
+.finance-category-badge {
+  --category-color: var(--bs-secondary-color);
+  display: inline-block;
+  border: 1px solid color-mix(in oklab, var(--category-color) 55%, var(--bs-body-bg));
+  border-radius: 0.4rem;
+  background: color-mix(in oklab, var(--category-color) 18%, var(--bs-body-bg));
+  color: var(--bs-body-color);
+  padding: 0.15rem 0.4rem;
+  font-size: 0.75rem;
+  font-weight: 550;
+}
+
+.finance-transaction-description {
+  display: block;
+  color: var(--bs-secondary-color);
+  font-size: 0.75rem;
+  margin-top: 0.2rem;
 }
 
 .finance-history-button {

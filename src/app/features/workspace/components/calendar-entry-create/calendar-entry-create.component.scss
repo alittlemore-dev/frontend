@@ -1,7 +1,11 @@
+@use '../../styles/detail-editor';
+
+@include detail-editor.save-action;
+
 .calendar-entry-dialog {
-  height: 46rem;
+  max-height: calc(100dvh - 2rem);
 }
 
 .calendar-entry-fields {
-  min-height: 0;
+  min-width: 0;
 }

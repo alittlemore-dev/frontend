@@ -1,447 +1,522 @@
-<div class="person-detail-page">
-  <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
-    <div>
-      <button type="button" class="btn btn-link p-0 mb-2" (click)="back()">
-        {{ 'shared.back' | t }}
-      </button>
-      <h2 class="h4 mb-0">{{ person()?.displayName || ('knowledgePeople.detailTitle' | t) }}</h2>
+<div class="person-detail-page detail-editor">
+  <header class="detail-header" data-testid="person-detail-header">
+    <div class="detail-heading">
+      <div class="detail-context">
+        <button
+          type="button"
+          class="btn btn-link btn-sm p-0 d-inline-flex align-items-center gap-1 text-decoration-none"
+          (click)="back()"
+        >
+          <svg
+            aria-hidden="true"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="m12 19-7-7 7-7M19 12H5"></path>
+          </svg>
+          {{ 'shared.back' | t }}
+        </button>
+        <span>{{ 'knowledgePeople.detailTitle' | t }}</span>
+      </div>
+      <h1
+        class="h5 mb-0 text-truncate"
+        [title]="person()?.displayName || ('knowledgePeople.detailTitle' | t)"
+      >
+        {{ person()?.displayName || ('knowledgePeople.detailTitle' | t) }}
+      </h1>
+      @if (person() && !loading() && !error()) {
+        <p
+          class="small text-body-secondary mb-0 mt-1"
+          role="status"
+          data-testid="person-save-state"
+        >
+          {{ (unsavedChanges() ? 'workspace.editor.unsaved' : 'workspace.editor.clean') | t }}
+        </p>
+      }
     </div>
-    @if (person()) {
-      <app-actions-dropdown
-        [actions]="detailActions()"
-        [buttonLabel]="'shared.actions' | t"
-        [ariaLabel]="'shared.actions' | t"
-        [destructiveActionLabel]="'shared.destructiveAction' | t"
-        testId="people-detail-actions"
-        (actionSelected)="handleDetailAction($event)"
-      />
+    @if (person() && !loading() && !error()) {
+      <div class="d-flex align-items-center gap-2">
+        <button
+          type="submit"
+          form="person-detail-form"
+          class="btn btn-sm detail-save"
+          data-testid="person-detail-save"
+          [disabled]="saving() || deleting() || loading() || editorImagePending()"
+        >
+          {{ 'shared.save' | t }}
+        </button>
+        <app-actions-dropdown
+          [actions]="detailActions()"
+          [buttonLabel]="'shared.actions' | t"
+          [ariaLabel]="'shared.actions' | t"
+          [destructiveActionLabel]="'shared.destructiveAction' | t"
+          testId="people-detail-actions"
+          (actionSelected)="handleDetailAction($event)"
+        />
+      </div>
     }
-  </div>
+  </header>
 
   @if (loading()) {
     <ds-loading-spinner [ariaLabel]="'shared.loading' | t" />
   } @else if (error()) {
     <ds-error-message [error]="error()!" [retryLabel]="'shared.retry' | t" (retry)="loadPerson()" />
   } @else if (person()) {
-    <form [formGroup]="personForm" (ngSubmit)="savePerson()">
-      <section class="card card-body mb-3">
-        <h3 class="h5">{{ 'knowledgePeople.section.basic' | t }}</h3>
-        <div class="row g-3">
-          <div class="col-12 col-lg-3">
-            <div class="person-photo-frame mb-2">
-              @if (photoUrl(); as url) {
-                <img [src]="url" [alt]="person()!.displayName" />
-              } @else {
-                <span aria-hidden="true">{{ person()!.displayName.slice(0, 1) }}</span>
+    <form id="person-detail-form" [formGroup]="personForm" (ngSubmit)="savePerson()">
+      <div class="detail-layout">
+        <div class="detail-main">
+          <section class="detail-section">
+            <h2 class="h6">{{ 'knowledgePeople.section.basic' | t }}</h2>
+            <div class="row g-3">
+              <div class="person-photo-column col-12 col-sm-auto">
+                <div class="person-photo-frame mb-2">
+                  @if (photoUrl(); as url) {
+                    <img [src]="url" [alt]="person()!.displayName" />
+                  } @else {
+                    <span aria-hidden="true">{{ person()!.displayName.slice(0, 1) }}</span>
+                  }
+                </div>
+                <label class="btn btn-outline-secondary btn-sm">
+                  {{ 'knowledgePeople.photoReplace' | t }}
+                  <input
+                    class="visually-hidden"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    [disabled]="photoUploading()"
+                    (change)="uploadPhoto($event)"
+                  />
+                </label>
+                @if (person()!.photo !== null) {
+                  <button
+                    type="button"
+                    class="btn btn-outline-danger btn-sm ms-2"
+                    [disabled]="photoUploading()"
+                    (click)="deletePhoto()"
+                  >
+                    {{ 'shared.delete' | t }}
+                  </button>
+                }
+                @if (photoUploading()) {
+                  <p class="small text-body-secondary mt-2">
+                    {{ 'knowledgePeople.uploading' | t }}
+                  </p>
+                }
+                @if (photoError()) {
+                  <p class="small text-danger mt-2" role="alert">{{ photoError() }}</p>
+                }
+              </div>
+              <div class="col-12 col-sm">
+                <div class="row g-3">
+                  <div class="col-12 col-md-4">
+                    <label class="form-label" for="person-last-name"
+                      >{{ 'knowledgePeople.lastName' | t }}
+                      <span class="required-marker text-danger" aria-hidden="true">*</span></label
+                    >
+                    <input
+                      id="person-last-name"
+                      required
+                      class="form-control form-control-sm"
+                      dsControlValidationState
+                      formControlName="lastName"
+                      [attr.maxlength]="validationLimits.shortText"
+                    />
+                    @if (fieldInvalid('lastName') && fieldMessage('lastName'); as message) {
+                      <div class="invalid-feedback d-block">{{ message }}</div>
+                    }
+                  </div>
+                  <div class="col-12 col-md-4">
+                    <label class="form-label" for="person-first-name"
+                      >{{ 'knowledgePeople.firstName' | t }}
+                      <span class="required-marker text-danger" aria-hidden="true">*</span></label
+                    >
+                    <input
+                      id="person-first-name"
+                      required
+                      class="form-control form-control-sm"
+                      dsControlValidationState
+                      formControlName="firstName"
+                      [attr.maxlength]="validationLimits.shortText"
+                    />
+                    @if (fieldInvalid('firstName') && fieldMessage('firstName'); as message) {
+                      <div class="invalid-feedback d-block">{{ message }}</div>
+                    }
+                  </div>
+                  <div class="col-12 col-md-4">
+                    <label class="form-label" for="person-middle-name">{{
+                      'knowledgePeople.middleName' | t
+                    }}</label>
+                    <input
+                      id="person-middle-name"
+                      class="form-control form-control-sm"
+                      dsControlValidationState
+                      formControlName="middleName"
+                      [attr.maxlength]="validationLimits.shortText"
+                    />
+                  </div>
+                  <div class="col-12" formGroupName="birthday">
+                    <fieldset>
+                      <legend class="fs-6">{{ 'knowledgePeople.birthday' | t }}</legend>
+                      <div class="row g-2">
+                        <div class="col-4">
+                          <label class="form-label" for="birthday-day">{{
+                            'knowledgePeople.birthdayDay' | t
+                          }}</label>
+                          <ds-site-select
+                            inputId="birthday-day"
+                            [options]="dayOptions()"
+                            controlSize="small"
+                            appearance="default"
+                            [required]="false"
+                            [invalid]="birthdayInvalid()"
+                            [controlDisabled]="false"
+                            formControlName="day"
+                          />
+                        </div>
+                        <div class="col-4">
+                          <label class="form-label" for="birthday-month">{{
+                            'knowledgePeople.birthdayMonth' | t
+                          }}</label>
+                          <ds-site-select
+                            inputId="birthday-month"
+                            [options]="monthOptions()"
+                            controlSize="small"
+                            appearance="default"
+                            [required]="false"
+                            [invalid]="birthdayInvalid()"
+                            [controlDisabled]="false"
+                            formControlName="month"
+                          />
+                        </div>
+                        <div class="col-4">
+                          <label class="form-label" for="birthday-year">{{
+                            'knowledgePeople.birthdayYear' | t
+                          }}</label>
+                          <input
+                            id="birthday-year"
+                            type="number"
+                            min="1"
+                            max="9999"
+                            class="form-control form-control-sm"
+                            dsControlValidationState
+                            formControlName="year"
+                          />
+                        </div>
+                      </div>
+                      @if (birthdayInvalid()) {
+                        <p class="text-danger small mt-2" role="alert">
+                          {{ 'knowledgePeople.birthdayInvalid' | t }}
+                        </p>
+                      }
+                    </fieldset>
+                  </div>
+                  <div class="col-12 form-check form-switch ms-2">
+                    <input
+                      id="person-notifications-enabled"
+                      class="form-check-input"
+                      type="checkbox"
+                      dsControlValidationState
+                      formControlName="notificationsEnabled"
+                    />
+                    <label class="form-check-label" for="person-notifications-enabled">{{
+                      'knowledgePeople.notificationsEnabled' | t
+                    }}</label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+          <section class="detail-section">
+            <h2 class="h6">{{ 'knowledgePeople.section.contacts' | t }}</h2>
+            <div class="row g-3">
+              <div class="col-12 col-lg-4">
+                <label class="form-label" for="person-email">{{
+                  'knowledgePeople.email' | t
+                }}</label>
+                <input
+                  id="person-email"
+                  type="email"
+                  class="form-control form-control-sm"
+                  dsControlValidationState
+                  formControlName="email"
+                  [attr.maxlength]="validationLimits.email"
+                />
+                @if (fieldInvalid('email') && fieldMessage('email'); as message) {
+                  <div class="invalid-feedback d-block">{{ message }}</div>
+                }
+              </div>
+              <div class="col-12 col-lg-4">
+                <label class="form-label" for="person-phone">{{
+                  'knowledgePeople.phone' | t
+                }}</label>
+                <input
+                  id="person-phone"
+                  class="form-control form-control-sm"
+                  dsControlValidationState
+                  formControlName="phone"
+                  maxlength="64"
+                />
+              </div>
+              <div class="col-12 col-lg-4">
+                <label class="form-label" for="person-telegram">{{
+                  'knowledgePeople.telegram' | t
+                }}</label>
+                <input
+                  id="person-telegram"
+                  class="form-control form-control-sm"
+                  dsControlValidationState
+                  formControlName="telegram"
+                  [attr.maxlength]="validationLimits.shortText"
+                />
+                @if (fieldInvalid('telegram') && fieldMessage('telegram'); as message) {
+                  <div class="invalid-feedback d-block">{{ message }}</div>
+                }
+              </div>
+            </div>
+          </section>
+          <section class="detail-section">
+            <h2 class="h6">{{ 'knowledgePeople.section.description' | t }}</h2>
+            <app-markdown-editor
+              [value]="formSnapshot().description"
+              [language]="editorLanguage()"
+              [accessibleLabel]="'knowledgePeople.description' | t"
+              [imageCapability]="editorImageCapability()"
+              [uploadInteractionsDisabled]="saving()"
+              [imagePreviewRevision]="imagePreviewRevision()"
+              (valueChange)="setDescription($event)"
+              (imageUploadPendingChange)="editorImagePending.set($event)"
+            />
+          </section>
+        </div>
+        <div class="detail-support">
+          <details
+            [open]="person()!.relatedDates.length > 0"
+            class="detail-section"
+            data-testid="person-related-dates"
+          >
+            <summary>
+              {{ 'knowledgePeople.section.relatedDates' | t }}
+              <span class="text-body-secondary fw-normal"
+                >· {{ person()!.relatedDates.length }}</span
+              >
+            </summary>
+            <ul id="person-related-dates-list" class="list-group list-group-flush">
+              @for (relatedDate of visibleRelatedDates(); track relatedDate.id) {
+                <li
+                  class="list-group-item px-0 d-flex flex-wrap justify-content-between gap-2"
+                  [attr.data-testid]="'person-related-date-' + relatedDate.id"
+                >
+                  <a
+                    [routerLink]="['/personal-workspace/knowledge/dates', relatedDate.id]"
+                    queryParamsHandling="preserve"
+                  >
+                    {{ relatedDate.displayName }}
+                  </a>
+                  <span class="text-body-secondary">{{ annualDateLabel(relatedDate.date) }}</span>
+                </li>
+              } @empty {
+                <li class="list-group-item px-0 text-body-secondary">
+                  {{ 'knowledgePeople.relatedDates.empty' | t }}
+                </li>
+              }
+            </ul>
+            @if (relatedDatesCollapsible()) {
+              <button
+                type="button"
+                class="btn btn-link btn-sm align-self-start px-0 mt-2"
+                data-testid="person-related-dates-toggle"
+                aria-controls="person-related-dates-list"
+                [attr.aria-expanded]="relatedDatesExpanded()"
+                (click)="toggleRelatedDatesExpanded()"
+              >
+                {{
+                  (relatedDatesExpanded() ? 'shared.showLess' : 'shared.showAll')
+                    | t: { count: person()!.relatedDates.length }
+                }}
+              </button>
+            }
+          </details>
+          <details [open]="person()!.tags.length > 0" class="detail-section">
+            <summary>
+              {{ 'knowledgePeople.section.tags' | t }}
+              <span class="text-body-secondary fw-normal">· {{ selectedTagIds().length }}</span>
+            </summary>
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+              <button
+                type="button"
+                class="btn btn-outline-secondary btn-sm"
+                (click)="openTagDialog()"
+              >
+                {{ 'knowledgePeople.tags.manage' | t }}
+              </button>
+            </div>
+            <input
+              class="form-control form-control-sm mb-3"
+              type="search"
+              [placeholder]="'knowledgePeople.tags.search' | t"
+              [value]="tagSearch()"
+              [attr.aria-label]="'knowledgePeople.tags.search' | t"
+              (input)="onTagSearchInput($event)"
+            />
+            <div class="d-flex flex-wrap gap-2">
+              @for (tag of filteredTags(); track tag.id) {
+                <label class="form-check form-check-inline m-0">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    [checked]="selectedTagIds().includes(tag.id)"
+                    (change)="toggleTag(tag.id)"
+                  />
+                  <span class="form-check-label">{{ tag.name }}</span>
+                </label>
+              } @empty {
+                <span class="text-body-secondary">{{ 'knowledgePeople.tags.empty' | t }}</span>
               }
             </div>
-            <label class="btn btn-outline-secondary btn-sm">
-              {{ 'knowledgePeople.photoReplace' | t }}
+          </details>
+          <section class="detail-section">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+              <h2 class="h6 mb-0">{{ 'knowledgePeople.section.relationships' | t }}</h2>
+              <div class="d-flex gap-2">
+                <button
+                  type="button"
+                  class="btn btn-outline-secondary btn-sm"
+                  (click)="addRelationship()"
+                >
+                  {{ 'knowledgePeople.relationships.add' | t }}
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-outline-secondary btn-sm"
+                  (click)="openRelationshipTypeDialog()"
+                >
+                  {{ 'knowledgePeople.relationshipTypes.manage' | t }}
+                </button>
+              </div>
+            </div>
+            <ul id="person-relationships-list" class="list-group list-group-flush">
+              @for (
+                relationship of visibleRelationshipForms();
+                track relationship;
+                let index = $index
+              ) {
+                <li
+                  class="list-group-item px-0 py-1 d-flex align-items-center justify-content-between gap-2"
+                  [attr.data-testid]="'person-relationship-row-' + index"
+                >
+                  <div class="relationship-person-summary">
+                    <a
+                      [routerLink]="[
+                        '/personal-workspace/knowledge/people',
+                        relationship.controls.relatedPersonId.value,
+                      ]"
+                      queryParamsHandling="preserve"
+                    >
+                      {{ relationshipPersonLabel(relationship) }}
+                    </a>
+                    <span class="text-body-secondary">
+                      · {{ relationshipPersonRole(relationship) }}</span
+                    >
+                  </div>
+                  <app-actions-dropdown
+                    class="flex-shrink-0"
+                    [actions]="relationshipActions()"
+                    [buttonLabel]="'shared.actions' | t"
+                    [ariaLabel]="'shared.actions' | t"
+                    [destructiveActionLabel]="'shared.destructiveAction' | t"
+                    [testId]="'relationship-actions-' + index"
+                    (actionSelected)="handleRelationshipAction($event, relationship)"
+                  />
+                </li>
+              } @empty {
+                <li class="list-group-item px-0 text-body-secondary">
+                  {{ 'knowledgePeople.relationships.empty' | t }}
+                </li>
+              }
+            </ul>
+            @if (relationshipsCollapsible()) {
+              <button
+                type="button"
+                class="btn btn-link btn-sm align-self-start px-0"
+                data-testid="person-relationships-toggle"
+                aria-controls="person-relationships-list"
+                [attr.aria-expanded]="relationshipsExpanded()"
+                (click)="toggleRelationshipsExpanded()"
+              >
+                {{
+                  (relationshipsExpanded() ? 'shared.showLess' : 'shared.showAll')
+                    | t: { count: relationshipCount() }
+                }}
+              </button>
+            }
+          </section>
+          <details [open]="person()!.attachments.length > 0" class="detail-section">
+            <summary>
+              {{ 'knowledgePeople.section.attachments' | t }}
+              <span class="text-body-secondary fw-normal"
+                >· {{ person()!.attachments.length }}</span
+              >
+            </summary>
+            <label class="btn btn-outline-secondary btn-sm align-self-start mb-3">
+              {{ 'knowledgePeople.attachments.add' | t }}
               <input
                 class="visually-hidden"
                 type="file"
-                accept="image/jpeg,image/png,image/webp"
-                [disabled]="photoUploading()"
-                (change)="uploadPhoto($event)"
+                [disabled]="attachmentUploading()"
+                (change)="uploadAttachment($event)"
               />
             </label>
-            @if (person()!.photo !== null) {
-              <button
-                type="button"
-                class="btn btn-outline-danger btn-sm ms-2"
-                [disabled]="photoUploading()"
-                (click)="deletePhoto()"
-              >
-                {{ 'shared.delete' | t }}
-              </button>
+            @if (attachmentUploading()) {
+              <p class="small text-body-secondary">{{ 'knowledgePeople.uploading' | t }}</p>
             }
-            @if (photoUploading()) {
-              <p class="small text-body-secondary mt-2">{{ 'knowledgePeople.uploading' | t }}</p>
+            @if (attachmentError()) {
+              <p class="small text-danger" role="alert">{{ attachmentError() }}</p>
             }
-            @if (photoError()) {
-              <p class="small text-danger mt-2" role="alert">{{ photoError() }}</p>
-            }
-          </div>
-          <div class="col-12 col-lg-9">
-            <div class="row g-3">
-              <div class="col-12 col-md-4">
-                <label class="form-label" for="person-last-name">{{
-                  'knowledgePeople.lastName' | t
-                }}</label>
-                <input
-                  id="person-last-name"
-                  class="form-control"
-                  formControlName="lastName"
-                  [attr.maxlength]="validationLimits.shortText"
-                />
-                @if (fieldInvalid('lastName') && fieldMessage('lastName'); as message) {
-                  <div class="invalid-feedback d-block">{{ message }}</div>
-                }
-              </div>
-              <div class="col-12 col-md-4">
-                <label class="form-label" for="person-first-name">{{
-                  'knowledgePeople.firstName' | t
-                }}</label>
-                <input
-                  id="person-first-name"
-                  class="form-control"
-                  formControlName="firstName"
-                  [attr.maxlength]="validationLimits.shortText"
-                />
-                @if (fieldInvalid('firstName') && fieldMessage('firstName'); as message) {
-                  <div class="invalid-feedback d-block">{{ message }}</div>
-                }
-              </div>
-              <div class="col-12 col-md-4">
-                <label class="form-label" for="person-middle-name">{{
-                  'knowledgePeople.middleName' | t
-                }}</label>
-                <input
-                  id="person-middle-name"
-                  class="form-control"
-                  formControlName="middleName"
-                  [attr.maxlength]="validationLimits.shortText"
-                />
-              </div>
-              <div class="col-12" formGroupName="birthday">
-                <fieldset>
-                  <legend class="fs-6">{{ 'knowledgePeople.birthday' | t }}</legend>
-                  <div class="row g-2">
-                    <div class="col-4">
-                      <label class="form-label" for="birthday-day">{{
-                        'knowledgePeople.birthdayDay' | t
-                      }}</label>
-                      <ds-site-select
-                        inputId="birthday-day"
-                        [options]="dayOptions()"
-                        controlSize="default"
-                        appearance="default"
-                        [required]="false"
-                        [invalid]="birthdayInvalid()"
-                        [controlDisabled]="false"
-                        formControlName="day"
-                      />
-                    </div>
-                    <div class="col-4">
-                      <label class="form-label" for="birthday-month">{{
-                        'knowledgePeople.birthdayMonth' | t
-                      }}</label>
-                      <ds-site-select
-                        inputId="birthday-month"
-                        [options]="monthOptions()"
-                        controlSize="default"
-                        appearance="default"
-                        [required]="false"
-                        [invalid]="birthdayInvalid()"
-                        [controlDisabled]="false"
-                        formControlName="month"
-                      />
-                    </div>
-                    <div class="col-4">
-                      <label class="form-label" for="birthday-year">{{
-                        'knowledgePeople.birthdayYear' | t
-                      }}</label>
-                      <input
-                        id="birthday-year"
-                        type="number"
-                        min="1"
-                        max="9999"
-                        class="form-control"
-                        formControlName="year"
-                      />
-                    </div>
+            <ul class="list-group list-group-flush">
+              @for (attachment of person()!.attachments; track attachment.id) {
+                <li class="list-group-item d-flex flex-wrap justify-content-between gap-3">
+                  <span>
+                    <strong>{{ attachment.name }}</strong>
+                    <small class="d-block text-body-secondary">
+                      {{ attachment.originalName }} · {{ fileSize(attachment.sizeBytes) }}
+                    </small>
+                  </span>
+                  <div class="btn-group btn-group-sm">
+                    <button
+                      type="button"
+                      class="btn btn-outline-primary"
+                      (click)="downloadAttachment(attachment)"
+                    >
+                      {{ 'knowledgePeople.attachments.download' | t }}
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn-outline-secondary btn-sm"
+                      (click)="renameAttachment(attachment)"
+                    >
+                      {{ 'knowledgePeople.attachments.rename' | t }}
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn-outline-danger"
+                      (click)="deleteAttachment(attachment)"
+                    >
+                      {{ 'shared.delete' | t }}
+                    </button>
                   </div>
-                  @if (birthdayInvalid()) {
-                    <p class="text-danger small mt-2" role="alert">
-                      {{ 'knowledgePeople.birthdayInvalid' | t }}
-                    </p>
-                  }
-                </fieldset>
-              </div>
-              <div class="col-12 form-check form-switch ms-2">
-                <input
-                  id="person-notifications-enabled"
-                  class="form-check-input"
-                  type="checkbox"
-                  formControlName="notificationsEnabled"
-                />
-                <label class="form-check-label" for="person-notifications-enabled">{{
-                  'knowledgePeople.notificationsEnabled' | t
-                }}</label>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="card card-body mb-3">
-        <h3 class="h5">{{ 'knowledgePeople.section.contacts' | t }}</h3>
-        <div class="row g-3">
-          <div class="col-12 col-lg-4">
-            <label class="form-label" for="person-email">{{ 'knowledgePeople.email' | t }}</label>
-            <input
-              id="person-email"
-              type="email"
-              class="form-control"
-              formControlName="email"
-              [attr.maxlength]="validationLimits.email"
-            />
-            @if (fieldInvalid('email') && fieldMessage('email'); as message) {
-              <div class="invalid-feedback d-block">{{ message }}</div>
-            }
-          </div>
-          <div class="col-12 col-lg-4">
-            <label class="form-label" for="person-phone">{{ 'knowledgePeople.phone' | t }}</label>
-            <input id="person-phone" class="form-control" formControlName="phone" maxlength="64" />
-          </div>
-          <div class="col-12 col-lg-4">
-            <label class="form-label" for="person-telegram">{{
-              'knowledgePeople.telegram' | t
-            }}</label>
-            <input
-              id="person-telegram"
-              class="form-control"
-              formControlName="telegram"
-              [attr.maxlength]="validationLimits.shortText"
-            />
-            @if (fieldInvalid('telegram') && fieldMessage('telegram'); as message) {
-              <div class="invalid-feedback d-block">{{ message }}</div>
-            }
-          </div>
-        </div>
-      </section>
-
-      <section class="card card-body mb-3">
-        <h3 class="h5">{{ 'knowledgePeople.section.description' | t }}</h3>
-        <app-markdown-editor
-          [value]="formSnapshot().description"
-          [language]="editorLanguage()"
-          [accessibleLabel]="'knowledgePeople.description' | t"
-          [imageCapability]="editorImageCapability()"
-          [uploadInteractionsDisabled]="saving()"
-          [imagePreviewRevision]="imagePreviewRevision()"
-          (valueChange)="setDescription($event)"
-          (imageUploadPendingChange)="editorImagePending.set($event)"
-        />
-      </section>
-
-      <section class="card card-body mb-3" data-testid="person-related-dates">
-        <h3 class="h5">{{ 'knowledgePeople.section.relatedDates' | t }}</h3>
-        <ul id="person-related-dates-list" class="list-group list-group-flush">
-          @for (relatedDate of visibleRelatedDates(); track relatedDate.id) {
-            <li
-              class="list-group-item px-0 d-flex flex-wrap justify-content-between gap-2"
-              [attr.data-testid]="'person-related-date-' + relatedDate.id"
-            >
-              <a
-                [routerLink]="['/personal-workspace/knowledge/dates', relatedDate.id]"
-                queryParamsHandling="preserve"
-              >
-                {{ relatedDate.displayName }}
-              </a>
-              <span class="text-body-secondary">{{ annualDateLabel(relatedDate.date) }}</span>
-            </li>
-          } @empty {
-            <li class="list-group-item px-0 text-body-secondary">
-              {{ 'knowledgePeople.relatedDates.empty' | t }}
-            </li>
-          }
-        </ul>
-        @if (relatedDatesCollapsible()) {
-          <button
-            type="button"
-            class="btn btn-link btn-sm align-self-start px-0 mt-2"
-            data-testid="person-related-dates-toggle"
-            aria-controls="person-related-dates-list"
-            [attr.aria-expanded]="relatedDatesExpanded()"
-            (click)="toggleRelatedDatesExpanded()"
-          >
-            {{
-              (relatedDatesExpanded() ? 'shared.showLess' : 'shared.showAll')
-                | t: { count: person()!.relatedDates.length }
-            }}
-          </button>
-        }
-      </section>
-
-      <section class="card card-body mb-3">
-        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-          <h3 class="h5 mb-0">{{ 'knowledgePeople.section.tags' | t }}</h3>
-          <button type="button" class="btn btn-outline-secondary btn-sm" (click)="openTagDialog()">
-            {{ 'knowledgePeople.tags.manage' | t }}
-          </button>
-        </div>
-        <input
-          class="form-control form-control-sm mb-3"
-          [value]="tagSearch()"
-          [attr.aria-label]="'knowledgePeople.tags.search' | t"
-          (input)="onTagSearchInput($event)"
-        />
-        <div class="d-flex flex-wrap gap-2">
-          @for (tag of filteredTags(); track tag.id) {
-            <label class="form-check form-check-inline m-0">
-              <input
-                class="form-check-input"
-                type="checkbox"
-                [checked]="selectedTagIds().includes(tag.id)"
-                (change)="toggleTag(tag.id)"
-              />
-              <span class="form-check-label">{{ tag.name }}</span>
-            </label>
-          } @empty {
-            <span class="text-body-secondary">{{ 'knowledgePeople.tags.empty' | t }}</span>
-          }
-        </div>
-      </section>
-
-      <section class="card card-body mb-3">
-        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-          <h3 class="h5 mb-0">{{ 'knowledgePeople.section.relationships' | t }}</h3>
-          <div class="d-flex gap-2">
-            <button
-              type="button"
-              class="btn btn-outline-secondary btn-sm"
-              (click)="addRelationship()"
-            >
-              {{ 'knowledgePeople.relationships.add' | t }}
-            </button>
-            <button
-              type="button"
-              class="btn btn-outline-secondary btn-sm"
-              (click)="openRelationshipTypeDialog()"
-            >
-              {{ 'knowledgePeople.relationshipTypes.manage' | t }}
-            </button>
-          </div>
-        </div>
-        <ul id="person-relationships-list" class="list-group list-group-flush">
-          @for (
-            relationship of visibleRelationshipForms();
-            track relationship;
-            let index = $index
-          ) {
-            <li
-              class="list-group-item px-0 py-1 d-flex align-items-center justify-content-between gap-2"
-              [attr.data-testid]="'person-relationship-row-' + index"
-            >
-              <div class="relationship-person-summary">
-                <a
-                  [routerLink]="[
-                    '/personal-workspace/knowledge/people',
-                    relationship.controls.relatedPersonId.value,
-                  ]"
-                  queryParamsHandling="preserve"
-                >
-                  {{ relationshipPersonLabel(relationship) }}
-                </a>
-                <span class="text-body-secondary">
-                  · {{ relationshipPersonRole(relationship) }}</span
-                >
-              </div>
-              <app-actions-dropdown
-                class="flex-shrink-0"
-                [actions]="relationshipActions()"
-                [buttonLabel]="'shared.actions' | t"
-                [ariaLabel]="'shared.actions' | t"
-                [destructiveActionLabel]="'shared.destructiveAction' | t"
-                [testId]="'relationship-actions-' + index"
-                (actionSelected)="handleRelationshipAction($event, relationship)"
-              />
-            </li>
-          } @empty {
-            <li class="list-group-item px-0 text-body-secondary">
-              {{ 'knowledgePeople.relationships.empty' | t }}
-            </li>
-          }
-        </ul>
-        @if (relationshipsCollapsible()) {
-          <button
-            type="button"
-            class="btn btn-link btn-sm align-self-start px-0"
-            data-testid="person-relationships-toggle"
-            aria-controls="person-relationships-list"
-            [attr.aria-expanded]="relationshipsExpanded()"
-            (click)="toggleRelationshipsExpanded()"
-          >
-            {{
-              (relationshipsExpanded() ? 'shared.showLess' : 'shared.showAll')
-                | t: { count: relationshipCount() }
-            }}
-          </button>
-        }
-      </section>
-
-      <section class="card card-body mb-3">
-        <h3 class="h5">{{ 'knowledgePeople.section.attachments' | t }}</h3>
-        <label class="btn btn-outline-secondary btn-sm align-self-start mb-3">
-          {{ 'knowledgePeople.attachments.add' | t }}
-          <input
-            class="visually-hidden"
-            type="file"
-            [disabled]="attachmentUploading()"
-            (change)="uploadAttachment($event)"
-          />
-        </label>
-        @if (attachmentUploading()) {
-          <p class="small text-body-secondary">{{ 'knowledgePeople.uploading' | t }}</p>
-        }
-        @if (attachmentError()) {
-          <p class="small text-danger" role="alert">{{ attachmentError() }}</p>
-        }
-        <ul class="list-group">
-          @for (attachment of person()!.attachments; track attachment.id) {
-            <li class="list-group-item d-flex flex-wrap justify-content-between gap-3">
-              <span>
-                <strong>{{ attachment.name }}</strong>
-                <small class="d-block text-body-secondary">
-                  {{ attachment.originalName }} · {{ fileSize(attachment.sizeBytes) }}
-                </small>
-              </span>
-              <div class="btn-group btn-group-sm">
-                <button
-                  type="button"
-                  class="btn btn-outline-primary"
-                  (click)="downloadAttachment(attachment)"
-                >
-                  {{ 'knowledgePeople.attachments.download' | t }}
-                </button>
-                <button
-                  type="button"
-                  class="btn btn-outline-secondary"
-                  (click)="renameAttachment(attachment)"
-                >
-                  {{ 'knowledgePeople.attachments.rename' | t }}
-                </button>
-                <button
-                  type="button"
-                  class="btn btn-outline-danger"
-                  (click)="deleteAttachment(attachment)"
-                >
-                  {{ 'shared.delete' | t }}
-                </button>
-              </div>
-            </li>
-          } @empty {
-            <li class="list-group-item text-body-secondary">
-              {{ 'knowledgePeople.attachments.empty' | t }}
-            </li>
-          }
-        </ul>
-      </section>
-
-      <div
-        class="person-detail-action-footer d-flex flex-wrap align-items-center gap-2 mt-4 py-3 border-top"
-        data-testid="person-detail-action-footer"
-      >
-        <div class="d-flex flex-wrap justify-content-end gap-2 ms-auto">
-          <button
-            type="submit"
-            class="btn btn-success"
-            data-testid="person-detail-save"
-            [disabled]="saving() || deleting() || loading() || editorImagePending()"
-          >
-            {{ 'shared.save' | t }}
-          </button>
+                </li>
+              } @empty {
+                <li class="list-group-item text-body-secondary">
+                  {{ 'knowledgePeople.attachments.empty' | t }}
+                </li>
+              }
+            </ul>
+          </details>
         </div>
       </div>
     </form>
@@ -486,7 +561,7 @@
           }}</label>
           <input
             id="relationship-person-search"
-            class="form-control"
+            class="form-control form-control-sm"
             type="search"
             [value]="relationshipSearchQuery()"
             #relationshipSearch
@@ -501,7 +576,7 @@
           <ds-site-select
             inputId="relationship-person"
             [options]="personCandidateOptions()"
-            controlSize="default"
+            controlSize="small"
             appearance="default"
             [required]="true"
             [invalid]="
@@ -519,7 +594,7 @@
           <ds-site-select
             inputId="relationship-type"
             [options]="relationshipTypeOptions()"
-            controlSize="default"
+            controlSize="small"
             appearance="default"
             [required]="true"
             [invalid]="
@@ -537,7 +612,7 @@
           <ds-site-select
             inputId="relationship-direction"
             [options]="directionOptions()"
-            controlSize="default"
+            controlSize="small"
             appearance="default"
             [required]="true"
             [invalid]="false"
@@ -555,9 +630,10 @@
           <textarea
             appTextareaAutosize
             id="relationship-note"
-            class="form-control"
+            class="form-control form-control-sm"
             rows="3"
             maxlength="10000"
+            dsControlValidationState
             formControlName="note"
             dsControlValidationState
           ></textarea>
@@ -570,13 +646,13 @@
       <div class="d-flex flex-wrap justify-content-end gap-2 p-3 border-top flex-shrink-0">
         <button
           type="button"
-          class="btn btn-outline-secondary"
+          class="btn btn-outline-secondary btn-sm"
           data-testid="relationship-cancel"
           (click)="closeRelationshipDialog()"
         >
           {{ 'shared.cancel' | t }}
         </button>
-        <button type="submit" class="btn btn-success" data-testid="relationship-apply">
+        <button type="submit" class="btn btn-sm detail-save" data-testid="relationship-apply">
           {{ 'knowledgePeople.relationships.apply' | t }}
         </button>
       </div>
@@ -612,22 +688,30 @@
           </div>
           <div class="modal-body">
             <div class="input-group mb-3">
-              <input class="form-control" [value]="tagDraft()" (input)="onTagDraftInput($event)" />
+              <input
+                class="form-control form-control-sm"
+                [value]="tagDraft()"
+                (input)="onTagDraftInput($event)"
+              />
               <button
                 type="button"
-                class="btn btn-success"
+                class="btn btn-sm detail-save"
                 [disabled]="tagSubmitting()"
                 (click)="saveTag()"
               >
                 {{ tagEditingId() === null ? ('shared.add' | t) : ('shared.save' | t) }}
               </button>
             </div>
-            <ul class="list-group">
+            <ul class="list-group list-group-flush">
               @for (tag of tags(); track tag.id) {
                 <li class="list-group-item d-flex justify-content-between align-items-center gap-2">
                   <span>{{ tag.name }}</span>
                   <div class="btn-group btn-group-sm">
-                    <button type="button" class="btn btn-outline-secondary" (click)="editTag(tag)">
+                    <button
+                      type="button"
+                      class="btn btn-outline-secondary btn-sm"
+                      (click)="editTag(tag)"
+                    >
                       {{ 'shared.edit' | t }}
                     </button>
                     <button type="button" class="btn btn-outline-danger" (click)="deleteTag(tag)">
@@ -678,7 +762,12 @@
             >
               <div class="col-12">
                 <label class="form-check">
-                  <input class="form-check-input" type="checkbox" formControlName="isSymmetric" />
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    dsControlValidationState
+                    formControlName="isSymmetric"
+                  />
                   <span class="form-check-label">{{
                     'knowledgePeople.relationshipTypes.symmetric' | t
                   }}</span>
@@ -690,7 +779,8 @@
                 }}</label>
                 <input
                   id="relationship-forward-name"
-                  class="form-control"
+                  class="form-control form-control-sm"
+                  dsControlValidationState
                   formControlName="forwardName"
                 />
               </div>
@@ -701,19 +791,20 @@
                   }}</label>
                   <input
                     id="relationship-reverse-name"
-                    class="form-control"
+                    class="form-control form-control-sm"
+                    dsControlValidationState
                     formControlName="reverseName"
                     [class.is-invalid]="typeFieldInvalid('reverseName')"
                   />
                 </div>
               }
               <div class="col-12 col-md-2 d-flex align-items-end">
-                <button type="submit" class="btn btn-success" [disabled]="typeSubmitting()">
+                <button type="submit" class="btn btn-sm detail-save" [disabled]="typeSubmitting()">
                   {{ typeEditingId() === null ? ('shared.add' | t) : ('shared.save' | t) }}
                 </button>
               </div>
             </form>
-            <ul class="list-group">
+            <ul class="list-group list-group-flush">
               @for (type of relationshipTypes(); track type.id) {
                 <li class="list-group-item d-flex justify-content-between align-items-center gap-2">
                   <span>
@@ -725,7 +816,7 @@
                   <div class="btn-group btn-group-sm">
                     <button
                       type="button"
-                      class="btn btn-outline-secondary"
+                      class="btn btn-outline-secondary btn-sm"
                       (click)="editRelationshipType(type)"
                     >
                       {{ 'shared.edit' | t }}

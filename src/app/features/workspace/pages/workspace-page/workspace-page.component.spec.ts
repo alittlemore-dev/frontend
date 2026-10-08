@@ -50,7 +50,7 @@ describe('WorkspacePageComponent', () => {
   });
 
   it('marks the most specific navigation item for a detail URL', async () => {
-    await router.navigateByUrl('/personal-workspace/knowledge/people/person-1');
+    await router.navigateByUrl('/personal-workspace/knowledge/people?sort=updated');
     fixture.detectChanges();
 
     const peopleItem = navigationItem('Люди');
@@ -60,9 +60,13 @@ describe('WorkspacePageComponent', () => {
     expect(dashboardItem.getAttribute('aria-current')).toBeNull();
   });
 
-  it('removes the workspace navigation on direct resume editor entry', async () => {
+  it.each([
+    '/personal-workspace/resumes/resume-1?preview=true#contacts',
+    '/personal-workspace/knowledge/people/person-1?sort=updated',
+    '/personal-workspace/knowledge/dates/date-1?search=anniversary',
+  ])('removes the workspace navigation on direct detail entry at %s', async (url) => {
     fixture.destroy();
-    await router.navigateByUrl('/personal-workspace/resumes/resume-1?preview=true#contacts');
+    await router.navigateByUrl(url);
     fixture = TestBed.createComponent(WorkspacePageComponent);
     fixture.detectChanges();
 
@@ -76,8 +80,8 @@ describe('WorkspacePageComponent', () => {
 
   it.each([
     '/personal-workspace/resumes',
-    '/personal-workspace/knowledge/people/resumes',
-    '/personal-workspace/knowledge/dates/date-1',
+    '/personal-workspace/knowledge/people',
+    '/personal-workspace/knowledge/dates',
     '/personal-workspace/events',
   ])('keeps the workspace tree at %s', async (url) => {
     await router.navigateByUrl(url);

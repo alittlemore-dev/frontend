@@ -1,3 +1,4 @@
+import { WorkspaceDetailNavigationService } from '../../services/workspace-detail-navigation.service';
 import {
   ModalScrollDirective,
   NotificationService,
@@ -327,6 +328,7 @@ const RESUME_THEME_OPTIONS: readonly ResumeThemeOption[] = [
 export class ResumeDetailPageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly detailNavigation = inject(WorkspaceDetailNavigationService);
   private readonly resumeWorkspace = inject(ResumeWorkspaceService);
   private readonly notifications = inject(NotificationService);
   private readonly i18n = inject(I18nService);
@@ -998,7 +1000,7 @@ export class ResumeDetailPageComponent implements OnInit {
   }
 
   goBack(): void {
-    this.navigateToList();
+    this.detailNavigation.back('/personal-workspace/resumes');
   }
 
   saveResume(): void {

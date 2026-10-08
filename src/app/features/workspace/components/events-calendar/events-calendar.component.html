@@ -195,12 +195,17 @@
     [cdkTrapFocusAutoCapture]="true"
     (keydown.escape)="closeDetails()"
   >
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
       <div class="modal-content">
         <div class="modal-header">
-          <h2 id="calendar-event-title" class="modal-title fs-5">
-            {{ 'workspaceDashboard.calendar.eventDetails' | t }}
-          </h2>
+          <div class="min-w-0">
+            <p class="small text-body-secondary mb-1">
+              {{ 'workspaceDashboard.calendar.eventDetails' | t }}
+            </p>
+            <h2 id="calendar-event-title" class="modal-title fs-5 text-break">
+              {{ entryTitle(entry) }}
+            </h2>
+          </div>
           <button
             type="button"
             class="btn-close"
@@ -210,7 +215,6 @@
           ></button>
         </div>
         <div class="modal-body vstack gap-2">
-          <strong>{{ entryTitle(entry) }}</strong>
           @if (entry.kind === 'event') {
             @if (eventLoading()) {
               <ds-loading-spinner [ariaLabel]="'shared.loading' | t" />
@@ -224,8 +228,10 @@
               @if (event.description) {
                 <p class="mb-0 text-break">{{ event.description }}</p>
               }
-              <span>{{ occurrenceTimeLabel(entry) }}</span>
-              <span>{{ 'workspaceEvents.frequency.' + event.recurrence.frequency | t }}</span>
+              <span class="small text-body-secondary">{{ occurrenceTimeLabel(entry) }}</span>
+              <span class="small text-body-secondary">{{
+                'workspaceEvents.frequency.' + event.recurrence.frequency | t
+              }}</span>
             }
           } @else {
             <span>{{ annualLabel(entry) }}</span>
@@ -240,11 +246,11 @@
           }
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-outline-secondary" (click)="closeDetails()">
+          <button type="button" class="btn btn-outline-secondary btn-sm" (click)="closeDetails()">
             {{ 'workspaceEvents.cancel' | t }}
           </button>
           @if (selectedEvent()) {
-            <button type="button" class="btn btn-success" (click)="openEdit()">
+            <button type="button" class="btn btn-success btn-sm" (click)="openEdit()">
               {{ 'workspaceEvents.edit' | t }}
             </button>
           }

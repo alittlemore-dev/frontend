@@ -71,4 +71,37 @@ describe('FinanceTransactionsColumnComponent', () => {
     fixture.detectChanges();
     expect(root.querySelector<HTMLButtonElement>('.finance-add-transaction')?.disabled).toBe(true);
   });
+
+  it('uses the same category badge colour on repeated operations and after reordering', () => {
+    const second = {
+      ...FINANCE_TEST_TRANSACTION,
+      id: 'second',
+      categoryId: 'transport',
+      categoryName: 'Транспорт',
+    };
+    const repeated = { ...FINANCE_TEST_TRANSACTION, id: 'repeated' };
+    fixture.componentRef.setInput('month', {
+      ...FINANCE_TEST_MONTH,
+      categories: [
+        ...FINANCE_TEST_MONTH.categories,
+        { ...FINANCE_TEST_MONTH.categories[0], id: 'transport', position: 1 },
+      ],
+    });
+    fixture.componentRef.setInput('transactions', [FINANCE_TEST_TRANSACTION, second, repeated]);
+    fixture.detectChanges();
+    const root = fixture.nativeElement as HTMLElement;
+    const colours = (): string[] =>
+      Array.from(root.querySelectorAll<HTMLElement>('.finance-category-badge'), (badge) =>
+        badge.style.getPropertyValue('--category-color'),
+      );
+    const original = colours();
+    expect(original[0]).toBeTruthy();
+    expect(original[0]).toBe(original[2]);
+    expect(original[1]).not.toBe(original[0]);
+    fixture.componentRef.setInput('transactions', [second, repeated, FINANCE_TEST_TRANSACTION]);
+    fixture.componentRef.setInput('readOnly', true);
+    fixture.detectChanges();
+    expect(colours()).toEqual([original[1], original[0], original[0]]);
+    expect(root.querySelector('.finance-transaction-edit')).toBeNull();
+  });
 });

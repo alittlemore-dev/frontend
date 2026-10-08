@@ -22,7 +22,7 @@
           (click)="close()"
         ></button>
       </div>
-      <div class="modal-body d-flex flex-column gap-3 overflow-hidden">
+      <div class="modal-body d-flex flex-column gap-3">
         <div>
           <label class="form-label" for="calendar-entry-type">{{
             'workspaceDashboard.calendar.entryType' | t
@@ -30,7 +30,7 @@
           <ds-site-select
             inputId="calendar-entry-type"
             [options]="typeOptions()"
-            controlSize="default"
+            controlSize="small"
             appearance="default"
             [required]="false"
             [invalid]="false"
@@ -38,7 +38,7 @@
             [controlDisabled]="submitting()"
           />
         </div>
-        <div class="calendar-entry-fields flex-grow-1 overflow-auto">
+        <div class="calendar-entry-fields">
           @if (kind() === 'event') {
             <app-event-editor
               [embedded]="true"
@@ -60,13 +60,13 @@
       <div class="modal-footer">
         <button
           type="button"
-          class="btn btn-outline-secondary"
+          class="btn btn-outline-secondary btn-sm"
           [disabled]="submitting()"
           (click)="close()"
         >
           {{ 'shared.cancel' | t }}
         </button>
-        <button type="submit" class="btn btn-success" [disabled]="submitting()">
+        <button type="submit" class="btn btn-sm detail-save" [disabled]="submitting()">
           {{ 'workspaceEvents.save' | t }}
         </button>
       </div>

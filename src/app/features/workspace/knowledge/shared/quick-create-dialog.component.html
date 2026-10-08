@@ -125,7 +125,8 @@
     <div
       class="modal-dialog modal-dialog-centered"
       (click)="$event.stopPropagation()"
-      (keydown)="$event.stopPropagation(); $event.key === 'Escape' && closeRequested.emit()"
+      (keydown)="$event.stopPropagation()"
+      (keydown.escape)="closeRequested.emit()"
       role="document"
       cdkTrapFocus
       [cdkTrapFocusAutoCapture]="true"

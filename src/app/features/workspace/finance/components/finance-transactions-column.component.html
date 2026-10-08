@@ -55,9 +55,13 @@
           </td>
           <td>
             @if (!editable(transaction)) {
-              <strong>{{ transaction.categoryName || ('finance.category.none' | t) }}</strong>
+              <span
+                class="finance-category-badge"
+                [style.--category-color]="categoryColor(transaction)"
+                >{{ transaction.categoryName || ('finance.category.none' | t) }}</span
+              >
               @if (transaction.description) {
-                <span class="d-block">{{ transaction.description }}</span>
+                <span class="finance-transaction-description">{{ transaction.description }}</span>
               }
             } @else {
               <button
@@ -71,9 +75,13 @@
                 "
                 (click)="editRequested.emit(transaction)"
               >
-                <strong>{{ transaction.categoryName || ('finance.category.none' | t) }}</strong>
+                <span
+                  class="finance-category-badge"
+                  [style.--category-color]="categoryColor(transaction)"
+                  >{{ transaction.categoryName || ('finance.category.none' | t) }}</span
+                >
                 @if (transaction.description) {
-                  <span>{{ transaction.description }}</span>
+                  <span class="finance-transaction-description">{{ transaction.description }}</span>
                 }
               </button>
             }

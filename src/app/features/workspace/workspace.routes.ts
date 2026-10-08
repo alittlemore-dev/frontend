@@ -30,6 +30,7 @@ export const workspaceRoutes: Routes = [
       {
         path: 'knowledge/people/:id',
         title: 'knowledgePeople.detailTitle',
+        data: { workspaceNavigation: 'contextual' },
         canDeactivate: [unsavedChangesGuard],
         loadComponent: () =>
           import('./knowledge/people/pages/person-detail/person-detail.component').then(
@@ -48,6 +49,7 @@ export const workspaceRoutes: Routes = [
       {
         path: 'knowledge/dates/:id',
         title: 'knowledgeDates.detailTitle',
+        data: { workspaceNavigation: 'contextual' },
         canDeactivate: [unsavedChangesGuard],
         loadComponent: () =>
           import('./knowledge/dates/pages/date-detail/date-detail.component').then(

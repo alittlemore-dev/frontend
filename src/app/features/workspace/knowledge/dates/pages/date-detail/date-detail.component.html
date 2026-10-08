@@ -1,336 +1,379 @@
-<div class="knowledge-date-detail-page">
-  <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
-    <div>
-      <button type="button" class="btn btn-link p-0 mb-2" (click)="back()">
-        {{ 'shared.back' | t }}
-      </button>
-      <h2 class="h4 mb-0">{{ date()?.displayName || ('knowledgeDates.detailTitle' | t) }}</h2>
+<div class="date-detail-page detail-editor">
+  <header class="detail-header" data-testid="date-detail-header">
+    <div class="detail-heading">
+      <div class="detail-context">
+        <button
+          type="button"
+          class="btn btn-link btn-sm p-0 d-inline-flex align-items-center gap-1 text-decoration-none"
+          (click)="back()"
+        >
+          <svg
+            aria-hidden="true"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="m12 19-7-7 7-7M19 12H5"></path>
+          </svg>
+          {{ 'shared.back' | t }}
+        </button>
+        <span>{{ 'knowledgeDates.detailTitle' | t }}</span>
+      </div>
+      <h1
+        class="h5 mb-0 text-truncate"
+        [title]="date()?.displayName || ('knowledgeDates.detailTitle' | t)"
+      >
+        {{ date()?.displayName || ('knowledgeDates.detailTitle' | t) }}
+      </h1>
+      @if (date() && !loading() && !error()) {
+        <p class="small text-body-secondary mb-0 mt-1" role="status" data-testid="date-save-state">
+          {{ (unsavedChanges() ? 'workspace.editor.unsaved' : 'workspace.editor.clean') | t }}
+        </p>
+      }
     </div>
-    @if (date()) {
-      <app-actions-dropdown
-        [actions]="detailActions()"
-        [buttonLabel]="'shared.actions' | t"
-        [ariaLabel]="'shared.actions' | t"
-        [destructiveActionLabel]="'shared.destructiveAction' | t"
-        testId="date-detail-actions"
-        (actionSelected)="handleDetailAction($event)"
-      />
+    @if (date() && !loading() && !error()) {
+      <div class="d-flex align-items-center gap-2">
+        <button
+          type="submit"
+          form="date-detail-form"
+          class="btn btn-sm detail-save"
+          data-testid="date-detail-save"
+          [disabled]="saving() || deleting() || loading() || editorImagePending()"
+        >
+          {{ 'shared.save' | t }}
+        </button>
+        <app-actions-dropdown
+          [actions]="detailActions()"
+          [buttonLabel]="'shared.actions' | t"
+          [ariaLabel]="'shared.actions' | t"
+          [destructiveActionLabel]="'shared.destructiveAction' | t"
+          testId="date-detail-actions"
+          (actionSelected)="handleDetailAction($event)"
+        />
+      </div>
     }
-  </div>
+  </header>
 
   @if (loading()) {
     <ds-loading-spinner [ariaLabel]="'shared.loading' | t" />
   } @else if (error()) {
     <ds-error-message [error]="error()!" [retryLabel]="'shared.retry' | t" (retry)="loadDate()" />
   } @else if (date()) {
-    <form [formGroup]="dateForm" (ngSubmit)="saveDate()">
-      <section class="card card-body mb-3">
-        <h3 class="h5">{{ 'knowledgeDates.section.basic' | t }}</h3>
-        <div class="mb-3">
-          <label class="form-label" for="date-name">
-            {{ 'knowledgeDates.name' | t }}
-            <span class="required-marker text-danger" aria-hidden="true">*</span>
-          </label>
-          <input
-            id="date-name"
-            class="form-control"
-            formControlName="displayName"
-            required
-            [attr.maxlength]="validationLimits.shortText"
-          />
-          @if (nameInvalid() && nameMessage(); as message) {
-            <div class="invalid-feedback d-block">{{ message }}</div>
-          }
-        </div>
-        <fieldset formGroupName="date">
-          <legend class="fs-6">{{ 'knowledgeDates.date' | t }}</legend>
-          <div class="row g-2">
-            <div class="col-4">
-              <label class="form-label" for="date-day">
-                {{ 'knowledgeDates.day' | t }}
+    <form id="date-detail-form" [formGroup]="dateForm" (ngSubmit)="saveDate()">
+      <div class="detail-layout">
+        <div class="detail-main">
+          <section class="detail-section">
+            <h2 class="h6">{{ 'knowledgeDates.section.basic' | t }}</h2>
+            <div class="mb-3">
+              <label class="form-label" for="date-name">
+                {{ 'knowledgeDates.name' | t }}
                 <span class="required-marker text-danger" aria-hidden="true">*</span>
               </label>
-              <ds-site-select
-                inputId="date-day"
-                [options]="dayOptions"
-                controlSize="default"
-                appearance="default"
-                [required]="true"
-                [invalid]="annualDateInvalid()"
-                [controlDisabled]="false"
-                formControlName="day"
-              />
-            </div>
-            <div class="col-4">
-              <label class="form-label" for="date-month">
-                {{ 'knowledgeDates.month' | t }}
-                <span class="required-marker text-danger" aria-hidden="true">*</span>
-              </label>
-              <ds-site-select
-                inputId="date-month"
-                [options]="monthOptions()"
-                controlSize="default"
-                appearance="default"
-                [required]="true"
-                [invalid]="annualDateInvalid()"
-                [controlDisabled]="false"
-                formControlName="month"
-              />
-            </div>
-            <div class="col-4">
-              <label class="form-label" for="date-year">{{ 'knowledgeDates.year' | t }}</label>
               <input
-                id="date-year"
-                type="number"
-                min="1"
-                max="9999"
-                class="form-control"
-                formControlName="year"
+                id="date-name"
+                class="form-control form-control-sm"
+                dsControlValidationState
+                formControlName="displayName"
+                required
+                [attr.maxlength]="validationLimits.shortText"
               />
+              @if (nameInvalid() && nameMessage(); as message) {
+                <div class="invalid-feedback d-block">{{ message }}</div>
+              }
             </div>
-          </div>
-          @if (annualDateInvalid()) {
-            <p class="text-danger small mt-2" role="alert">
-              {{ 'knowledgeDates.dateInvalid' | t }}
-            </p>
-          }
-        </fieldset>
-        <div class="form-check form-switch mt-3">
-          <input
-            id="date-notifications-enabled"
-            class="form-check-input"
-            type="checkbox"
-            formControlName="notificationsEnabled"
-          />
-          <label class="form-check-label" for="date-notifications-enabled">{{
-            'knowledgeDates.notificationsEnabled' | t
-          }}</label>
-        </div>
-      </section>
-
-      <section class="card card-body mb-3">
-        <h3 class="h5">{{ 'knowledgeDates.section.description' | t }}</h3>
-        <app-markdown-editor
-          [value]="formSnapshot().description"
-          [language]="editorLanguage()"
-          [accessibleLabel]="'knowledgeDates.description' | t"
-          [imageCapability]="editorImageCapability()"
-          [uploadInteractionsDisabled]="saving()"
-          [imagePreviewRevision]="imagePreviewRevision()"
-          (valueChange)="setDescription($event)"
-          (imageUploadPendingChange)="editorImagePending.set($event)"
-        />
-      </section>
-
-      <section class="card card-body mb-3">
-        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-          <h3 class="h5 mb-0">{{ 'knowledgeDates.section.tags' | t }}</h3>
-          <button
-            type="button"
-            class="btn btn-outline-secondary btn-sm"
-            data-testid="date-tags-manage"
-            (click)="openTagDialog()"
-          >
-            {{ 'knowledgePeople.tags.manage' | t }}
-          </button>
-        </div>
-        <input
-          class="form-control form-control-sm mb-3"
-          [value]="tagSearch()"
-          [attr.aria-label]="'knowledgePeople.tags.search' | t"
-          (input)="onTagSearchInput($event)"
-        />
-        <div class="d-flex flex-wrap gap-2">
-          @for (tag of filteredTags(); track tag.id) {
-            <label class="form-check form-check-inline m-0">
+            <fieldset formGroupName="date">
+              <legend class="fs-6">{{ 'knowledgeDates.date' | t }}</legend>
+              <div class="row g-2">
+                <div class="col-4">
+                  <label class="form-label" for="date-day">
+                    {{ 'knowledgeDates.day' | t }}
+                    <span class="required-marker text-danger" aria-hidden="true">*</span>
+                  </label>
+                  <ds-site-select
+                    inputId="date-day"
+                    [options]="dayOptions"
+                    controlSize="small"
+                    appearance="default"
+                    [required]="true"
+                    [invalid]="annualDateInvalid()"
+                    [controlDisabled]="false"
+                    formControlName="day"
+                  />
+                </div>
+                <div class="col-4">
+                  <label class="form-label" for="date-month">
+                    {{ 'knowledgeDates.month' | t }}
+                    <span class="required-marker text-danger" aria-hidden="true">*</span>
+                  </label>
+                  <ds-site-select
+                    inputId="date-month"
+                    [options]="monthOptions()"
+                    controlSize="small"
+                    appearance="default"
+                    [required]="true"
+                    [invalid]="annualDateInvalid()"
+                    [controlDisabled]="false"
+                    formControlName="month"
+                  />
+                </div>
+                <div class="col-4">
+                  <label class="form-label" for="date-year">{{ 'knowledgeDates.year' | t }}</label>
+                  <input
+                    id="date-year"
+                    type="number"
+                    min="1"
+                    max="9999"
+                    class="form-control form-control-sm"
+                    dsControlValidationState
+                    formControlName="year"
+                  />
+                </div>
+              </div>
+              @if (annualDateInvalid()) {
+                <p class="text-danger small mt-2" role="alert">
+                  {{ 'knowledgeDates.dateInvalid' | t }}
+                </p>
+              }
+            </fieldset>
+            <div class="form-check form-switch mt-3">
               <input
+                id="date-notifications-enabled"
                 class="form-check-input"
                 type="checkbox"
-                [checked]="selectedTagIds().includes(tag.id)"
-                (change)="toggleTag(tag.id)"
+                dsControlValidationState
+                formControlName="notificationsEnabled"
               />
-              <span class="form-check-label">{{ tag.name }}</span>
-            </label>
-          } @empty {
-            <span class="text-body-secondary">{{ 'knowledgePeople.tags.empty' | t }}</span>
-          }
+              <label class="form-check-label" for="date-notifications-enabled">{{
+                'knowledgeDates.notificationsEnabled' | t
+              }}</label>
+            </div>
+          </section>
+          <section class="detail-section">
+            <h2 class="h6">{{ 'knowledgeDates.section.description' | t }}</h2>
+            <app-markdown-editor
+              [value]="formSnapshot().description"
+              [language]="editorLanguage()"
+              [accessibleLabel]="'knowledgeDates.description' | t"
+              [imageCapability]="editorImageCapability()"
+              [uploadInteractionsDisabled]="saving()"
+              [imagePreviewRevision]="imagePreviewRevision()"
+              (valueChange)="setDescription($event)"
+              (imageUploadPendingChange)="editorImagePending.set($event)"
+            />
+          </section>
         </div>
-      </section>
-
-      <section class="card card-body mb-3">
-        <h3 class="h5">{{ 'knowledgeDates.section.people' | t }}</h3>
-        <label class="form-label" for="date-people-search">{{
-          'knowledgeDates.peopleSearch' | t
-        }}</label>
-        <div class="date-people-search position-relative mb-3">
-          <input
-            id="date-people-search"
-            type="search"
-            class="form-control form-control-sm"
-            autocomplete="off"
-            data-testid="date-people-search"
-            role="combobox"
-            aria-autocomplete="list"
-            aria-controls="date-people-suggestions"
-            [attr.aria-expanded]="peopleSuggestionsOpen()"
-            [attr.aria-activedescendant]="activePeopleSuggestionId()"
-            [value]="peopleSearchQuery()"
-            [placeholder]="'knowledgeDates.peopleSearchPlaceholder' | t"
-            (input)="onPeopleSearchInput($event)"
-            (keydown)="onPeopleSearchKeydown($event)"
-            (keyup.escape)="$event.stopPropagation()"
-          />
-          @if (peopleSuggestionsOpen()) {
-            <div
-              id="date-people-suggestions"
-              class="date-people-suggestions list-group position-absolute start-0 end-0 shadow-sm"
-              role="listbox"
-            >
-              @for (person of availablePeople(); track person.id; let index = $index) {
-                <button
-                  [id]="'date-person-suggestion-' + person.id"
-                  type="button"
-                  class="list-group-item list-group-item-action"
-                  [class.active]="activePeopleSuggestionIndex() === index"
-                  [attr.aria-selected]="activePeopleSuggestionIndex() === index"
-                  [attr.data-testid]="'date-person-suggestion-' + person.id"
-                  role="option"
-                  (click)="addPerson(person)"
-                >
-                  {{ person.displayName }}
-                </button>
-              } @empty {
+        <div class="detail-support">
+          <section class="detail-section">
+            <h2 class="h6">{{ 'knowledgeDates.section.people' | t }}</h2>
+            <label class="form-label" for="date-people-search">{{
+              'knowledgeDates.peopleSearch' | t
+            }}</label>
+            <div class="date-people-search position-relative mb-3">
+              <input
+                id="date-people-search"
+                type="search"
+                class="form-control form-control-sm"
+                autocomplete="off"
+                data-testid="date-people-search"
+                role="combobox"
+                aria-autocomplete="list"
+                aria-controls="date-people-suggestions"
+                [attr.aria-expanded]="peopleSuggestionsOpen()"
+                [attr.aria-activedescendant]="activePeopleSuggestionId()"
+                [value]="peopleSearchQuery()"
+                [placeholder]="'knowledgeDates.peopleSearchPlaceholder' | t"
+                (input)="onPeopleSearchInput($event)"
+                (keydown)="onPeopleSearchKeydown($event)"
+                (keyup.escape)="$event.stopPropagation()"
+              />
+              @if (peopleSuggestionsOpen()) {
                 <div
-                  class="list-group-item text-body-secondary"
-                  role="option"
-                  aria-disabled="true"
-                  aria-selected="false"
+                  id="date-people-suggestions"
+                  class="date-people-suggestions list-group position-absolute start-0 end-0 shadow-sm"
+                  role="listbox"
                 >
-                  {{ 'shared.empty' | t }}
+                  @for (person of availablePeople(); track person.id; let index = $index) {
+                    <button
+                      [id]="'date-person-suggestion-' + person.id"
+                      type="button"
+                      class="list-group-item list-group-item-action"
+                      [class.active]="activePeopleSuggestionIndex() === index"
+                      [attr.aria-selected]="activePeopleSuggestionIndex() === index"
+                      [attr.data-testid]="'date-person-suggestion-' + person.id"
+                      role="option"
+                      (click)="addPerson(person)"
+                    >
+                      {{ person.displayName }}
+                    </button>
+                  } @empty {
+                    <div
+                      class="list-group-item text-body-secondary"
+                      role="option"
+                      aria-disabled="true"
+                      aria-selected="false"
+                    >
+                      {{ 'shared.empty' | t }}
+                    </div>
+                  }
                 </div>
               }
             </div>
-          }
-        </div>
-        <div class="form-text mb-3">{{ 'knowledgeDates.peopleSearchHint' | t }}</div>
-        @if (peopleSearchLoading()) {
-          <p class="small text-body-secondary" role="status">
-            {{ 'knowledgeDates.peopleSearching' | t }}
-          </p>
-        }
-        <ul id="date-related-people-list" class="list-group mb-2">
-          @for (person of visibleSelectedPeople(); track person.id) {
-            <li
-              class="list-group-item d-flex justify-content-between align-items-center gap-2"
-              [attr.data-testid]="'date-related-person-' + person.id"
-            >
-              <a
-                [routerLink]="['/personal-workspace/knowledge/people', person.id]"
-                queryParamsHandling="preserve"
-              >
-                {{ person.displayName }}
-              </a>
+            <div class="form-text mb-3">{{ 'knowledgeDates.peopleSearchHint' | t }}</div>
+            @if (peopleSearchLoading()) {
+              <p class="small text-body-secondary" role="status">
+                {{ 'knowledgeDates.peopleSearching' | t }}
+              </p>
+            }
+            <ul id="date-related-people-list" class="list-group list-group-flush mb-2">
+              @for (person of visibleSelectedPeople(); track person.id) {
+                <li
+                  class="list-group-item d-flex justify-content-between align-items-center gap-2"
+                  [attr.data-testid]="'date-related-person-' + person.id"
+                >
+                  <a
+                    [routerLink]="['/personal-workspace/knowledge/people', person.id]"
+                    queryParamsHandling="preserve"
+                  >
+                    {{ person.displayName }}
+                  </a>
+                  <button
+                    type="button"
+                    class="btn btn-outline-danger btn-sm"
+                    (click)="removePerson(person.id)"
+                  >
+                    {{ 'shared.delete' | t }}
+                  </button>
+                </li>
+              } @empty {
+                <li class="list-group-item text-body-secondary">
+                  {{ 'knowledgeDates.peopleEmpty' | t }}
+                </li>
+              }
+            </ul>
+            @if (relatedPeopleCollapsible()) {
               <button
                 type="button"
-                class="btn btn-outline-danger btn-sm"
-                (click)="removePerson(person.id)"
+                class="btn btn-link btn-sm align-self-start px-0"
+                data-testid="date-related-people-toggle"
+                aria-controls="date-related-people-list"
+                [attr.aria-expanded]="relatedPeopleExpanded()"
+                (click)="toggleRelatedPeopleExpanded()"
               >
-                {{ 'shared.delete' | t }}
+                {{
+                  (relatedPeopleExpanded() ? 'shared.showLess' : 'shared.showAll')
+                    | t: { count: selectedPeople().length }
+                }}
               </button>
-            </li>
-          } @empty {
-            <li class="list-group-item text-body-secondary">
-              {{ 'knowledgeDates.peopleEmpty' | t }}
-            </li>
-          }
-        </ul>
-        @if (relatedPeopleCollapsible()) {
-          <button
-            type="button"
-            class="btn btn-link btn-sm align-self-start px-0"
-            data-testid="date-related-people-toggle"
-            aria-controls="date-related-people-list"
-            [attr.aria-expanded]="relatedPeopleExpanded()"
-            (click)="toggleRelatedPeopleExpanded()"
-          >
-            {{
-              (relatedPeopleExpanded() ? 'shared.showLess' : 'shared.showAll')
-                | t: { count: selectedPeople().length }
-            }}
-          </button>
-        }
-      </section>
-
-      <section class="card card-body mb-3">
-        <h3 class="h5">{{ 'knowledgeDates.section.attachments' | t }}</h3>
-        <label class="btn btn-outline-secondary btn-sm align-self-start mb-3">
-          {{ 'knowledgeDates.attachments.add' | t }}
-          <input
-            class="visually-hidden"
-            type="file"
-            [disabled]="attachmentUploading()"
-            (change)="uploadAttachment($event)"
-          />
-        </label>
-        @if (attachmentUploading()) {
-          <p class="small text-body-secondary">{{ 'knowledgeDates.uploading' | t }}</p>
-        }
-        @if (attachmentError()) {
-          <p class="small text-danger" role="alert">{{ attachmentError() }}</p>
-        }
-        <ul class="list-group">
-          @for (attachment of date()!.attachments; track attachment.id) {
-            <li class="list-group-item d-flex flex-wrap justify-content-between gap-3">
-              <span>
-                <strong>{{ attachment.name }}</strong>
-                <small
-                  class="d-block text-body-secondary"
-                  [attr.data-testid]="'date-attachment-size-' + attachment.id"
-                >
-                  {{ attachment.originalName }} · {{ fileSize(attachment.sizeBytes) }}
-                </small>
-              </span>
-              <div class="btn-group btn-group-sm">
-                <button
-                  type="button"
-                  class="btn btn-outline-primary"
-                  (click)="downloadAttachment(attachment)"
-                >
-                  {{ 'knowledgeDates.attachments.download' | t }}
-                </button>
-                <button
-                  type="button"
-                  class="btn btn-outline-secondary"
-                  (click)="renameAttachment(attachment)"
-                >
-                  {{ 'knowledgeDates.attachments.rename' | t }}
-                </button>
-                <button
-                  type="button"
-                  class="btn btn-outline-danger"
-                  (click)="deleteAttachment(attachment)"
-                >
-                  {{ 'shared.delete' | t }}
-                </button>
-              </div>
-            </li>
-          } @empty {
-            <li class="list-group-item text-body-secondary">
-              {{ 'knowledgeDates.attachments.empty' | t }}
-            </li>
-          }
-        </ul>
-      </section>
-
-      <div class="d-flex justify-content-end gap-2 mt-4 py-3 border-top">
-        <button
-          type="submit"
-          class="btn btn-success"
-          data-testid="date-detail-save"
-          [disabled]="saving() || deleting() || loading() || editorImagePending()"
-        >
-          {{ 'shared.save' | t }}
-        </button>
+            }
+          </section>
+          <details [open]="date()!.tags.length > 0" class="detail-section">
+            <summary>
+              {{ 'knowledgeDates.section.tags' | t }}
+              <span class="text-body-secondary fw-normal">· {{ selectedTagIds().length }}</span>
+            </summary>
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+              <button
+                type="button"
+                class="btn btn-outline-secondary btn-sm"
+                data-testid="date-tags-manage"
+                (click)="openTagDialog()"
+              >
+                {{ 'knowledgePeople.tags.manage' | t }}
+              </button>
+            </div>
+            <input
+              class="form-control form-control-sm mb-3"
+              type="search"
+              [placeholder]="'knowledgePeople.tags.search' | t"
+              [value]="tagSearch()"
+              [attr.aria-label]="'knowledgePeople.tags.search' | t"
+              (input)="onTagSearchInput($event)"
+            />
+            <div class="d-flex flex-wrap gap-2">
+              @for (tag of filteredTags(); track tag.id) {
+                <label class="form-check form-check-inline m-0">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    [checked]="selectedTagIds().includes(tag.id)"
+                    (change)="toggleTag(tag.id)"
+                  />
+                  <span class="form-check-label">{{ tag.name }}</span>
+                </label>
+              } @empty {
+                <span class="text-body-secondary">{{ 'knowledgePeople.tags.empty' | t }}</span>
+              }
+            </div>
+          </details>
+          <details [open]="date()!.attachments.length > 0" class="detail-section">
+            <summary>
+              {{ 'knowledgeDates.section.attachments' | t }}
+              <span class="text-body-secondary fw-normal">· {{ date()!.attachments.length }}</span>
+            </summary>
+            <label class="btn btn-outline-secondary btn-sm align-self-start mb-3">
+              {{ 'knowledgeDates.attachments.add' | t }}
+              <input
+                class="visually-hidden"
+                type="file"
+                [disabled]="attachmentUploading()"
+                (change)="uploadAttachment($event)"
+              />
+            </label>
+            @if (attachmentUploading()) {
+              <p class="small text-body-secondary">{{ 'knowledgeDates.uploading' | t }}</p>
+            }
+            @if (attachmentError()) {
+              <p class="small text-danger" role="alert">{{ attachmentError() }}</p>
+            }
+            <ul class="list-group list-group-flush">
+              @for (attachment of date()!.attachments; track attachment.id) {
+                <li class="list-group-item d-flex flex-wrap justify-content-between gap-3">
+                  <span>
+                    <strong>{{ attachment.name }}</strong>
+                    <small
+                      class="d-block text-body-secondary"
+                      [attr.data-testid]="'date-attachment-size-' + attachment.id"
+                    >
+                      {{ attachment.originalName }} · {{ fileSize(attachment.sizeBytes) }}
+                    </small>
+                  </span>
+                  <div class="btn-group btn-group-sm">
+                    <button
+                      type="button"
+                      class="btn btn-outline-primary"
+                      (click)="downloadAttachment(attachment)"
+                    >
+                      {{ 'knowledgeDates.attachments.download' | t }}
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn-outline-secondary btn-sm"
+                      (click)="renameAttachment(attachment)"
+                    >
+                      {{ 'knowledgeDates.attachments.rename' | t }}
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn-outline-danger"
+                      (click)="deleteAttachment(attachment)"
+                    >
+                      {{ 'shared.delete' | t }}
+                    </button>
+                  </div>
+                </li>
+              } @empty {
+                <li class="list-group-item text-body-secondary">
+                  {{ 'knowledgeDates.attachments.empty' | t }}
+                </li>
+              }
+            </ul>
+          </details>
+        </div>
       </div>
     </form>
   }
@@ -365,7 +408,7 @@
           <div class="modal-body">
             <div class="input-group mb-3">
               <input
-                class="form-control"
+                class="form-control form-control-sm"
                 data-testid="date-tag-draft"
                 [attr.aria-label]="'knowledgePeople.tags.name' | t"
                 [value]="tagDraft()"
@@ -373,7 +416,7 @@
               />
               <button
                 type="button"
-                class="btn btn-success"
+                class="btn btn-sm detail-save"
                 data-testid="date-tag-save"
                 [disabled]="tagSubmitting()"
                 (click)="saveTag()"
@@ -381,12 +424,16 @@
                 {{ tagEditingId() === null ? ('shared.add' | t) : ('shared.save' | t) }}
               </button>
             </div>
-            <ul class="list-group">
+            <ul class="list-group list-group-flush">
               @for (tag of tags(); track tag.id) {
                 <li class="list-group-item d-flex justify-content-between align-items-center gap-2">
                   <span>{{ tag.name }}</span>
                   <div class="btn-group btn-group-sm">
-                    <button type="button" class="btn btn-outline-secondary" (click)="editTag(tag)">
+                    <button
+                      type="button"
+                      class="btn btn-outline-secondary btn-sm"
+                      (click)="editTag(tag)"
+                    >
                       {{ 'shared.edit' | t }}
                     </button>
                     <button type="button" class="btn btn-outline-danger" (click)="deleteTag(tag)">

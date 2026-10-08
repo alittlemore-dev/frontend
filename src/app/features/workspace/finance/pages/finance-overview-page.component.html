@@ -329,7 +329,7 @@
     aria-labelledby="finance-transaction-title"
   >
     @if (transactionEditor(); as editor) {
-      <div class="d-flex align-items-start justify-content-between gap-3 mb-4">
+      <div class="d-flex align-items-start justify-content-between gap-3 mb-3 pb-3 border-bottom">
         <h2 id="finance-transaction-title" class="finance-dialog-title m-0">
           {{ (editor.transaction ? 'finance.transaction.edit' : 'finance.transaction.add') | t }}
           <span class="text-body-secondary fw-medium"

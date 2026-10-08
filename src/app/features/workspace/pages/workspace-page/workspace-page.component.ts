@@ -1,3 +1,4 @@
+import { WorkspaceDetailNavigationService } from '../../services/workspace-detail-navigation.service';
 import { NgTemplateOutlet } from '@angular/common';
 import { BreakpointObserver } from '@angular/cdk/layout';
 import { AuthModalService } from '../../../../core/auth/auth-modal.service';
@@ -107,6 +108,7 @@ export class WorkspacePageComponent {
   });
 
   constructor() {
+    inject(WorkspaceDetailNavigationService);
     effect(() => {
       if (this.desktop() || this.authModal.isLoginOpen() || this.contextualNavigation()) {
         this.closeSidePanel();

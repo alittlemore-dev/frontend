@@ -1,3 +1,4 @@
+import { WorkspaceDetailNavigationService } from '../../../../services/workspace-detail-navigation.service';
 import { TextareaAutosizeDirective } from '../../../../../../shared/directives/textarea-autosize.directive';
 import {
   NotificationService,
@@ -137,6 +138,7 @@ export class PersonDetailComponent implements OnInit, OnDestroy {
   private readonly notifications = inject(NotificationService);
   private readonly i18n = inject(I18nService);
   private readonly router = inject(Router);
+  private readonly detailNavigation = inject(WorkspaceDetailNavigationService);
   private readonly route = inject(ActivatedRoute);
   private readonly document = inject(DOCUMENT);
   private readonly formBuilder = inject(NonNullableFormBuilder);
@@ -157,6 +159,7 @@ export class PersonDetailComponent implements OnInit, OnDestroy {
   private peopleSearchGeneration = 0;
   private readonly relationshipFormsVersion = signal(0);
 
+  readonly unsavedChanges = this.unsavedScope.hasChanges;
   readonly loading = signal(true);
   readonly error = signal<ApiError | null>(null);
   readonly person = signal<PersonDetail | null>(null);
@@ -526,7 +529,9 @@ export class PersonDetailComponent implements OnInit, OnDestroy {
         next: () => {
           this.mainUnsavedSource.commit();
           this.notifications.success(this.i18n.translate('knowledgePeople.deleteSuccess'));
-          this.back();
+          void this.router.navigate(['/personal-workspace/knowledge/people'], {
+            queryParamsHandling: 'preserve',
+          });
         },
         error: () => {
           this.deleting.set(false);
@@ -555,9 +560,7 @@ export class PersonDetailComponent implements OnInit, OnDestroy {
   }
 
   back(): void {
-    void this.router.navigate(['/personal-workspace/knowledge/people'], {
-      queryParamsHandling: 'preserve',
-    });
+    this.detailNavigation.back('/personal-workspace/knowledge/people');
   }
 
   setDescription(value: string): void {

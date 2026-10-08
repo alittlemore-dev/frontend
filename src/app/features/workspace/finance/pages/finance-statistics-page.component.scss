@@ -21,9 +21,16 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1rem;
 }
+.finance-statistics-charts {
+  grid-template-rows: repeat(4, auto);
+  row-gap: 0;
+}
 @media (max-width: 991px) {
   .finance-statistics-grid,
   .finance-statistics-totals {
     grid-template-columns: 1fr;
+  }
+  .finance-statistics-charts > app-finance-chart + app-finance-chart {
+    margin-top: 1.5rem;
   }
 }

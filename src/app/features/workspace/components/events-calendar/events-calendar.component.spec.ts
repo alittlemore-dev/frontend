@@ -116,7 +116,7 @@ describe('EventsCalendarComponent', () => {
     expect(button).toBeDefined();
     button!.click();
     fixture.detectChanges();
-    expect(root.querySelector('[aria-labelledby="calendar-event-title"] strong')?.textContent).toBe(
+    expect(root.querySelector('#calendar-event-title')?.textContent?.trim()).toBe(
       'День рождения · Иван Иванов',
     );
   });
