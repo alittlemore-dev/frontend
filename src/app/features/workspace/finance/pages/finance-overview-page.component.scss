@@ -52,6 +52,7 @@
 .finance-balance-value {
   font-size: clamp(1.25rem, 2.2vw, 1.8rem);
   font-weight: 650;
+  font-variant-numeric: tabular-nums;
   gap: 0.35rem;
   letter-spacing: -0.025em;
   line-height: 1.2;

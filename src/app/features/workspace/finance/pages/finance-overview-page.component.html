@@ -124,7 +124,7 @@
                 type="text"
                 inputmode="decimal"
                 class="finance-inline-input finance-balance-input"
-                [size]="openingDraft().length || 1"
+                [style.width.ch]="openingDraft().length + 1"
                 [ngModel]="openingDraft()"
                 (ngModelChange)="openingDraft.set(inputText($event))"
                 (blur)="saveOpeningBalance()"
