@@ -5,7 +5,7 @@
     </div>
   }
 
-  <div class="col-12 col-lg-4">
+  <div class="col-12">
     <label class="form-label" for="articleFolderId">
       {{ 'articles.form.folder' | t }}
       <span class="required-marker" aria-hidden="true">*</span>
@@ -13,7 +13,7 @@
     <ds-site-select
       inputId="articleFolderId"
       [options]="folderSelectOptions()"
-      controlSize="default"
+      controlSize="small"
       appearance="default"
       [required]="true"
       [invalid]="invalid"
@@ -24,60 +24,66 @@
     />
   </div>
 
-  <div class="col-12 col-lg-8">
-    <div class="input-group input-group-sm" [formGroup]="createForm">
-      <input
-        type="text"
-        class="form-control"
-        data-testid="article-folder-key"
-        formControlName="key"
-        [attr.disabled]="disabled || creating() ? '' : null"
-        [attr.maxlength]="validationLimits.shortText"
-        [attr.placeholder]="'articles.folders.key' | t"
-      />
-      <input
-        type="text"
-        class="form-control"
-        data-testid="article-folder-name-ru"
-        formControlName="nameRu"
-        [attr.disabled]="disabled || creating() ? '' : null"
-        [attr.maxlength]="validationLimits.shortText"
-        [attr.placeholder]="'articles.folders.nameRu' | t"
-      />
-      <input
-        type="text"
-        class="form-control"
-        data-testid="article-folder-name-en"
-        formControlName="nameEn"
-        [attr.disabled]="disabled || creating() ? '' : null"
-        [attr.maxlength]="validationLimits.shortText"
-        [attr.placeholder]="'articles.folders.nameEn' | t"
-      />
-      <button
-        type="button"
-        class="btn btn-outline-success"
-        data-testid="article-folder-add"
-        [disabled]="disabled || creating()"
-        (click)="createFolder()"
-      >
-        {{ 'shared.add' | t }}
-      </button>
-    </div>
-    @if (
-      controlInvalid(createForm.controls.key) && controlMessage(createForm.controls.key);
-      as message
-    ) {
-      <div class="invalid-feedback d-block">{{ message }}</div>
-    } @else if (
-      controlInvalid(createForm.controls.nameRu) && controlMessage(createForm.controls.nameRu);
-      as message
-    ) {
-      <div class="invalid-feedback d-block">{{ message }}</div>
-    } @else if (
-      controlInvalid(createForm.controls.nameEn) && controlMessage(createForm.controls.nameEn);
-      as message
-    ) {
-      <div class="invalid-feedback d-block">{{ message }}</div>
-    }
+  <div class="col-12">
+    <details class="admin-editor-inline-create">
+      <summary>{{ 'articles.folders.add' | t }}</summary>
+      <div class="d-grid gap-2 mt-2" [formGroup]="createForm">
+        <input
+          type="text"
+          class="form-control form-control-sm"
+          data-testid="article-folder-key"
+          formControlName="key"
+          [attr.disabled]="disabled || creating() ? '' : null"
+          [attr.maxlength]="validationLimits.shortText"
+          [attr.placeholder]="'articles.folders.key' | t"
+          [attr.aria-label]="'articles.folders.key' | t"
+        />
+        <input
+          type="text"
+          class="form-control form-control-sm"
+          data-testid="article-folder-name-ru"
+          formControlName="nameRu"
+          [attr.disabled]="disabled || creating() ? '' : null"
+          [attr.maxlength]="validationLimits.shortText"
+          [attr.placeholder]="'articles.folders.nameRu' | t"
+          [attr.aria-label]="'articles.folders.nameRu' | t"
+        />
+        <input
+          type="text"
+          class="form-control form-control-sm"
+          data-testid="article-folder-name-en"
+          formControlName="nameEn"
+          [attr.disabled]="disabled || creating() ? '' : null"
+          [attr.maxlength]="validationLimits.shortText"
+          [attr.placeholder]="'articles.folders.nameEn' | t"
+          [attr.aria-label]="'articles.folders.nameEn' | t"
+        />
+        <button
+          type="button"
+          class="btn btn-outline-success btn-sm"
+          data-testid="article-folder-add"
+          [disabled]="disabled || creating()"
+          (click)="createFolder()"
+        >
+          {{ 'shared.add' | t }}
+        </button>
+      </div>
+      @if (
+        controlInvalid(createForm.controls.key) && controlMessage(createForm.controls.key);
+        as message
+      ) {
+        <div class="invalid-feedback d-block">{{ message }}</div>
+      } @else if (
+        controlInvalid(createForm.controls.nameRu) && controlMessage(createForm.controls.nameRu);
+        as message
+      ) {
+        <div class="invalid-feedback d-block">{{ message }}</div>
+      } @else if (
+        controlInvalid(createForm.controls.nameEn) && controlMessage(createForm.controls.nameEn);
+        as message
+      ) {
+        <div class="invalid-feedback d-block">{{ message }}</div>
+      }
+    </details>
   </div>
 </div>

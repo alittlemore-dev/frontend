@@ -26,7 +26,7 @@
       #sheetSelect
       inputId="matrix-structure-sheet"
       [options]="sheetSelectOptions()"
-      controlSize="default"
+      controlSize="small"
       appearance="default"
       [required]="true"
       [invalid]="false"
@@ -46,7 +46,7 @@
       #sectionSelect
       inputId="matrix-structure-section"
       [options]="sectionSelectOptions()"
-      controlSize="default"
+      controlSize="small"
       appearance="default"
       [required]="true"
       [invalid]="false"
@@ -66,7 +66,7 @@
       #subsectionSelect
       inputId="matrix-structure-subsection"
       [options]="subsectionSelectOptions()"
-      controlSize="default"
+      controlSize="small"
       appearance="default"
       [required]="true"
       [invalid]="invalid"
@@ -80,154 +80,170 @@
 
 <div class="row g-2 mt-1">
   <div class="col-12 col-xl-4">
-    <div class="input-group input-group-sm" [formGroup]="sheetForm">
-      <input
-        type="text"
-        class="form-control"
-        [class.is-invalid]="controlInvalid(sheetForm.controls.key)"
-        data-testid="matrix-structure-sheet-key"
-        formControlName="key"
-        [attr.disabled]="disabled || creating() ? '' : null"
-        [attr.maxlength]="validationLimits.shortText"
-        [attr.placeholder]="'matrix.form.sheetKey' | t"
-      />
-      <input
-        type="text"
-        class="form-control"
-        [class.is-invalid]="controlInvalid(sheetForm.controls.nameRu)"
-        data-testid="matrix-structure-sheet-ru"
-        formControlName="nameRu"
-        [attr.disabled]="disabled || creating() ? '' : null"
-        [attr.maxlength]="validationLimits.shortText"
-        [attr.placeholder]="'matrix.form.sheetRu' | t"
-      />
-      <input
-        type="text"
-        class="form-control"
-        [class.is-invalid]="controlInvalid(sheetForm.controls.nameEn)"
-        data-testid="matrix-structure-sheet-en"
-        formControlName="nameEn"
-        [attr.disabled]="disabled || creating() ? '' : null"
-        [attr.maxlength]="validationLimits.shortText"
-        [attr.placeholder]="'matrix.form.sheetEn' | t"
-      />
-      <button
-        type="button"
-        class="btn btn-outline-success"
-        data-testid="matrix-structure-add-sheet"
-        [disabled]="disabled || creating()"
-        (click)="createSheet()"
-      >
-        {{ 'shared.add' | t }}
-      </button>
-    </div>
-    @if (
-      controlInvalid(sheetForm.controls.key) && controlMessage(sheetForm.controls.key);
-      as message
-    ) {
-      <div class="invalid-feedback d-block">{{ message }}</div>
-    } @else if (
-      controlInvalid(sheetForm.controls.nameRu) && controlMessage(sheetForm.controls.nameRu);
-      as message
-    ) {
-      <div class="invalid-feedback d-block">{{ message }}</div>
-    } @else if (
-      controlInvalid(sheetForm.controls.nameEn) && controlMessage(sheetForm.controls.nameEn);
-      as message
-    ) {
-      <div class="invalid-feedback d-block">{{ message }}</div>
-    }
+    <details class="admin-editor-inline-create">
+      <summary>{{ 'adminMatrixStructure.createSheetTitle' | t }}</summary>
+      <div class="d-grid gap-2 mt-2" [formGroup]="sheetForm">
+        <input
+          type="text"
+          class="form-control form-control-sm"
+          [class.is-invalid]="controlInvalid(sheetForm.controls.key)"
+          data-testid="matrix-structure-sheet-key"
+          formControlName="key"
+          [attr.disabled]="disabled || creating() ? '' : null"
+          [attr.maxlength]="validationLimits.shortText"
+          [attr.placeholder]="'matrix.form.sheetKey' | t"
+          [attr.aria-label]="'matrix.form.sheetKey' | t"
+        />
+        <input
+          type="text"
+          class="form-control form-control-sm"
+          [class.is-invalid]="controlInvalid(sheetForm.controls.nameRu)"
+          data-testid="matrix-structure-sheet-ru"
+          formControlName="nameRu"
+          [attr.disabled]="disabled || creating() ? '' : null"
+          [attr.maxlength]="validationLimits.shortText"
+          [attr.placeholder]="'matrix.form.sheetRu' | t"
+          [attr.aria-label]="'matrix.form.sheetRu' | t"
+        />
+        <input
+          type="text"
+          class="form-control form-control-sm"
+          [class.is-invalid]="controlInvalid(sheetForm.controls.nameEn)"
+          data-testid="matrix-structure-sheet-en"
+          formControlName="nameEn"
+          [attr.disabled]="disabled || creating() ? '' : null"
+          [attr.maxlength]="validationLimits.shortText"
+          [attr.placeholder]="'matrix.form.sheetEn' | t"
+          [attr.aria-label]="'matrix.form.sheetEn' | t"
+        />
+        <button
+          type="button"
+          class="btn btn-outline-success btn-sm"
+          data-testid="matrix-structure-add-sheet"
+          [disabled]="disabled || creating()"
+          (click)="createSheet()"
+        >
+          {{ 'shared.add' | t }}
+        </button>
+      </div>
+      @if (
+        controlInvalid(sheetForm.controls.key) && controlMessage(sheetForm.controls.key);
+        as message
+      ) {
+        <div class="invalid-feedback d-block">{{ message }}</div>
+      } @else if (
+        controlInvalid(sheetForm.controls.nameRu) && controlMessage(sheetForm.controls.nameRu);
+        as message
+      ) {
+        <div class="invalid-feedback d-block">{{ message }}</div>
+      } @else if (
+        controlInvalid(sheetForm.controls.nameEn) && controlMessage(sheetForm.controls.nameEn);
+        as message
+      ) {
+        <div class="invalid-feedback d-block">{{ message }}</div>
+      }
+    </details>
   </div>
 
   <div class="col-12 col-xl-4">
-    <div class="input-group input-group-sm" [formGroup]="sectionForm">
-      <input
-        type="text"
-        class="form-control"
-        [class.is-invalid]="controlInvalid(sectionForm.controls.nameRu)"
-        data-testid="matrix-structure-section-ru"
-        formControlName="nameRu"
-        [attr.disabled]="disabled || creating() || selectedSheetId() === null ? '' : null"
-        [attr.maxlength]="validationLimits.shortText"
-        [attr.placeholder]="'matrix.form.sectionRu' | t"
-      />
-      <input
-        type="text"
-        class="form-control"
-        [class.is-invalid]="controlInvalid(sectionForm.controls.nameEn)"
-        data-testid="matrix-structure-section-en"
-        formControlName="nameEn"
-        [attr.disabled]="disabled || creating() || selectedSheetId() === null ? '' : null"
-        [attr.maxlength]="validationLimits.shortText"
-        [attr.placeholder]="'matrix.form.sectionEn' | t"
-      />
-      <button
-        type="button"
-        class="btn btn-outline-success"
-        data-testid="matrix-structure-add-section"
-        [disabled]="disabled || creating() || selectedSheetId() === null"
-        (click)="createSection()"
-      >
-        {{ 'shared.add' | t }}
-      </button>
-    </div>
-    @if (
-      controlInvalid(sectionForm.controls.nameRu) && controlMessage(sectionForm.controls.nameRu);
-      as message
-    ) {
-      <div class="invalid-feedback d-block">{{ message }}</div>
-    } @else if (
-      controlInvalid(sectionForm.controls.nameEn) && controlMessage(sectionForm.controls.nameEn);
-      as message
-    ) {
-      <div class="invalid-feedback d-block">{{ message }}</div>
-    }
+    <details class="admin-editor-inline-create">
+      <summary>{{ 'adminMatrixStructure.createSectionTitle' | t }}</summary>
+      <div class="d-grid gap-2 mt-2" [formGroup]="sectionForm">
+        <input
+          type="text"
+          class="form-control form-control-sm"
+          [class.is-invalid]="controlInvalid(sectionForm.controls.nameRu)"
+          data-testid="matrix-structure-section-ru"
+          formControlName="nameRu"
+          [attr.disabled]="disabled || creating() || selectedSheetId() === null ? '' : null"
+          [attr.maxlength]="validationLimits.shortText"
+          [attr.placeholder]="'matrix.form.sectionRu' | t"
+          [attr.aria-label]="'matrix.form.sectionRu' | t"
+        />
+        <input
+          type="text"
+          class="form-control form-control-sm"
+          [class.is-invalid]="controlInvalid(sectionForm.controls.nameEn)"
+          data-testid="matrix-structure-section-en"
+          formControlName="nameEn"
+          [attr.disabled]="disabled || creating() || selectedSheetId() === null ? '' : null"
+          [attr.maxlength]="validationLimits.shortText"
+          [attr.placeholder]="'matrix.form.sectionEn' | t"
+          [attr.aria-label]="'matrix.form.sectionEn' | t"
+        />
+        <button
+          type="button"
+          class="btn btn-outline-success btn-sm"
+          data-testid="matrix-structure-add-section"
+          [disabled]="disabled || creating() || selectedSheetId() === null"
+          (click)="createSection()"
+        >
+          {{ 'shared.add' | t }}
+        </button>
+      </div>
+      @if (
+        controlInvalid(sectionForm.controls.nameRu) && controlMessage(sectionForm.controls.nameRu);
+        as message
+      ) {
+        <div class="invalid-feedback d-block">{{ message }}</div>
+      } @else if (
+        controlInvalid(sectionForm.controls.nameEn) && controlMessage(sectionForm.controls.nameEn);
+        as message
+      ) {
+        <div class="invalid-feedback d-block">{{ message }}</div>
+      }
+    </details>
   </div>
 
   <div class="col-12 col-xl-4">
-    <div class="input-group input-group-sm" [formGroup]="subsectionForm">
-      <input
-        type="text"
-        class="form-control"
-        [class.is-invalid]="controlInvalid(subsectionForm.controls.nameRu)"
-        data-testid="matrix-structure-subsection-ru"
-        formControlName="nameRu"
-        [attr.disabled]="disabled || creating() || selectedSectionId() === null ? '' : null"
-        [attr.maxlength]="validationLimits.shortText"
-        [attr.placeholder]="'matrix.form.subsectionRu' | t"
-      />
-      <input
-        type="text"
-        class="form-control"
-        [class.is-invalid]="controlInvalid(subsectionForm.controls.nameEn)"
-        data-testid="matrix-structure-subsection-en"
-        formControlName="nameEn"
-        [attr.disabled]="disabled || creating() || selectedSectionId() === null ? '' : null"
-        [attr.maxlength]="validationLimits.shortText"
-        [attr.placeholder]="'matrix.form.subsectionEn' | t"
-      />
-      <button
-        type="button"
-        class="btn btn-outline-success"
-        data-testid="matrix-structure-add-subsection"
-        [disabled]="disabled || creating() || selectedSectionId() === null"
-        (click)="createSubsection()"
-      >
-        {{ 'shared.add' | t }}
-      </button>
-    </div>
-    @if (
-      controlInvalid(subsectionForm.controls.nameRu) &&
-        controlMessage(subsectionForm.controls.nameRu);
-      as message
-    ) {
-      <div class="invalid-feedback d-block">{{ message }}</div>
-    } @else if (
-      controlInvalid(subsectionForm.controls.nameEn) &&
-        controlMessage(subsectionForm.controls.nameEn);
-      as message
-    ) {
-      <div class="invalid-feedback d-block">{{ message }}</div>
-    }
+    <details class="admin-editor-inline-create">
+      <summary>{{ 'adminMatrixStructure.createSubsectionTitle' | t }}</summary>
+      <div class="d-grid gap-2 mt-2" [formGroup]="subsectionForm">
+        <input
+          type="text"
+          class="form-control form-control-sm"
+          [class.is-invalid]="controlInvalid(subsectionForm.controls.nameRu)"
+          data-testid="matrix-structure-subsection-ru"
+          formControlName="nameRu"
+          [attr.disabled]="disabled || creating() || selectedSectionId() === null ? '' : null"
+          [attr.maxlength]="validationLimits.shortText"
+          [attr.placeholder]="'matrix.form.subsectionRu' | t"
+          [attr.aria-label]="'matrix.form.subsectionRu' | t"
+        />
+        <input
+          type="text"
+          class="form-control form-control-sm"
+          [class.is-invalid]="controlInvalid(subsectionForm.controls.nameEn)"
+          data-testid="matrix-structure-subsection-en"
+          formControlName="nameEn"
+          [attr.disabled]="disabled || creating() || selectedSectionId() === null ? '' : null"
+          [attr.maxlength]="validationLimits.shortText"
+          [attr.placeholder]="'matrix.form.subsectionEn' | t"
+          [attr.aria-label]="'matrix.form.subsectionEn' | t"
+        />
+        <button
+          type="button"
+          class="btn btn-outline-success btn-sm"
+          data-testid="matrix-structure-add-subsection"
+          [disabled]="disabled || creating() || selectedSectionId() === null"
+          (click)="createSubsection()"
+        >
+          {{ 'shared.add' | t }}
+        </button>
+      </div>
+      @if (
+        controlInvalid(subsectionForm.controls.nameRu) &&
+          controlMessage(subsectionForm.controls.nameRu);
+        as message
+      ) {
+        <div class="invalid-feedback d-block">{{ message }}</div>
+      } @else if (
+        controlInvalid(subsectionForm.controls.nameEn) &&
+          controlMessage(subsectionForm.controls.nameEn);
+        as message
+      ) {
+        <div class="invalid-feedback d-block">{{ message }}</div>
+      }
+    </details>
   </div>
 </div>

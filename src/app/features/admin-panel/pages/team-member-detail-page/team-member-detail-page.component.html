@@ -1,15 +1,15 @@
-<section class="admin-team-detail-page">
-  <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
-    <div>
+<section class="admin-editor admin-team-detail-page">
+  <div class="admin-editor-header">
+    <div class="admin-editor-heading">
       <button
         type="button"
-        class="btn btn-link btn-sm px-0 mb-2"
+        class="btn btn-link btn-sm px-0"
         data-testid="team-detail-back"
         (click)="goBack()"
       >
         {{ 'shared.back' | t }}
       </button>
-      <h1 class="h3 mb-0">{{ 'adminTeamWorkspace.detailTitle' | t }}</h1>
+      <h1 class="h4 mb-0">{{ 'adminTeamWorkspace.detailTitle' | t }}</h1>
     </div>
     @if (account(); as accountValue) {
       <app-admin-actions-dropdown
@@ -32,10 +32,10 @@
       (retry)="loadAccount()"
     />
   } @else if (account(); as accountValue) {
-    <dl class="row g-3">
+    <dl class="row g-2 mb-0">
       <div class="col-12 col-md-4">
         <dt class="small text-body-secondary">{{ 'adminTeamWorkspace.field.username' | t }}</dt>
-        <dd class="fs-5 mb-0">{{ accountValue.username }}</dd>
+        <dd class="fw-semibold mb-0">{{ accountValue.username }}</dd>
       </div>
       <div class="col-12 col-md-4">
         <dt class="small text-body-secondary">{{ 'adminTeamWorkspace.field.role' | t }}</dt>
@@ -60,7 +60,7 @@
       </div>
     </dl>
 
-    <section class="border-top pt-4 mt-4" data-testid="team-sessions-section">
+    <section class="border-top pt-3 mt-3" data-testid="team-sessions-section">
       <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
         <h2 class="h5 mb-0">{{ 'adminTeamWorkspace.sessions.title' | t }}</h2>
         <div class="d-flex flex-wrap gap-2">
@@ -101,7 +101,7 @@
         </p>
       } @else {
         <div class="table-responsive">
-          <table class="table table-sm align-middle mb-0">
+          <table class="admin-team-sessions table table-sm align-middle mb-0">
             <thead>
               <tr>
                 <th scope="col">{{ 'adminTeamWorkspace.sessions.device' | t }}</th>
@@ -115,7 +115,7 @@
             <tbody>
               @for (session of sessions(); track session.id) {
                 <tr>
-                  <td>
+                  <td [attr.data-label]="'adminTeamWorkspace.sessions.device' | t">
                     <div class="fw-medium">{{ session.userAgentDisplay }}</div>
                     <div class="small text-body-secondary">
                       {{ sessionDeviceLabelKey(session.userAgentDevice) | t }}
@@ -126,23 +126,25 @@
                       </span>
                     }
                   </td>
-                  <td>{{ sessionAuthMethodLabelKey(session.authMethod) | t }}</td>
-                  <td>
+                  <td [attr.data-label]="'adminTeamWorkspace.sessions.authMethod' | t">
+                    {{ sessionAuthMethodLabelKey(session.authMethod) | t }}
+                  </td>
+                  <td [attr.data-label]="'adminTeamWorkspace.sessions.createdAt' | t">
                     <time [attr.datetime]="session.createdAt" data-testid="team-session-time">
                       {{ formatSessionTimestamp(session.createdAt) }}
                     </time>
                   </td>
-                  <td>
+                  <td [attr.data-label]="'adminTeamWorkspace.sessions.lastUsedAt' | t">
                     <time [attr.datetime]="session.lastUsedAt" data-testid="team-session-time">
                       {{ formatSessionTimestamp(session.lastUsedAt) }}
                     </time>
                   </td>
-                  <td>
+                  <td [attr.data-label]="'adminTeamWorkspace.sessions.expiresAt' | t">
                     <time [attr.datetime]="session.expiresAt" data-testid="team-session-time">
                       {{ formatSessionTimestamp(session.expiresAt) }}
                     </time>
                   </td>
-                  <td class="text-end">
+                  <td class="text-end" [attr.data-label]="'shared.actions' | t">
                     <button
                       type="button"
                       class="btn btn-outline-danger btn-sm"

@@ -53,6 +53,12 @@ export class AdminPanelPageComponent {
     ),
     { initialValue: this.router.url },
   );
+  readonly contextualNavigation = computed(() => {
+    this.currentUrl();
+    let route = this.router.routerState.snapshot.root;
+    while (route.firstChild !== null) route = route.firstChild;
+    return route.data['adminDetail'] === true;
+  });
   readonly visibleNavigationSections = computed<readonly AdminPanelNavigationSection[]>(() => {
     const canManageTeam = this.auth.canManageTeam();
     const isOwner = this.auth.isOwner();
@@ -112,7 +118,9 @@ export class AdminPanelPageComponent {
 
   constructor() {
     effect(() => {
-      if (this.desktop() || this.authModal.isLoginOpen()) this.closeSidePanel();
+      if ((this.desktop() && !this.contextualNavigation()) || this.authModal.isLoginOpen()) {
+        this.closeSidePanel();
+      }
     });
   }
 

@@ -6,6 +6,8 @@ import { I18nService } from '../core/i18n/i18n.service';
 const I18N_TEST_MESSAGES: Record<string, string> = {
   'app.siteName': 'Мой сайт',
   'shared.back': 'Назад',
+  'adminEditor.settings': 'Размещение и параметры',
+  'adminEditor.content': 'Содержимое',
   'workspace.editor.clean': 'Все изменения сохранены',
   'workspace.editor.unsaved': 'Есть несохранённые изменения',
   'shared.next': 'Вперёд',

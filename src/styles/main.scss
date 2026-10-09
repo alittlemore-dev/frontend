@@ -6,6 +6,7 @@
 @use './components';
 @use './resume-limits';
 @use './resume-reorder';
+@use '../app/features/admin-panel/styles/editor';
 
 textarea.app-textarea-autosize {
   overflow-y: hidden;

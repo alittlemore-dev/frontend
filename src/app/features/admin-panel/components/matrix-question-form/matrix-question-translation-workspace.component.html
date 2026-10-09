@@ -40,7 +40,7 @@
   <div class="d-grid gap-3">
     @for (row of rows(); track row.key) {
       <article
-        class="matrix-translation-field-card border rounded p-3"
+        class="matrix-translation-field-card border-bottom py-3"
         data-testid="matrix-translation-field"
         [attr.data-translation-key]="row.key"
         [attr.data-translation-status]="row.status"
@@ -121,7 +121,7 @@
             } @else if (isContextField(row.field)) {
               <textarea
                 appTextareaAutosize
-                class="form-control"
+                class="form-control form-control-sm"
                 [id]="'matrix-translation-target-' + fieldTestId(row.field)"
                 [attr.data-testid]="'matrix-translation-target-' + fieldTestId(row.field)"
                 rows="3"
@@ -133,7 +133,7 @@
               ></textarea>
             } @else {
               <input
-                class="form-control"
+                class="form-control form-control-sm"
                 [id]="'matrix-translation-target-' + fieldTestId(row.field)"
                 [attr.data-testid]="'matrix-translation-target-' + fieldTestId(row.field)"
                 [attr.maxlength]="row.field.maxLength"
@@ -167,7 +167,7 @@
     }
   </div>
 
-  <section class="border rounded p-3 mt-4" aria-labelledby="matrix-translation-import-title">
+  <section class="border-top pt-3 mt-3" aria-labelledby="matrix-translation-import-title">
     <h4 id="matrix-translation-import-title" class="h6">
       {{ 'matrix.translation.import.title' | t }}
     </h4>

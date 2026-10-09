@@ -1,4 +1,5 @@
 import { TextareaAutosizeDirective } from '../../../../shared/directives/textarea-autosize.directive';
+import { revealAdminEditorTarget } from '../../utils/admin-editor-focus';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -165,17 +166,6 @@ interface AdminMatrixResourceDraft {
         outline: 1px solid var(--bs-danger);
         outline-offset: 2px;
         box-shadow: 0 0 0 0.25rem rgba(var(--bs-danger-rgb), 0.25);
-      }
-
-      .matrix-question-form-action-footer {
-        position: sticky;
-        bottom: 0;
-        z-index: 2;
-        background-color: var(--bs-body-bg);
-      }
-
-      :host-context(.modal-body) .matrix-question-form-action-footer {
-        bottom: calc(0rem - var(--bs-modal-padding, 1rem));
       }
     `,
   ],
@@ -1015,14 +1005,17 @@ export class MatrixQuestionFormComponent implements OnChanges, OnInit {
     fieldId: Extract<MatrixQuestionReadinessItem['target'], { kind: 'field' }>['fieldId'],
   ): void {
     if (fieldId === 'subsectionId') {
+      revealAdminEditorTarget(this.host.nativeElement.querySelector('app-matrix-structure-picker'));
       this.structurePicker()?.focusSubsection();
       return;
     }
     const markdownEditor = this.markdownEditorForField(fieldId);
     if (markdownEditor !== null) {
-      this.host.nativeElement
-        .querySelector<HTMLElement>(`#matrix-form-${readinessFieldDomSuffix(fieldId)}`)
-        ?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+      revealAdminEditorTarget(
+        this.host.nativeElement.querySelector<HTMLElement>(
+          `#matrix-form-${readinessFieldDomSuffix(fieldId)}`,
+        ),
+      );
       markdownEditor.focus();
       return;
     }
@@ -1054,7 +1047,7 @@ export class MatrixQuestionFormComponent implements OnChanges, OnInit {
 
   private scrollAndFocus(target: HTMLElement | null): void {
     if (target === null) return;
-    target.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+    revealAdminEditorTarget(target);
     target.focus({ preventScroll: true });
   }
 }

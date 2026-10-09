@@ -356,18 +356,23 @@ describe('MatrixQuestionFormComponent', () => {
 
   it('focuses a readiness target when the form is already in edit mode', async () => {
     const frequency = element('#matrix-form-interview-frequency');
+    const section = frequency?.closest('details') as HTMLDetailsElement;
+    section.open = false;
 
     element('[data-readiness-id="warning:interviewFrequency"]')?.click();
     fixture.detectChanges();
     await fixture.whenStable();
 
     expect(document.activeElement).toBe(frequency);
+    expect(section.open).toBe(true);
   });
 
   it('focuses the exact localized resource context selected from readiness', async () => {
     fixture.componentInstance.attachResource(resource);
     fixture.componentInstance.setLocalizedDisplayMode('en');
     fixture.detectChanges();
+    const section = element('#matrixResourceContextEn0')?.closest('details') as HTMLDetailsElement;
+    section.open = false;
 
     element(`[data-readiness-id="warning:resource:${RESOURCE_ID}:context:ru"]`)?.click();
     fixture.detectChanges();
@@ -376,6 +381,7 @@ describe('MatrixQuestionFormComponent', () => {
     const context = element('#matrixResourceContextRu0');
     expect(context).not.toBeNull();
     expect(document.activeElement).toBe(context);
+    expect(section.open).toBe(true);
   });
 
   it('focuses the shared Markdown editor selected from readiness', async () => {

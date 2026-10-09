@@ -36,7 +36,24 @@ describe('AdminPanelPageComponent', () => {
     await TestBed.configureTestingModule({
       imports: [AdminPanelPageComponent],
       providers: [
-        provideRouter([{ path: '**', component: EmptyRouteComponent }]),
+        provideRouter([
+          {
+            path: 'admin-panel/articles/:slug',
+            component: EmptyRouteComponent,
+            data: { adminDetail: true },
+          },
+          {
+            path: 'admin-panel/matrix-questions/:id',
+            component: EmptyRouteComponent,
+            data: { adminDetail: true },
+          },
+          {
+            path: 'admin-panel/workspace/team/:username',
+            component: EmptyRouteComponent,
+            data: { adminDetail: true },
+          },
+          { path: '**', component: EmptyRouteComponent },
+        ]),
         provideI18nTesting(),
         { provide: BreakpointObserver, useValue: { observe: () => viewport } },
         {
@@ -121,12 +138,32 @@ describe('AdminPanelPageComponent', () => {
   it('derives the selected retained page from a detail URL', async () => {
     await router.navigateByUrl('/admin-panel/articles/example');
     fixture.detectChanges();
+    openDrawer();
 
     const articles = Array.from(
       fixture.nativeElement.querySelectorAll('[data-testid="admin-panel-tree-item"]'),
     ).find((item) => item.textContent?.trim() === '+--Статьи') as HTMLButtonElement;
 
     expect(articles.getAttribute('aria-current')).toBe('page');
+  });
+
+  it.each([
+    '/admin-panel/articles/example',
+    '/admin-panel/matrix-questions/123',
+    '/admin-panel/workspace/team/owner',
+  ])('keeps navigation available in a drawer on desktop detail %s', async (url) => {
+    viewport.next({ matches: true, breakpoints: {} });
+    await router.navigateByUrl(url);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('aside')).toBeNull();
+    const dialog = openDrawer();
+    expect(dialog.open).toBe(true);
+    expect(fixture.nativeElement.textContent).toContain('Статьи');
+
+    await router.navigateByUrl('/admin-panel/dashboard');
+    fixture.detectChanges();
+    expect(dialog.open).toBe(false);
+    expect(fixture.nativeElement.querySelector('aside')).not.toBeNull();
   });
 
   it('closes the DS mobile drawer after selecting an allowed admin page', async () => {

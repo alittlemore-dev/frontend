@@ -25,6 +25,14 @@
   min-width: 0;
 }
 
+.admin-panel-layout-contextual {
+  grid-template-columns: minmax(0, 1fr);
+
+  .admin-panel-content {
+    grid-column: 1;
+  }
+}
+
 .admin-panel-icon-toggle {
   display: inline-flex;
   align-items: center;

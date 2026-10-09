@@ -1,11 +1,11 @@
 <section
-  class="border rounded mb-3 overflow-hidden"
+  class="border-bottom mb-3"
   data-testid="matrix-readiness-panel"
   [attr.aria-label]="'matrix.readiness.aria' | t"
 >
   <button
     type="button"
-    class="readiness-toggle btn w-100 d-flex align-items-center gap-2 p-3 border-0 rounded-0 text-start"
+    class="readiness-toggle btn w-100 d-flex align-items-center flex-wrap gap-2 py-2 px-0 border-0 rounded-0 text-start"
     data-testid="matrix-readiness-toggle"
     [attr.aria-expanded]="expanded()"
     (click)="toggleDetails()"
@@ -33,7 +33,7 @@
     </span>
   </button>
 
-  <div class="px-3 pb-3" data-testid="matrix-readiness-details" [hidden]="!expanded()">
+  <div class="pb-3" data-testid="matrix-readiness-details" [hidden]="!expanded()">
     <div class="small text-body-secondary mb-3">
       {{ 'matrix.readiness.requiredProgress' | t }}:
       <strong>{{ analysis().completedRequired }} / {{ analysis().totalRequired }}</strong>
@@ -42,7 +42,7 @@
     <div class="row g-2">
       @for (group of analysis().groups; track group.id) {
         <div class="col-12 col-lg-6" data-testid="matrix-readiness-group">
-          <section class="border rounded p-2 h-100" [attr.aria-label]="groupTitleKey(group) | t">
+          <section class="py-2 h-100" [attr.aria-label]="groupTitleKey(group) | t">
             <div class="d-flex flex-wrap justify-content-between gap-2 mb-1">
               <h4 class="h6 mb-0">{{ groupTitleKey(group) | t }}</h4>
               @if (group.totalRequired > 0) {

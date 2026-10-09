@@ -4,7 +4,10 @@ import {
   Component,
   DestroyRef,
   ElementRef,
+  Injector,
   OnInit,
+  PLATFORM_ID,
+  afterNextRender,
   computed,
   effect,
   inject,
@@ -14,6 +17,9 @@ import {
   untracked,
   viewChild,
 } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
+import { MarkdownEditorStickyBottomInsetDirective } from '@alittlemore.dev/design-system/markdown-editor';
+import { revealAdminEditorTarget } from '../../../../utils/admin-editor-focus';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -116,6 +122,7 @@ type ArticleFormViewMode = 'edit' | 'preview';
     ReactiveFormsModule,
     RouterLink,
     MarkdownEditorComponent,
+    MarkdownEditorStickyBottomInsetDirective,
     TranslatePipe,
     ArticleAuthoringPreviewComponent,
     ArticleFolderPickerComponent,
@@ -128,6 +135,11 @@ type ArticleFormViewMode = 'edit' | 'preview';
   styleUrl: './article-form.component.scss',
 })
 export class ArticleFormComponent implements OnInit {
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly injector = inject(Injector);
+  private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
+  private readonly contentRuEditor = viewChild<MarkdownEditorComponent>('contentRuEditor');
+  private readonly contentEnEditor = viewChild<MarkdownEditorComponent>('contentEnEditor');
   private readonly articlesService = inject(ArticleWorkspaceService);
   private readonly mediaUpload = inject(MediaUploadService);
   private readonly wikiLinkTargetsService = inject(WikiLinkTargetsService);
@@ -495,6 +507,19 @@ export class ArticleFormComponent implements OnInit {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       this.viewMode.set('edit');
+      const field = (Object.keys(this.form.controls) as ArticleField[]).find(
+        (key) => this.form.controls[key].invalid,
+      );
+      if (field !== undefined) {
+        if (field.endsWith('Ru')) this.activeLanguageTab.set('ru');
+        if (field.endsWith('En')) this.activeLanguageTab.set('en');
+        if (this.isBrowser) {
+          afterNextRender(
+            { write: () => this.focusInvalidField(field) },
+            { injector: this.injector },
+          );
+        }
+      }
       return;
     }
     if (
@@ -524,6 +549,24 @@ export class ArticleFormComponent implements OnInit {
     });
   }
 
+  private focusInvalidField(field: ArticleField): void {
+    if (field === 'contentRu' || field === 'contentEn') {
+      revealAdminEditorTarget(
+        this.host.nativeElement.querySelector(
+          `[data-testid="article-content-${field === 'contentRu' ? 'ru' : 'en'}-editor"]`,
+        ),
+      );
+      (field === 'contentRu' ? this.contentRuEditor() : this.contentEnEditor())?.focus();
+      return;
+    }
+    const target =
+      field === 'folderId'
+        ? this.host.nativeElement.querySelector<HTMLElement>('app-article-folder-picker button')
+        : this.host.nativeElement.querySelector<HTMLElement>(`[formControlName="${field}"]`);
+    revealAdminEditorTarget(target);
+    target?.focus({ preventScroll: true });
+  }
+
   acceptSavedArticle(article: ArticleDetail): void {
     this.applyArticle(article);
     this.mainUnsavedSource?.commit();
@@ -535,6 +578,16 @@ export class ArticleFormComponent implements OnInit {
 
   articleFieldInvalid(field: ArticleField): boolean {
     return controlInvalid(this.form.controls[field], this.formSubmitted());
+  }
+
+  sectionInvalid(section: 'settings' | 'cover' | 'seo'): boolean {
+    const fields: readonly ArticleField[] =
+      section === 'settings'
+        ? ['slug', 'folderId']
+        : section === 'cover'
+          ? ['coverImageAltRu', 'coverImageAltEn']
+          : ['seoTitleRu', 'seoTitleEn', 'seoDescriptionRu', 'seoDescriptionEn'];
+    return fields.some((field) => this.articleFieldInvalid(field));
   }
 
   articleFieldMessage(field: ArticleField): string | null {

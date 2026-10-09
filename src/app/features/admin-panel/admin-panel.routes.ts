@@ -60,6 +60,7 @@ export const adminPanelRoutes: Routes = [
       },
       {
         path: 'articles/:slug',
+        data: { adminDetail: true },
         title: 'articles.modal.edit',
         canDeactivate: [adminUnsavedChangesGuard],
         loadComponent: () =>
@@ -87,6 +88,7 @@ export const adminPanelRoutes: Routes = [
       },
       {
         path: 'matrix-questions/:id',
+        data: { adminDetail: true },
         title: 'matrix.modal.edit',
         canDeactivate: [adminUnsavedChangesGuard],
         loadComponent: () =>
@@ -118,6 +120,7 @@ export const adminPanelRoutes: Routes = [
       },
       {
         path: 'workspace/team/:username',
+        data: { adminDetail: true },
         title: 'adminTeamWorkspace.detailTitle',
         canActivate: [teamGuard],
         canDeactivate: [adminUnsavedChangesGuard],

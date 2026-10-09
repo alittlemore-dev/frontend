@@ -180,6 +180,31 @@ describe('ArticleFormComponent', () => {
     expect(unsavedChangesScope.hasChanges()).toBe(false);
   });
 
+  it('reveals a collapsed SEO field and selects its language when saving an invalid value', async () => {
+    fixture.componentRef.setInput('article', articleDetail('typed-article', 'Typed article'));
+    fixture.detectChanges();
+    setInput('#articleSeoTitleEn', 'x'.repeat(256));
+    const input = fixture.nativeElement.querySelector('#articleSeoTitleEn') as HTMLInputElement;
+    const section = input.closest('details') as HTMLDetailsElement;
+    section.open = false;
+    submitArticleForm();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(section.open).toBe(true);
+    expect(editLanguageButton('en').classList).toContain('active');
+    expect(input.classList).toContain('is-invalid');
+    expect(document.activeElement).toBe(input);
+  });
+
+  it('does not treat collapsing settings as an authored change', () => {
+    const section = fixture.nativeElement.querySelector('details') as HTMLDetailsElement;
+    section.open = false;
+    section.dispatchEvent(new Event('toggle'));
+    fixture.detectChanges();
+    expect(unsavedChangesScope.hasChanges()).toBe(false);
+  });
+
   it('suggests slug from title until slug is edited manually', () => {
     const title = fixture.debugElement.query(By.css('#articleTitleEn'))
       .nativeElement as HTMLInputElement;
@@ -1275,6 +1300,7 @@ describe('ArticleFormComponent', () => {
   template: '',
 })
 class MarkdownEditorStubComponent {
+  readonly focus = jest.fn();
   readonly value = input<string>('');
   readonly language = input.required<'ru' | 'en'>();
   readonly accessibleLabel = input.required<string>();

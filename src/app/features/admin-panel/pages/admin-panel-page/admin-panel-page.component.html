@@ -1,5 +1,5 @@
 <main class="admin-panel-main container-fluid py-4">
-  <div class="d-flex align-items-center gap-2 mb-3 d-lg-none">
+  <div class="d-flex align-items-center gap-2 mb-3" [class.d-lg-none]="!contextualNavigation()">
     <button
       type="button"
       class="btn btn-outline-secondary admin-panel-icon-toggle"
@@ -43,17 +43,19 @@
         </svg>
       }
     </button>
-    <h1 class="h5 mb-0">{{ 'adminPanel.title' | t }}</h1>
+    <p class="small text-body-secondary mb-0">{{ 'adminPanel.title' | t }}</p>
   </div>
 
-  <div class="admin-panel-layout">
-    <aside
-      class="admin-panel-side-panel border-end pe-lg-3 d-none d-lg-block"
-      data-testid="admin-panel-side-panel"
-    >
-      <h2 class="h6 mb-3">{{ 'adminPanel.sections' | t }}</h2>
-      <ng-container [ngTemplateOutlet]="navigationTree" />
-    </aside>
+  <div class="admin-panel-layout" [class.admin-panel-layout-contextual]="contextualNavigation()">
+    @if (!contextualNavigation()) {
+      <aside
+        class="admin-panel-side-panel border-end pe-lg-3 d-none d-lg-block"
+        data-testid="admin-panel-side-panel"
+      >
+        <h2 class="h6 mb-3">{{ 'adminPanel.sections' | t }}</h2>
+        <ng-container [ngTemplateOutlet]="navigationTree" />
+      </aside>
+    }
 
     <section class="admin-panel-content">
       <router-outlet />
