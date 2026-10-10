@@ -6,6 +6,7 @@ import { I18nService } from '../core/i18n/i18n.service';
 const I18N_TEST_MESSAGES: Record<string, string> = {
   'app.siteName': 'Мой сайт',
   'shared.back': 'Назад',
+  'dashboard.statistics.title': 'Посещаемость',
   'adminEditor.settings': 'Размещение и параметры',
   'adminEditor.content': 'Содержимое',
   'shared.navigation.collapse': 'Свернуть разделы',

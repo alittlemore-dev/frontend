@@ -12,8 +12,51 @@
     </button>
   </div>
 
+  <ul
+    class="nav nav-tabs flex-wrap gap-1 mb-3"
+    role="tablist"
+    [attr.aria-label]="'dashboard.title' | t"
+    data-testid="dashboard-tabs"
+  >
+    @for (tab of tabs(); track tab.key) {
+      <li class="nav-item" role="presentation">
+        <button
+          type="button"
+          class="nav-link"
+          role="tab"
+          [id]="tabId(tab.key)"
+          [class.active]="activeTab() === tab.key"
+          [attr.aria-selected]="activeTab() === tab.key"
+          [attr.aria-controls]="tabPanelId(tab.key)"
+          [attr.data-testid]="'dashboard-tab-' + tab.key"
+          (click)="setActiveTab(tab.key)"
+        >
+          {{ tab.labelKey | t }}
+        </button>
+      </li>
+    }
+  </ul>
+
+  <div
+    role="tabpanel"
+    [id]="tabPanelId('statistics')"
+    [attr.aria-labelledby]="tabId('statistics')"
+    data-testid="dashboard-tabpanel-statistics"
+    [hidden]="activeTab() !== 'statistics'"
+  >
+    @if (statisticsOpened()) {
+      <app-analytics-page scope="Site" />
+    }
+  </div>
+
   @if (canManageTeam()) {
-    <section data-testid="dashboard-manager-view" aria-labelledby="dashboard-tools-heading">
+    <section
+      data-testid="dashboard-manager-view"
+      role="tabpanel"
+      [id]="tabPanelId('tools')"
+      [attr.aria-labelledby]="tabId('tools')"
+      [hidden]="activeTab() !== 'tools'"
+    >
       <div class="mb-3">
         <h3 id="dashboard-tools-heading" class="h5 mb-1">{{ 'dashboard.tools.title' | t }}</h3>
         <p class="text-body-secondary mb-0">{{ 'dashboard.tools.summary' | t }}</p>
@@ -23,31 +66,6 @@
     </section>
   } @else {
     <div data-testid="dashboard-moderator-view">
-      <ul
-        class="nav nav-tabs flex-wrap gap-1 mb-3"
-        role="tablist"
-        [attr.aria-label]="'dashboard.title' | t"
-        data-testid="dashboard-tabs"
-      >
-        @for (tab of tabs; track tab.key) {
-          <li class="nav-item" role="presentation">
-            <button
-              type="button"
-              class="nav-link"
-              role="tab"
-              [id]="tabId(tab.key)"
-              [class.active]="activeTab() === tab.key"
-              [attr.aria-selected]="activeTab() === tab.key"
-              [attr.aria-controls]="tabPanelId(tab.key)"
-              [attr.data-testid]="'dashboard-tab-' + tab.key"
-              (click)="setActiveTab(tab.key)"
-            >
-              {{ tab.labelKey | t }}
-            </button>
-          </li>
-        }
-      </ul>
-
       <div
         role="tabpanel"
         [id]="tabPanelId('moderator-question-queue')"

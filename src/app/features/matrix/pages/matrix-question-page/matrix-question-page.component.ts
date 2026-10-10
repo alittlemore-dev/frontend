@@ -27,6 +27,7 @@ import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
 import { SeoAlternate, SeoService } from '../../../../core/seo/seo.service';
 import { replaceWikiLinksWithPlainText } from '../../../../core/wiki-links/wiki-links';
 import { MatrixQuestionDetail } from '../../models/matrix-question.model';
+import { AnonymousAnalyticsService } from '../../../../core/analytics/anonymous-analytics.service';
 import { MatrixService } from '../../services/matrix.service';
 import { MatrixQuestionDetailComponent } from '../matrix-list/components/matrix-question-detail/matrix-question-detail.component';
 
@@ -40,6 +41,7 @@ const DESCRIPTION_LENGTH = 160;
   templateUrl: './matrix-question-page.component.html',
 })
 export class MatrixQuestionPageComponent implements OnInit {
+  private readonly analytics = inject(AnonymousAnalyticsService);
   private readonly route = inject(ActivatedRoute);
   private readonly matrixService = inject(MatrixService);
   private readonly seoService = inject(SeoService);
@@ -58,6 +60,7 @@ export class MatrixQuestionPageComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    this.destroyRef.onDestroy(() => this.analytics.stopMatrix());
     combineLatest([
       this.route.paramMap.pipe(
         map((params) => ({ sheetKey: params.get('sheetKey'), slug: params.get('slug') })),
@@ -89,6 +92,7 @@ export class MatrixQuestionPageComponent implements OnInit {
     slug: string,
     language: LanguageCode,
   ): Observable<MatrixQuestionDetail> {
+    this.analytics.stopMatrix();
     this.loading.set(true);
     this.error.set(null);
     this.question.set(null);
@@ -97,6 +101,7 @@ export class MatrixQuestionPageComponent implements OnInit {
         this.question.set(question);
         this.loading.set(false);
         this.setQuestionSeo(question, language);
+        this.analytics.startMatrix(`${question.sheetKey}/${question.slug}`);
       }),
       catchError((err: ApiError) => {
         this.error.set(err);

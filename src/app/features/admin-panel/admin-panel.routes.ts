@@ -51,11 +51,18 @@ export const adminPanelRoutes: Routes = [
       },
       {
         path: 'article-statistics',
-        title: 'articles.stats.button',
-        canDeactivate: [adminUnsavedChangesGuard],
+        title: 'analytics.title.Articles',
         loadComponent: () =>
-          import('./pages/article-statistics-page/article-statistics-page.component').then(
-            (m) => m.AdminArticleStatisticsPageComponent,
+          import('./pages/analytics-page/statistics-pages').then(
+            (m) => m.ArticleStatisticsPageComponent,
+          ),
+      },
+      {
+        path: 'matrix-statistics',
+        title: 'analytics.title.Matrix',
+        loadComponent: () =>
+          import('./pages/analytics-page/statistics-pages').then(
+            (m) => m.MatrixStatisticsPageComponent,
           ),
       },
       {

@@ -1,6 +1,6 @@
 import { DOCUMENT } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { Observable } from 'rxjs';
+import { Observable, Subscription } from 'rxjs';
 import {
   Component,
   ChangeDetectionStrategy,
@@ -13,6 +13,7 @@ import {
   OnInit,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { AnonymousAnalyticsService } from '../../../../core/analytics/anonymous-analytics.service';
 import { MatrixService } from '../../services/matrix.service';
 import {
   MatrixQuestionDetail,
@@ -63,6 +64,8 @@ const LINE_BREAKS_PATTERN = /[\r\n]+/g;
   styleUrl: './matrix-list.component.scss',
 })
 export class MatrixListComponent implements OnInit {
+  private readonly analytics = inject(AnonymousAnalyticsService);
+  private detailSubscription: Subscription | null = null;
   private readonly matrixService = inject(MatrixService);
   private readonly seoService = inject(SeoService);
   private readonly notifications = inject(NotificationService);
@@ -170,6 +173,10 @@ export class MatrixListComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    this.destroyRef.onDestroy(() => {
+      this.detailSubscription?.unsubscribe();
+      this.analytics.stopMatrix();
+    });
     this.seoService.setTranslatedMeta({
       titleKey: 'matrix.seo.title',
       descriptionKey: 'matrix.seo.description',
@@ -240,15 +247,18 @@ export class MatrixListComponent implements OnInit {
 
   openDetail(slug: string, sheetKey: string | null = this.selectedSheetKey()): void {
     if (sheetKey === null) return;
+    this.detailSubscription?.unsubscribe();
+    this.analytics.stopMatrix();
     this.detailVisible.set(true);
     this.selectedQuestion.set(null);
     this.detailLoading.set(true);
     this.detailError.set(null);
-    this.publicDetailRequest(sheetKey, slug)
+    this.detailSubscription = this.publicDetailRequest(sheetKey, slug)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (detail) => {
           this.selectedQuestion.set(detail);
+          this.analytics.startMatrix(`${detail.sheetKey}/${detail.slug}`);
           this.detailLoading.set(false);
         },
         error: (err: ApiError) => {
@@ -338,6 +348,8 @@ export class MatrixListComponent implements OnInit {
   }
 
   closeDetail(): void {
+    this.detailSubscription?.unsubscribe();
+    this.analytics.stopMatrix();
     this.detailVisible.set(false);
     this.selectedQuestion.set(null);
     this.detailError.set(null);

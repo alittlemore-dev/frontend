@@ -40,6 +40,7 @@ export const ADMIN_PANEL_NAVIGATION_SECTIONS: readonly AdminPanelNavigationSecti
       },
       {
         key: 'article-tags',
+        icon: 'document',
         labelKey: 'adminPanel.section.articleTags',
         route: '/admin-panel/article-tags',
         badgeTextKey: null,
@@ -48,6 +49,7 @@ export const ADMIN_PANEL_NAVIGATION_SECTIONS: readonly AdminPanelNavigationSecti
       },
       {
         key: 'article-statistics',
+        icon: 'dashboard',
         labelKey: 'articles.stats.button',
         route: '/admin-panel/article-statistics',
         badgeTextKey: null,
@@ -61,6 +63,15 @@ export const ADMIN_PANEL_NAVIGATION_SECTIONS: readonly AdminPanelNavigationSecti
     labelKey: 'shell.nav.matrix',
     pages: [
       {
+        key: 'matrix-statistics',
+        icon: 'dashboard',
+        labelKey: 'articles.stats.button',
+        route: '/admin-panel/matrix-statistics',
+        badgeTextKey: null,
+        adminOnly: false,
+        ownerOnly: false,
+      },
+      {
         key: 'matrix-questions',
         icon: 'document',
         labelKey: 'adminPanel.section.matrixQuestions',
@@ -71,6 +82,7 @@ export const ADMIN_PANEL_NAVIGATION_SECTIONS: readonly AdminPanelNavigationSecti
       },
       {
         key: 'matrix-structure',
+        icon: 'folder',
         labelKey: 'adminPanel.section.matrixStructure',
         route: '/admin-panel/matrix-structure',
         badgeTextKey: null,
@@ -79,6 +91,7 @@ export const ADMIN_PANEL_NAVIGATION_SECTIONS: readonly AdminPanelNavigationSecti
       },
       {
         key: 'matrix-question-queue',
+        icon: 'people',
         labelKey: 'adminPanel.section.matrixQuestionQueue',
         route: '/admin-panel/matrix-question-queue',
         badgeTextKey: null,

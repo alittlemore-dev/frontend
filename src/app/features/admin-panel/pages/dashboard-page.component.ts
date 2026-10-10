@@ -1,4 +1,4 @@
-import { DOCUMENT } from '@angular/common';
+import { DOCUMENT, Location } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -11,13 +11,14 @@ import {
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
 import { I18nService } from '../../../core/i18n/i18n.service';
 import { TranslatePipe } from '../../../core/i18n/translate.pipe';
 import { ApiError } from '../../../core/models/api-error.model';
 import { ErrorMessageComponent, LoadingSpinnerComponent } from '@alittlemore.dev/design-system';
 
+import { AnalyticsPageComponent } from './analytics-page/analytics-page.component';
 import { WorkspaceCacheWidgetComponent } from '../components/workspace-cache-widget/workspace-cache-widget.component';
 import { AdminToolsWidgetComponent } from '../components/admin-tools-widget/admin-tools-widget.component';
 import { DashboardFoldableSectionComponent } from '../components/dashboard-foldable-section/dashboard-foldable-section.component';
@@ -28,7 +29,7 @@ import {
 import { ModeratorDashboardService } from '../services/moderator-dashboard.service';
 
 type DashboardSectionKey = 'moderator-question-queue' | 'moderator-matrix-quality';
-type DashboardTabKey = 'moderator-question-queue' | 'moderator-matrix-quality';
+type DashboardTabKey = DashboardSectionKey | 'tools' | 'statistics';
 
 interface DashboardTabDefinition {
   key: DashboardTabKey;
@@ -49,6 +50,7 @@ const MODERATOR_DASHBOARD_SECTIONS: readonly DashboardSectionKey[] = [
   selector: 'app-dashboard-page',
   standalone: true,
   imports: [
+    AnalyticsPageComponent,
     RouterLink,
     TranslatePipe,
     ErrorMessageComponent,
@@ -67,8 +69,14 @@ export class DashboardPageComponent implements OnInit {
   private readonly i18n = inject(I18nService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly document = inject(DOCUMENT);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly location = inject(Location);
   private moderatorQueueLoadGeneration = 0;
   private moderatorMatrixLoadGeneration = 0;
+
+  @ViewChild(AnalyticsPageComponent)
+  private siteAnalytics: AnalyticsPageComponent | undefined;
 
   @ViewChild(AdminToolsWidgetComponent)
   private adminToolsWidget: AdminToolsWidgetComponent | undefined;
@@ -84,7 +92,13 @@ export class DashboardPageComponent implements OnInit {
   readonly moderatorMatrixLoading = signal(false);
   readonly moderatorMatrixError = signal<ApiError | null>(null);
   readonly activeTab = signal<DashboardTabKey>('moderator-question-queue');
-  readonly tabs = MODERATOR_DASHBOARD_TABS;
+  readonly tabs = computed<readonly DashboardTabDefinition[]>(() => [
+    ...(this.canManageTeam()
+      ? [{ key: 'tools' as const, labelKey: 'dashboard.tools.title' }]
+      : MODERATOR_DASHBOARD_TABS),
+    { key: 'statistics', labelKey: 'dashboard.statistics.title' },
+  ]);
+  readonly statisticsOpened = signal(false);
   readonly collapsedSectionKeys = signal<ReadonlySet<string>>(new Set<string>());
   readonly moderatorQueueSummary = computed(() => {
     this.i18n.language();
@@ -113,6 +127,13 @@ export class DashboardPageComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+      const tab =
+        this.tabs().find((tab) => tab.key === params.get('tab'))?.key ??
+        (this.canManageTeam() ? 'tools' : 'moderator-question-queue');
+      this.activeTab.set(tab);
+      if (tab === 'statistics') this.statisticsOpened.set(true);
+    });
     if (!this.canManageTeam()) {
       this.loadModeratorQueue();
       this.loadModeratorMatrix();
@@ -120,6 +141,10 @@ export class DashboardPageComponent implements OnInit {
   }
 
   loadDashboard(): void {
+    if (this.activeTab() === 'statistics') {
+      this.siteAnalytics?.refresh();
+      return;
+    }
     if (this.canManageTeam()) {
       this.adminToolsWidget?.loadCacheStatus();
       this.adminToolsWidget?.loadSessionsStatus();
@@ -191,8 +216,12 @@ export class DashboardPageComponent implements OnInit {
   }
 
   setActiveTab(tabKey: DashboardTabKey): void {
-    if (!this.tabs.some((tab) => tab.key === tabKey)) return;
+    if (!this.tabs().some((tab) => tab.key === tabKey)) return;
     this.activeTab.set(tabKey);
+    if (tabKey === 'statistics') this.statisticsOpened.set(true);
+    const tree = this.router.parseUrl(this.location.path() || this.router.url);
+    tree.queryParams['tab'] = tabKey;
+    this.location.replaceState(this.router.serializeUrl(tree));
   }
 
   tabId(tabKey: DashboardTabKey): string {

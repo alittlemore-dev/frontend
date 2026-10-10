@@ -1,3 +1,4 @@
+import { AnonymousAnalyticsService } from '../../../../core/analytics/anonymous-analytics.service';
 import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import {
   ActivatedRoute,
@@ -83,6 +84,7 @@ describe('ArticlesPageComponent', () => {
     await TestBed.configureTestingModule({
       imports: [ArticlesPageComponent],
       providers: [
+        { provide: AnonymousAnalyticsService, useValue: { source: jest.fn(() => 'Search') } },
         provideRouter([]),
         { provide: ArticlesService, useValue: articlesService },
         { provide: AuthService, useValue: { canManageContent: () => canManageContent } },
@@ -121,7 +123,11 @@ describe('ArticlesPageComponent', () => {
 
     tick(30_000);
 
-    expect(articlesService.trackPublicEngagedView).toHaveBeenCalledWith('typed-articles', 'ru');
+    expect(articlesService.trackPublicEngagedView).toHaveBeenCalledWith(
+      'typed-articles',
+      'ru',
+      'Search',
+    );
 
     tick(30_000);
 
@@ -155,7 +161,7 @@ describe('ArticlesPageComponent', () => {
 
     fixture.detectChanges();
 
-    expect(articlesService.trackPublicView).toHaveBeenCalledWith('typed-articles', 'ru');
+    expect(articlesService.trackPublicView).toHaveBeenCalledWith('typed-articles', 'ru', 'Search');
     expect(seoService.setMeta).toHaveBeenCalledWith(
       expect.objectContaining({
         title: 'SEO Typed articles RU',
@@ -200,7 +206,7 @@ describe('ArticlesPageComponent', () => {
 
     expect(articlesService.getPublicArticle).toHaveBeenCalledWith('typed-articles', 'ru');
     expect(articlesService.getAdminArticle).not.toHaveBeenCalled();
-    expect(articlesService.trackPublicView).toHaveBeenCalledWith('typed-articles', 'ru');
+    expect(articlesService.trackPublicView).toHaveBeenCalledWith('typed-articles', 'ru', 'Search');
   });
 
   it('does not track public view for draft detail reads', () => {
@@ -245,7 +251,11 @@ describe('ArticlesPageComponent', () => {
 
     tick(1);
 
-    expect(articlesService.trackPublicEngagedView).toHaveBeenCalledWith('typed-articles', 'ru');
+    expect(articlesService.trackPublicEngagedView).toHaveBeenCalledWith(
+      'typed-articles',
+      'ru',
+      'Search',
+    );
   }));
 
   it('creates reaction token lazily and persists selected reaction after success', () => {

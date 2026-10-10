@@ -47,12 +47,14 @@ export const WORKSPACE_NAVIGATION_SECTIONS: readonly WorkspaceNavigationSection[
     pages: [
       {
         key: 'finance-overview',
+        icon: 'folder',
         labelKey: 'finance.overview',
         route: '/personal-workspace/finance',
         badgeTextKey: null,
       },
       {
         key: 'finance-statistics',
+        icon: 'dashboard',
         labelKey: 'finance.statistics.title',
         route: '/personal-workspace/finance/statistics',
         badgeTextKey: null,

@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { AnonymousAnalyticsService } from './core/analytics/anonymous-analytics.service';
 import { AuthModalService } from './core/auth/auth-modal.service';
 import { I18nService } from './core/i18n/i18n.service';
 import { LoginPageComponent } from './features/auth/pages/login-page/login-page.component';
@@ -59,6 +60,11 @@ import { SiteHeaderComponent } from './features/shell/components/site-header/sit
   `,
 })
 export class AppComponent {
+  private readonly analytics = inject(AnonymousAnalyticsService);
+
+  constructor() {
+    this.analytics.start();
+  }
   readonly authModal = inject(AuthModalService);
   readonly i18n = inject(I18nService);
 

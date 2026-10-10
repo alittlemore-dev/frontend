@@ -1,3 +1,4 @@
+import { AnalyticsSource } from '../../../core/analytics/anonymous-analytics.service';
 import { Injectable, inject } from '@angular/core';
 import { Observable, map, of, switchMap } from 'rxjs';
 import { ApiClient } from '../../../core/http/api-client.service';
@@ -79,15 +80,27 @@ export class ArticlesService {
       .pipe(switchMap((dto) => this.mapDetailWithPublicStats(dto)));
   }
 
-  trackPublicView(slug: string, language: LanguageCode): Observable<void> {
-    return this.api.post<void>(`/api/articles/detail/${slug}/analytics/view`, {}, { language });
+  trackPublicView(
+    slug: string,
+    language: LanguageCode,
+    source?: AnalyticsSource,
+  ): Observable<void> {
+    return this.api.post<void>(
+      `/api/articles/detail/${slug}/analytics/view`,
+      {},
+      { language, ...(source === undefined ? {} : { sourceCategory: source }) },
+    );
   }
 
-  trackPublicEngagedView(slug: string, language: LanguageCode): Observable<void> {
+  trackPublicEngagedView(
+    slug: string,
+    language: LanguageCode,
+    source?: AnalyticsSource,
+  ): Observable<void> {
     return this.api.post<void>(
       `/api/articles/detail/${slug}/analytics/engaged-view`,
       {},
-      { language },
+      { language, ...(source === undefined ? {} : { sourceCategory: source }) },
     );
   }
 

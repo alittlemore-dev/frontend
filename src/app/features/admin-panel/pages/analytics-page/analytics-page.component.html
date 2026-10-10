@@ -1,0 +1,504 @@
+<h2 class="h4">{{ 'analytics.title.' + kind() | t }}</h2>
+<p class="text-body-secondary mb-3">{{ 'analytics.description.' + kind() | t }}</p>
+<section
+  class="analytics-filters border rounded p-3 mb-3"
+  [attr.aria-label]="'analytics.filters' | t"
+  [attr.aria-busy]="loading()"
+>
+  <div class="analytics-period-row">
+    <div class="analytics-control">
+      <label class="form-label small" for="analyticsPeriod">{{
+        'analytics.periodLabel' | t
+      }}</label>
+      <ds-site-select
+        inputId="analyticsPeriod"
+        controlSize="small"
+        appearance="default"
+        [required]="false"
+        [invalid]="false"
+        [controlDisabled]="false"
+        [options]="periodOptions()"
+        [value]="period()"
+        (valueChange)="selectPeriod($event)"
+      />
+    </div>
+    <div class="analytics-period-navigation">
+      <button
+        type="button"
+        class="btn btn-outline-secondary btn-sm"
+        [attr.aria-label]="'analytics.previousPeriod' | t"
+        [title]="'analytics.previousPeriod' | t"
+        (click)="shiftPeriod(-1)"
+      >
+        ←
+      </button>
+      <button type="button" class="btn btn-outline-secondary btn-sm" (click)="currentPeriod()">
+        {{ 'analytics.currentPeriod' | t }}
+      </button>
+      <button
+        type="button"
+        class="btn btn-outline-secondary btn-sm"
+        [attr.aria-label]="'analytics.nextPeriod' | t"
+        [title]="'analytics.nextPeriod' | t"
+        [disabled]="!nextAvailable()"
+        (click)="shiftPeriod(1)"
+      >
+        →
+      </button>
+    </div>
+    <div class="analytics-control">
+      <label class="form-label small" for="analyticsFrom"
+        >{{ 'articles.stats.from' | t }}
+        <span class="required-marker text-danger" aria-hidden="true">*</span></label
+      >
+      <ds-localized-date-picker
+        inputId="analyticsFrom"
+        [value]="dateFrom() || null"
+        [dateLocale]="i18n.dateLocale()"
+        [labels]="datePickerLabels()"
+        [required]="true"
+        [controlDisabled]="false"
+        [readonly]="false"
+        controlSize="small"
+        [invalid]="invalid()"
+        (valueChange)="changeDate('from', $event)"
+        (validityChange)="pickerValidFrom.set($event)"
+      />
+    </div>
+    <div class="analytics-control">
+      <label class="form-label small" for="analyticsTo"
+        >{{ 'articles.stats.to' | t }}
+        <span class="required-marker text-danger" aria-hidden="true">*</span></label
+      >
+      <ds-localized-date-picker
+        inputId="analyticsTo"
+        [value]="dateTo() || null"
+        [dateLocale]="i18n.dateLocale()"
+        [labels]="datePickerLabels()"
+        [required]="true"
+        [controlDisabled]="false"
+        [readonly]="false"
+        controlSize="small"
+        [invalid]="invalid()"
+        (valueChange)="changeDate('to', $event)"
+        (validityChange)="pickerValidTo.set($event)"
+      />
+    </div>
+    <div class="analytics-period-apply">
+      <button class="btn btn-primary btn-sm" type="button" (click)="apply()">
+        {{ 'analytics.apply' | t }}
+      </button>
+    </div>
+  </div>
+  <div
+    class="analytics-domain-filters mt-3"
+    [class.analytics-domain-filters-matrix]="kind() === 'Matrix'"
+    [class.analytics-domain-filters-site]="kind() === 'Site'"
+  >
+    <div class="analytics-control">
+      <label class="form-label small" for="analyticsSource">{{
+        'analytics.sourceLabel' | t
+      }}</label>
+      <ds-site-select
+        inputId="analyticsSource"
+        controlSize="small"
+        appearance="default"
+        [required]="false"
+        [invalid]="false"
+        [controlDisabled]="false"
+        [options]="sourceOptions()"
+        [value]="source()"
+        (valueChange)="selectSource($event)"
+      />
+    </div>
+    @if (kind() === 'Articles') {
+      <div class="analytics-control">
+        <label class="form-label small" for="analyticsGroupid">{{
+          'analytics.group.Articles' | t
+        }}</label>
+        <ds-site-select
+          inputId="analyticsGroupid"
+          controlSize="small"
+          appearance="default"
+          [required]="false"
+          [invalid]="false"
+          [controlDisabled]="false"
+          [options]="groupOptions()"
+          [value]="groupId()"
+          (valueChange)="selectGroup($event)"
+        />
+      </div>
+      <div class="analytics-control">
+        <label class="form-label small" for="analyticsTargetid">{{
+          'analytics.content.Articles' | t
+        }}</label>
+        <ds-site-select
+          inputId="analyticsTargetid"
+          controlSize="small"
+          appearance="default"
+          [required]="false"
+          [invalid]="false"
+          [controlDisabled]="false"
+          [options]="targetOptions()"
+          [value]="targetId()"
+          (valueChange)="selectTarget($event)"
+        />
+      </div>
+    } @else if (kind() === 'Matrix') {
+      <div class="analytics-control">
+        <label class="form-label small" for="analyticsGroupid">{{
+          'analytics.group.Matrix' | t
+        }}</label>
+        <ds-site-select
+          inputId="analyticsGroupid"
+          controlSize="small"
+          appearance="default"
+          [required]="false"
+          [invalid]="false"
+          [controlDisabled]="false"
+          [options]="groupOptions()"
+          [value]="groupId()"
+          (valueChange)="selectGroup($event)"
+        />
+      </div>
+      <div class="analytics-control">
+        <label class="form-label small" for="analyticsSectionid">{{
+          'analytics.section' | t
+        }}</label>
+        <ds-site-select
+          inputId="analyticsSectionid"
+          controlSize="small"
+          appearance="default"
+          [required]="false"
+          [invalid]="false"
+          [controlDisabled]="false"
+          [options]="sectionOptions()"
+          [value]="sectionId()"
+          (valueChange)="selectSection($event)"
+        />
+      </div>
+      <div class="analytics-control">
+        <label class="form-label small" for="analyticsTargetid">{{
+          'analytics.content.Matrix' | t
+        }}</label>
+        <ds-site-select
+          inputId="analyticsTargetid"
+          controlSize="small"
+          appearance="default"
+          [required]="false"
+          [invalid]="false"
+          [controlDisabled]="false"
+          [options]="targetOptions()"
+          [value]="targetId()"
+          (valueChange)="selectTarget($event)"
+        />
+      </div>
+    }
+    @if (kind() !== 'Site') {
+      <div class="analytics-control analytics-search-control">
+        <label class="form-label small" for="analyticsSearch">{{
+          'analytics.search.' + kind() | t
+        }}</label>
+        <input
+          id="analyticsSearch"
+          class="form-control form-control-sm"
+          type="search"
+          maxlength="255"
+          [value]="search()"
+          (input)="searchInput($event)"
+        />
+      </div>
+    }
+    <div class="analytics-filter-actions d-flex flex-wrap gap-2">
+      <button class="btn btn-outline-secondary btn-sm" type="button" (click)="resetFilters()">
+        {{ 'analytics.reset' | t }}
+      </button>
+      <button
+        class="btn btn-outline-secondary btn-sm"
+        type="button"
+        [disabled]="loading()"
+        (click)="refresh()"
+      >
+        {{ 'shared.update' | t }}
+      </button>
+      @if (report()) {
+        <button class="btn btn-outline-secondary btn-sm" type="button" (click)="exportCsv()">
+          {{ 'articles.stats.export' | t }}
+        </button>
+      }
+    </div>
+  </div>
+  @if (invalid()) {
+    <p class="text-danger mt-2 mb-0" role="alert">{{ 'analytics.invalidRange' | t }}</p>
+  }
+  @if (exportDone()) {
+    <p class="text-body-secondary mt-2 mb-0" role="status">{{ 'analytics.exportDone' | t }}</p>
+  }
+</section>
+@if (loading() && !report()) {
+  <ds-loading-spinner [ariaLabel]="'shared.loading' | t" />
+}
+@if (error()) {
+  <ds-error-message [error]="error()!" [retryLabel]="'shared.retry' | t" (retry)="refresh()" />
+}
+@if (report(); as report) {
+  <p class="small text-body-secondary">
+    {{ reportPeriod() }} · {{ 'analytics.utc' | t }}
+    @if (loading()) {
+      · {{ 'shared.loading' | t }}
+    }
+  </p>
+  <div class="row g-3 mb-3">
+    @for (metric of metrics(); track metric) {
+      <div class="col-sm-6 col-lg-3">
+        <section class="border rounded p-3 h-100">
+          <h3 class="h6">{{ 'analytics.metric.' + metric | t }}</h3>
+          <div class="h3">{{ totals()[metric] }}</div>
+          <p class="small text-body-secondary mb-0">
+            {{ delta(metric) }} · {{ 'analytics.comparison' | t }}
+          </p>
+        </section>
+      </div>
+    }
+    <div class="col-sm-6 col-lg-3">
+      <section class="border rounded p-3 h-100">
+        <h3 class="h6">{{ 'analytics.engagementRate' | t }}</h3>
+        <div class="h3">{{ engagementRate() }}%</div>
+      </section>
+    </div>
+    @if (kind() === 'Matrix') {
+      <div class="col-sm-6 col-lg-3">
+        <section class="border rounded p-3 h-100">
+          <h3 class="h6">{{ 'analytics.metric.suggestions' | t }}</h3>
+          <div class="h3">{{ suggestionTotal() }}</div>
+          <p class="small text-body-secondary mb-0">
+            {{ suggestionDelta() }} · {{ 'analytics.comparison' | t }}
+          </p>
+        </section>
+      </div>
+    }
+  </div>
+  <p class="small text-body-secondary">
+    {{
+      (kind() === 'Articles'
+        ? 'analytics.articleEngagementDefinition'
+        : 'analytics.engagementDefinition'
+      ) | t
+    }}
+  </p>
+  @if (kind() === 'Site') {
+    <p class="small text-body-secondary">{{ 'analytics.audienceDefinition' | t }}</p>
+  }
+  @if (kind() === 'Articles') {
+    <p class="small text-body-secondary">{{ 'analytics.reactionDefinition' | t }}</p>
+  }
+  <section class="border rounded p-3 mb-3">
+    <div class="analytics-chart-controls mb-3">
+      <div class="analytics-control">
+        <label class="form-label small" for="analyticsBucket">{{ 'analytics.grouping' | t }}</label>
+        <ds-site-select
+          inputId="analyticsBucket"
+          controlSize="small"
+          appearance="default"
+          [required]="false"
+          [invalid]="false"
+          [controlDisabled]="false"
+          [options]="bucketOptions()"
+          [value]="bucket()"
+          (valueChange)="selectBucket($event)"
+        />
+      </div>
+      <div class="analytics-control">
+        <label class="form-label small" for="analyticsMetric">{{ 'analytics.measure' | t }}</label>
+        <ds-site-select
+          inputId="analyticsMetric"
+          controlSize="small"
+          appearance="default"
+          [required]="false"
+          [invalid]="false"
+          [controlDisabled]="false"
+          [options]="metricOptions()"
+          [value]="metric()"
+          (valueChange)="selectMetric($event)"
+        />
+      </div>
+    </div>
+    <app-analytics-chart
+      [points]="points()"
+      [label]="'analytics.metric.' + metric() | t"
+      [bucket]="bucket()"
+      [dateFrom]="report.dateFrom"
+      [dateTo]="report.dateTo"
+      [dateLocale]="i18n.dateLocale()"
+    />
+    <details class="mt-2">
+      <summary>{{ 'analytics.chartData' | t }}</summary>
+      <ul class="list-unstyled collection-list mb-0 mt-2">
+        @for (point of chartData(); track point.date) {
+          <li class="collection-row analytics-data-row">
+            <span>{{ point.period }}</span
+            ><strong>{{ point.value }}</strong>
+          </li>
+        }
+      </ul>
+    </details>
+  </section>
+  @if (rows().length === 0) {
+    <ds-empty-state [message]="'articles.stats.empty' | t" />
+  }
+  <div class="row g-3 mb-3">
+    <section [class]="kind() === 'Matrix' ? 'col-lg-6' : 'col-12'">
+      <div class="border rounded p-3 h-100">
+        <h3 class="h5">{{ 'analytics.sources' | t }}</h3>
+        <p class="small text-body-secondary">{{ 'analytics.metric.' + metric() | t }}</p>
+        <div class="analytics-source-grid" [class.analytics-source-grid-wide]="kind() !== 'Matrix'">
+          @for (item of sources(); track item.id) {
+            <div>
+              <div class="d-flex justify-content-between gap-2">
+                <span>{{ 'analytics.source.' + item.id | t }}</span
+                ><strong>{{ item.total[metric()] }}</strong>
+              </div>
+              <meter
+                class="w-100"
+                min="0"
+                [max]="sourceMaximum()"
+                [value]="item.total[metric()]"
+                [attr.aria-label]="'analytics.source.' + item.id | t"
+              ></meter>
+            </div>
+          }
+        </div>
+      </div>
+    </section>
+    @if (kind() === 'Matrix') {
+      <section class="col-lg-6">
+        <div class="border rounded p-3 h-100">
+          <h3 class="h5">{{ 'analytics.sections' | t }}</h3>
+          <p class="small text-body-secondary">{{ 'analytics.metric.' + metric() | t }}</p>
+          @for (item of groups(); track item.id) {
+            <div class="mb-2">
+              <div class="d-flex justify-content-between gap-2">
+                <span>{{ item.label }}</span
+                ><strong>{{ item.total[metric()] }}</strong>
+              </div>
+              <meter
+                class="w-100"
+                min="0"
+                [max]="sectionMaximum()"
+                [value]="item.total[metric()]"
+                [attr.aria-label]="item.label"
+              ></meter>
+            </div>
+          }
+        </div>
+      </section>
+    }
+  </div>
+  @if (kind() === 'Matrix') {
+    <section class="border rounded p-3 mb-3" aria-labelledby="analyticsSuggestionsHeading">
+      <h3 id="analyticsSuggestionsHeading" class="h5">{{ 'analytics.kind.Suggestions' | t }}</h3>
+      <p class="small text-body-secondary">
+        {{ 'analytics.suggestionDefinition' | t }} {{ 'analytics.suggestionFilters' | t }}
+      </p>
+      <app-analytics-chart
+        [points]="suggestionPoints()"
+        [label]="'analytics.metric.suggestions' | t"
+        [bucket]="bucket()"
+        [dateFrom]="report.dateFrom"
+        [dateTo]="report.dateTo"
+        [dateLocale]="i18n.dateLocale()"
+      />
+      <ul class="list-unstyled collection-list mb-0">
+        @for (sheet of suggestionSheets(); track sheet.id) {
+          <li class="collection-row analytics-data-row">
+            <span>{{ sheet.label }}</span
+            ><strong>{{ sheet.value }}</strong>
+          </li>
+        } @empty {
+          <li class="text-body-secondary small">{{ 'articles.stats.empty' | t }}</li>
+        }
+      </ul>
+    </section>
+  }
+  <section class="border rounded p-3">
+    <div class="d-flex flex-wrap justify-content-between gap-2 align-items-end mb-3">
+      <h3 class="h5 mb-0">{{ 'analytics.ranking.' + kind() | t }}</h3>
+      <div class="analytics-control">
+        <label class="form-label small" for="analyticsSort">{{ 'analytics.sort' | t }}</label>
+        <ds-site-select
+          inputId="analyticsSort"
+          controlSize="small"
+          appearance="default"
+          [required]="false"
+          [invalid]="false"
+          [controlDisabled]="false"
+          [options]="rankingMetricOptions()"
+          [value]="sort()"
+          (valueChange)="selectSort($event)"
+        />
+      </div>
+    </div>
+    @if (kind() === 'Articles') {
+      <p class="small text-body-secondary">{{ 'analytics.currentReactions' | t }}</p>
+    }
+    @if (kind() === 'Site') {
+      <div class="analytics-control mb-3">
+        <label class="form-label small" for="analyticsPageSearch">{{
+          'analytics.search.Site' | t
+        }}</label
+        ><input
+          id="analyticsPageSearch"
+          type="search"
+          class="form-control form-control-sm"
+          [value]="pageSearch()"
+          (input)="pageSearchInput($event)"
+        />
+      </div>
+    }
+    <ul
+      class="list-unstyled collection-list mb-0"
+      [attr.aria-label]="'analytics.ranking.' + kind() | t"
+    >
+      @for (item of content(); track item.id) {
+        <li class="collection-row analytics-content-row">
+          <div class="min-w-0">
+            @if (kind() !== 'Site') {
+              <button
+                type="button"
+                class="btn btn-link fw-semibold text-start p-0 text-decoration-none"
+                (click)="selectTarget(item.id)"
+              >
+                {{ item.label }}
+              </button>
+            } @else {
+              <strong>{{ item.label }}</strong>
+            }
+            @if (item.context) {
+              <div class="small text-body-secondary">{{ item.context }}</div>
+            }
+            @if (kind() === 'Articles') {
+              <div class="d-flex flex-wrap gap-2 mt-1 small text-body-secondary">
+                @for (reaction of reactionKinds; track reaction) {
+                  <span [attr.aria-label]="'analytics.reaction.' + reaction | t"
+                    >{{ reactionEmoji[reaction] }}
+                    {{ report.currentReactions[item.id]?.[reaction] ?? 0 }}</span
+                  >
+                }
+              </div>
+            }
+          </div>
+          <div class="analytics-row-metrics">
+            @for (metric of tableMetrics(); track metric) {
+              <div>
+                <div class="small text-body-secondary">{{ 'analytics.metric.' + metric | t }}</div>
+                <strong>{{ item.total[metric] }}</strong>
+              </div>
+            }
+          </div>
+        </li>
+      } @empty {
+        <li class="text-body-secondary small">{{ 'articles.stats.empty' | t }}</li>
+      }
+    </ul>
+  </section>
+}

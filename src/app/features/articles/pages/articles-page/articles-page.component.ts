@@ -1,3 +1,7 @@
+import {
+  AnonymousAnalyticsService,
+  AnalyticsSource,
+} from '../../../../core/analytics/anonymous-analytics.service';
 import { DOCUMENT, NgTemplateOutlet, isPlatformBrowser } from '@angular/common';
 import {
   ChangeDetectionStrategy,
@@ -48,6 +52,7 @@ const ENGAGED_VIEW_DELAY_MS = 30_000;
 const ENGAGED_VIEW_TICK_MS = 1_000;
 
 interface EngagedViewState {
+  source: AnalyticsSource;
   slug: string;
   visibleMs: number;
 }
@@ -72,6 +77,7 @@ interface EngagedViewState {
   styleUrl: './articles-page.component.scss',
 })
 export class ArticlesPageComponent implements OnInit {
+  private readonly analytics = inject(AnonymousAnalyticsService);
   private readonly articlesService = inject(ArticlesService);
   private readonly i18n = inject(I18nService);
   private readonly seoService = inject(SeoService);
@@ -391,6 +397,7 @@ export class ArticlesPageComponent implements OnInit {
     this.engagedViewState = {
       slug: article.slug,
       visibleMs: 0,
+      source: this.analytics.source(),
     };
     this.engagedViewTimerId = setInterval(
       () => this.trackEngagedViewProgress(),
@@ -415,7 +422,7 @@ export class ArticlesPageComponent implements OnInit {
     this.engagedViewTimerId = null;
     this.engagedViewState = null;
     this.articlesService
-      .trackPublicEngagedView(state.slug, this.currentLanguage())
+      .trackPublicEngagedView(state.slug, this.currentLanguage(), state.source)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => this.trackedEngagedViewSlugs.add(state.slug),
@@ -427,7 +434,7 @@ export class ArticlesPageComponent implements OnInit {
     if (!this.isBrowser) return;
     if (article.publishStatus !== 'Published') return;
     this.articlesService
-      .trackPublicView(article.slug, this.currentLanguage())
+      .trackPublicView(article.slug, this.currentLanguage(), this.analytics.source())
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({ error: () => undefined });
   }

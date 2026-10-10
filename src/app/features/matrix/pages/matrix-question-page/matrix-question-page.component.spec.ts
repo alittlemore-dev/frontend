@@ -1,3 +1,4 @@
+import { AnonymousAnalyticsService } from '../../../../core/analytics/anonymous-analytics.service';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, ParamMap, convertToParamMap, provideRouter } from '@angular/router';
 import { BehaviorSubject, Subject, of, throwError } from 'rxjs';
@@ -27,6 +28,10 @@ describe('MatrixQuestionPageComponent', () => {
     await TestBed.configureTestingModule({
       imports: [MatrixQuestionPageComponent],
       providers: [
+        {
+          provide: AnonymousAnalyticsService,
+          useValue: { start: jest.fn(), startMatrix: jest.fn(), stopMatrix: jest.fn() },
+        },
         provideI18nTesting(),
         provideRouter([]),
         { provide: MatrixService, useValue: matrixService },

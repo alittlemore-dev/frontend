@@ -1,3 +1,4 @@
+import { AnonymousAnalyticsService } from '../../../../core/analytics/anonymous-analytics.service';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { DOCUMENT } from '@angular/common';
 import { provideRouter } from '@angular/router';
@@ -190,6 +191,10 @@ describe('MatrixListComponent', () => {
     await TestBed.configureTestingModule({
       imports: [MatrixListComponent],
       providers: [
+        {
+          provide: AnonymousAnalyticsService,
+          useValue: { start: jest.fn(), startMatrix: jest.fn(), stopMatrix: jest.fn() },
+        },
         { provide: MatrixService, useValue: matrixService },
         { provide: NotificationService, useValue: notificationService },
         provideI18nTesting(),
@@ -306,6 +311,10 @@ describe('MatrixListComponent', () => {
     await TestBed.configureTestingModule({
       imports: [MatrixListComponent],
       providers: [
+        {
+          provide: AnonymousAnalyticsService,
+          useValue: { start: jest.fn(), startMatrix: jest.fn(), stopMatrix: jest.fn() },
+        },
         { provide: MatrixService, useValue: matrixService },
         { provide: NotificationService, useValue: notificationService },
         {
@@ -533,6 +542,17 @@ describe('MatrixListComponent', () => {
     component.closeDetail();
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeFalsy();
+  });
+
+  it('does not record a question view when its pending modal has been closed', () => {
+    const pending = new Subject<MatrixQuestionDetail>();
+    matrixService.getPublicQuestionBySlug.mockReturnValue(pending.asObservable());
+    fixture.detectChanges();
+    component.openDetail('what-is-a-closure');
+    component.closeDetail();
+    pending.next(mockDetail);
+    expect(component.selectedQuestion()).toBeNull();
+    expect(TestBed.inject(AnonymousAnalyticsService).startMatrix).not.toHaveBeenCalled();
   });
 
   it('shows quota notification when anonymous suggestion is rate limited', () => {

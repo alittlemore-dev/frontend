@@ -1,3 +1,4 @@
+import { AnonymousAnalyticsService } from './core/analytics/anonymous-analytics.service';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Component, signal } from '@angular/core';
 import { Router, provideRouter } from '@angular/router';
@@ -29,6 +30,10 @@ describe('AppComponent', () => {
     await TestBed.configureTestingModule({
       imports: [AppComponent],
       providers: [
+        {
+          provide: AnonymousAnalyticsService,
+          useValue: { start: jest.fn(), startMatrix: jest.fn(), stopMatrix: jest.fn() },
+        },
         provideRouter([{ path: 'admin-panel', component: BlankRouteComponent }]),
         {
           provide: AuthModalService,

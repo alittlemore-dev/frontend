@@ -1,3 +1,4 @@
+import { AnalyticsService } from './analytics-page/analytics.service';
 import { DOCUMENT } from '@angular/common';
 import { WritableSignal, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
@@ -57,6 +58,20 @@ describe('DashboardPageComponent', () => {
     await TestBed.configureTestingModule({
       imports: [DashboardPageComponent],
       providers: [
+        {
+          provide: AnalyticsService,
+          useValue: {
+            report: jest.fn(() =>
+              of({
+                dateFrom: '2026-01-01',
+                dateTo: '2026-01-30',
+                kind: 'Site',
+                currentReactions: {},
+                daily: [],
+              }),
+            ),
+          },
+        },
         provideRouter([]),
         provideI18nTesting(),
         { provide: AuthService, useValue: { canManageTeam, currentUser } },
@@ -90,7 +105,7 @@ describe('DashboardPageComponent', () => {
   }
 
   it.each(['admin', 'owner'] as const)(
-    'renders operational tools for %s without dashboard tabs',
+    'renders operational tools for %s with tools and traffic tabs',
     (role) => {
       currentUser.set({ username: role, role });
       render();
@@ -100,7 +115,8 @@ describe('DashboardPageComponent', () => {
       ) as HTMLElement;
 
       expect(view.querySelector('[role="tablist"]')).toBeNull();
-      expect(view.querySelector('[role="tabpanel"]')).toBeNull();
+      expect(view.getAttribute('role')).toBe('tabpanel');
+      expect(fixture.nativeElement.querySelectorAll('[role="tab"]')).toHaveLength(2);
       expect(view.querySelector('app-admin-tools-widget')).not.toBeNull();
       expect(view.querySelector('[data-testid="admin-tools-cache-card"]')).not.toBeNull();
       expect(view.querySelector('[data-testid="workspace-cache-card"]')).not.toBeNull();
@@ -109,6 +125,27 @@ describe('DashboardPageComponent', () => {
       expect(getMatrixStats).not.toHaveBeenCalled();
     },
   );
+
+  it('shows the full site report directly in the traffic tab and retains it across tab changes', () => {
+    render();
+    const tab = fixture.nativeElement.querySelector('[data-testid="dashboard-tab-statistics"]');
+    expect(fixture.nativeElement.querySelector('app-analytics-page')).toBeNull();
+    tab.click();
+    fixture.detectChanges();
+    const panel = fixture.nativeElement.querySelector(
+      '[data-testid="dashboard-tabpanel-statistics"]',
+    );
+    const report = panel.querySelector('app-analytics-page');
+    expect(panel.hidden).toBe(false);
+    expect(report).not.toBeNull();
+    expect(panel.querySelector('#analyticsPeriod')).not.toBeNull();
+    fixture.componentInstance.setActiveTab('tools');
+    fixture.detectChanges();
+    expect(panel.hidden).toBe(true);
+    fixture.componentInstance.setActiveTab('statistics');
+    fixture.detectChanges();
+    expect(panel.querySelector('app-analytics-page')).toBe(report);
+  });
 
   it('refreshes both directly rendered manager tools', () => {
     render();
@@ -129,22 +166,31 @@ describe('DashboardPageComponent', () => {
     const tabs = Array.from(
       fixture.nativeElement.querySelectorAll('[data-testid^="dashboard-tab-"]'),
     ) as HTMLButtonElement[];
-    const panels = Array.from(
-      fixture.nativeElement.querySelectorAll('[data-testid^="dashboard-tabpanel-"]'),
+    const panels = tabs.map((tab) =>
+      fixture.nativeElement.querySelector('#' + tab.getAttribute('aria-controls')),
     ) as HTMLElement[];
 
     expect(tabs.map((tab) => tab.textContent?.trim())).toEqual([
       'Очередь вопросов',
       'Качество матрицы компетенций',
+      'Посещаемость',
     ]);
-    expect(tabs.map((tab) => tab.getAttribute('aria-selected'))).toEqual(['true', 'false']);
-    expect(panels.map((panel) => panel.hidden)).toEqual([false, true]);
+    expect(tabs.map((tab) => tab.getAttribute('aria-selected'))).toEqual([
+      'true',
+      'false',
+      'false',
+    ]);
+    expect(panels.map((panel) => panel.hidden)).toEqual([false, true, true]);
 
     tabs[1].click();
     fixture.detectChanges();
 
-    expect(tabs.map((tab) => tab.getAttribute('aria-selected'))).toEqual(['false', 'true']);
-    expect(panels.map((panel) => panel.hidden)).toEqual([true, false]);
+    expect(tabs.map((tab) => tab.getAttribute('aria-selected'))).toEqual([
+      'false',
+      'true',
+      'false',
+    ]);
+    expect(panels.map((panel) => panel.hidden)).toEqual([true, false, true]);
     expect(tabs[1].getAttribute('aria-controls')).toBe(panels[1].id);
     expect(panels[1].getAttribute('aria-labelledby')).toBe(tabs[1].id);
   });
