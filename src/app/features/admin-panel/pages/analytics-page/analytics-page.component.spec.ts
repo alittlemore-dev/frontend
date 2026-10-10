@@ -80,9 +80,9 @@ describe('AnalyticsPageComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Article A');
     expect(fixture.componentInstance.points()).toEqual([{ date: '2026-01-01', value: 14 }]);
     expect(fixture.componentInstance.totals().views).toBe(14);
-    expect(fixture.nativeElement.textContent).toContain('1–31 января 2026 г.');
-    expect(fixture.nativeElement.querySelector('.analytics-data-row').textContent).toContain(
-      '1–31 января 2026 г.',
+    expect(fixture.nativeElement.textContent).toMatch(/1\s*–\s*31 января 2026\s+г\./);
+    expect(fixture.nativeElement.querySelector('.analytics-data-row').textContent).toMatch(
+      /1\s*–\s*31 января 2026\s+г\./,
     );
   });
   it('applies the same source and content filters to chart data, totals and ranking', () => {

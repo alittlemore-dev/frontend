@@ -422,6 +422,11 @@ function createMockBackendHandler(requests) {
       return;
     }
 
+    if (req.method === 'POST' && url.pathname === '/api/analytics/visits') {
+      writeNoContent(res);
+      return;
+    }
+
     if (url.pathname === '/api/articles') {
       writeJson(res, {
         totalCount: 1,

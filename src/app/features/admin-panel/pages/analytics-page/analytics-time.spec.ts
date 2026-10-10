@@ -31,8 +31,12 @@ function row(date: string, views: number): AnalyticsDaily {
 describe('analytics periods and aggregation', () => {
   it('formats UTC dates and ranges in the selected language, including a year boundary', () => {
     const russian = analyticsDateFormatter('ru-RU');
-    expect(formatAnalyticsRange('2026-10-08', '2026-10-08', russian)).toBe('8 октября 2026 г.');
-    expect(formatAnalyticsRange('2026-10-01', '2026-10-11', russian)).toBe('1–11 октября 2026 г.');
+    expect(formatAnalyticsRange('2026-10-08', '2026-10-08', russian)).toMatch(
+      /^8 октября 2026\s+г\.$/,
+    );
+    expect(formatAnalyticsRange('2026-10-01', '2026-10-11', russian)).toMatch(
+      /^1\s*–\s*11 октября 2026\s+г\.$/,
+    );
     const english = analyticsDateFormatter('en-US');
     expect(formatAnalyticsRange('2026-10-08', '2026-10-08', english)).toBe('October 8, 2026');
     const acrossYears = formatAnalyticsRange('2025-12-31', '2026-01-01', english);

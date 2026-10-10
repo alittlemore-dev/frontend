@@ -16,7 +16,10 @@ describe('AnalyticsChartComponent', () => {
       [...fixture.nativeElement.querySelectorAll('circle title')].map(
         (node) => (node as Element).textContent,
       ),
-    ).toEqual(['1 января 2026 г.: 0', '2 января 2026 г.: 7']);
+    ).toEqual([
+      expect.stringMatching(/^1 января 2026\s+г\.: 0$/),
+      expect.stringMatching(/^2 января 2026\s+г\.: 7$/),
+    ]);
     expect(fixture.nativeElement.textContent).toContain('1 янв.');
     fixture.componentRef.setInput('dateLocale', 'en-US');
     fixture.detectChanges();
@@ -48,8 +51,8 @@ describe('AnalyticsChartComponent', () => {
     const point = fixture.nativeElement.querySelector('g[tabindex]');
     point.dispatchEvent(new Event('pointerenter'));
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('[role="tooltip"]').textContent).toContain(
-      '10–29 февраля 2024 г.',
+    expect(fixture.nativeElement.querySelector('[role="tooltip"]').textContent).toMatch(
+      /10\s*–\s*29 февраля 2024\s+г\./,
     );
     expect(fixture.nativeElement.querySelector('[role="tooltip"]').textContent).toContain('17');
     fixture.nativeElement.querySelector('svg').dispatchEvent(new Event('pointerleave'));
@@ -70,10 +73,10 @@ describe('AnalyticsChartComponent', () => {
     fixture.componentRef.setInput('dateFrom', '2025-12-31');
     fixture.componentRef.setInput('dateTo', '2026-01-08');
     fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).toContain('31 дек. 2025 г.');
-    expect(fixture.nativeElement.textContent).toContain('8 янв. 2026 г.');
+    expect(fixture.nativeElement.textContent).toMatch(/31 дек\. 2025\s+г\./);
+    expect(fixture.nativeElement.textContent).toMatch(/8 янв\. 2026\s+г\./);
     fixture.componentRef.setInput('points', [{ date: '2025-12-29', value: 4 }]);
     fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).toContain('4 янв. 2026 г.');
+    expect(fixture.nativeElement.textContent).toMatch(/4 янв\. 2026\s+г\./);
   });
 });

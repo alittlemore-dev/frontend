@@ -182,16 +182,36 @@ async function assertFixtureCover(frontendPort) {
 }
 
 async function assertBrowserAnalyticsProxy(frontendPort) {
-  const response = await fetch(
-    `http://127.0.0.1:${frontendPort}/api/competency/articles/detail/typed-articles/analytics/view?language=ru`,
-    { method: 'POST' },
-  );
-  const body = await response.text();
-  const expected = [
-    ['status 204', response.status === 204],
-    ['empty body', body.length === 0],
+  const cases = [
+    {
+      path: '/api/competency/articles/detail/typed-articles/analytics/view?language=ru',
+      payload: {},
+    },
+    {
+      path: '/api/competency/analytics/visits',
+      payload: {
+        kind: 'Site',
+        targetId: 'articles',
+        source: 'Direct',
+        event: 'View',
+        visitorToken: '00000000-0000-4000-8000-000000000001',
+        visitToken: '00000000-0000-4000-8000-000000000002',
+      },
+    },
   ];
-  assertExpected(expected, body, 'browser analytics proxy');
+  for (const { path, payload } of cases) {
+    const response = await fetch(`http://127.0.0.1:${frontendPort}${path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const body = await response.text();
+    const expected = [
+      ['status 204', response.status === 204],
+      ['empty body', body.length === 0],
+    ];
+    assertExpected(expected, body, `browser analytics proxy ${path}`);
+  }
 }
 
 async function assertSiteBuildCaseStudyHtml(frontendPort, requests) {
