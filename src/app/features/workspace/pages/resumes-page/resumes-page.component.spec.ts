@@ -65,9 +65,7 @@ describe('ResumesPageComponent', () => {
     expect(fixture.nativeElement.textContent).toContain(
       formatExpectedDate(resume().updatedAt, 'ru-RU'),
     );
-    expect(fixture.nativeElement.textContent).toContain(
-      formatExpectedDate(resume().createdAt, 'ru-RU'),
-    );
+
     expect(fixture.nativeElement.textContent).not.toContain(resume().updatedAt);
   });
 
@@ -91,7 +89,7 @@ describe('ResumesPageComponent', () => {
       fixture.nativeElement.querySelectorAll<HTMLTimeElement>('[data-testid="resume-date"]'),
     );
 
-    expect(timestamps).toHaveLength(2);
+    expect(timestamps).toHaveLength(1);
     expect(timestamps[0]?.dateTime).toBe(resume().updatedAt);
     expect(timestamps[0]?.textContent?.trim()).toBe(
       formatExpectedDate(resume().updatedAt, 'ru-RU'),

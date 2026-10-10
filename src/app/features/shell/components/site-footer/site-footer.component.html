@@ -1,15 +1,14 @@
 <footer class="container border-top pt-3 pb-3">
   <div
-    class="d-flex flex-column flex-md-row gap-3 justify-content-between align-items-start"
+    class="d-flex flex-column flex-md-row gap-2 justify-content-between align-items-start"
     data-testid="site-footer-layout"
   >
-    <ul class="nav list-inline flex-wrap gap-2" data-testid="site-footer-links">
+    <ul class="nav list-inline flex-wrap gap-2 column-gap-3" data-testid="site-footer-links">
       <li class="nav-item me-2">
         <a href="/api/docs" class="nav-link p-0 text-body-secondary">
           <small>{{ 'shell.footer.api' | t }}</small>
         </a>
       </li>
-      <li class="nav-item me-2" aria-hidden="true">|</li>
       <li class="nav-item me-2">
         <a
           href="https://github.com/alittlemore-dev"
@@ -20,19 +19,16 @@
           <small>{{ 'shell.footer.sourceCode' | t }}</small>
         </a>
       </li>
-      <li class="nav-item me-2" aria-hidden="true">|</li>
       <li class="nav-item me-2">
         <a [routerLink]="siteBuildLink()" class="nav-link p-0 text-body-secondary">
           <small>{{ 'shell.footer.siteBuild' | t }}</small>
         </a>
       </li>
-      <li class="nav-item me-2" aria-hidden="true">|</li>
       <li class="nav-item me-2">
         <a [routerLink]="updatesLink()" class="nav-link p-0 text-body-secondary">
           <small>{{ 'shell.footer.updates' | t }}</small>
         </a>
       </li>
-      <li class="nav-item me-2" aria-hidden="true">|</li>
       <li class="nav-item">
         <a routerLink="/sitemap" class="nav-link p-0 text-body-secondary">
           <small>{{ 'shell.footer.sitemap' | t }}</small>

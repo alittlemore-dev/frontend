@@ -1,3 +1,4 @@
+import { WorkspaceDetailNavigationService } from '../../../../services/workspace-detail-navigation.service';
 import { KnowledgeQuickCreateDialogComponent } from '../../../shared/quick-create-dialog.component';
 import {
   NotificationService,
@@ -62,7 +63,7 @@ const SORTS: readonly KnowledgeDateListSort[] = [
   'nameDesc',
 ];
 const PAGE_SIZES = [20, 50, 100] as const;
-const RELATED_PEOPLE_PREVIEW_LIMIT = 10;
+const RELATED_PEOPLE_PREVIEW_LIMIT = 3;
 
 @Component({
   selector: 'app-dates-list',
@@ -97,12 +98,33 @@ export class DatesListComponent implements OnInit {
   private datesLoadGeneration = 0;
   private peopleLoadGeneration = 0;
 
+  private readonly navigation = inject(WorkspaceDetailNavigationService);
+  readonly filtersOpen = signal(false);
+  private appliedSort: KnowledgeDateListSort = 'dateAsc';
+  private appliedPageSize: 20 | 50 | 100 = 20;
+  readonly appliedQuery = signal('');
+  readonly appliedTagIds = signal<readonly string[]>([]);
+  readonly appliedPersonId = signal('');
+  readonly filterCount = computed(
+    () => this.appliedTagIds().length + (this.appliedPersonId() ? 1 : 0),
+  );
+  readonly appliedTags = computed(() =>
+    this.appliedTagIds().map(
+      (id) =>
+        this.tags().find((tag) => tag.id === id) ?? {
+          id,
+          name: this.i18n.translate('shared.filters.tag'),
+        },
+    ),
+  );
+  readonly hasFilters = computed(() => this.appliedQuery() !== '' || this.filterCount() > 0);
   readonly loading = signal(false);
   readonly error = signal<ApiError | null>(null);
   readonly page = signal<KnowledgeDatesPage | null>(null);
   readonly currentPage = signal(1);
   readonly tags = signal<readonly KnowledgeTag[]>([]);
   readonly selectedTagIds = signal<readonly string[]>([]);
+  readonly selectedPerson = signal<PersonSummary | null>(null);
   readonly personCandidates = signal<readonly PersonSummary[]>([]);
   readonly createDialogOpen = signal(false);
   readonly createSubmitting = signal(false);
@@ -149,7 +171,13 @@ export class DatesListComponent implements OnInit {
   }));
   readonly personOptions = computed<readonly SiteSelectOption[]>(() => [
     { value: '', label: this.i18n.translate('shared.notSet') },
-    ...this.personCandidates().map((person) => ({
+    ...[
+      ...this.personCandidates(),
+      ...(this.selectedPerson() &&
+      !this.personCandidates().some((person) => person.id === this.selectedPerson()?.id)
+        ? [this.selectedPerson()!]
+        : []),
+    ].map((person) => ({
       value: person.id,
       label: person.displayName,
     })),
@@ -159,6 +187,9 @@ export class DatesListComponent implements OnInit {
   readonly validationLimits = VALIDATION_LIMITS;
 
   constructor() {
+    this.filtersForm.controls.pageSize.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.changePageSize());
     this.createUnsavedSource = this.unsavedScope.registerSource(
       this.createSnapshot,
       this.createDialogOpen,
@@ -172,6 +203,15 @@ export class DatesListComponent implements OnInit {
     this.loadTags();
     this.searchPeople('');
     this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+      if (params.get('create') === 'true') {
+        this.openCreateDialog();
+        void this.router.navigate([], {
+          relativeTo: this.route,
+          queryParams: { create: null },
+          queryParamsHandling: 'merge',
+          replaceUrl: true,
+        });
+      }
       const page = positiveInteger(params.get('page'), 1);
       const pageSize = pageSizeValue(params.get('pageSize'));
       const sort = sortValue(params.get('sort'));
@@ -179,7 +219,13 @@ export class DatesListComponent implements OnInit {
       const tagIds = unique(params.getAll('tagIds').filter((value) => value.trim() !== ''));
       const relatedPersonId = params.get('relatedPersonId')?.trim() ?? '';
       this.currentPage.set(page);
+      this.appliedSort = sort;
+      this.appliedPageSize = pageSize;
       this.selectedTagIds.set(tagIds);
+      this.appliedTagIds.set(tagIds);
+      this.appliedQuery.set(searchQuery);
+      this.appliedPersonId.set(relatedPersonId);
+      this.loadSelectedPerson(relatedPersonId);
       this.filtersForm.setValue(
         {
           searchQuery,
@@ -213,6 +259,7 @@ export class DatesListComponent implements OnInit {
           this.expandedRelatedPeopleDateIds.set(new Set());
           this.page.set(page);
           this.loading.set(false);
+          this.navigation.restorePosition();
         },
         error: (error: ApiError) => {
           if (generation !== this.datesLoadGeneration) {
@@ -258,6 +305,62 @@ export class DatesListComponent implements OnInit {
           }
         },
       });
+  }
+
+  changePageSize(): void {
+    if (Number(this.filtersForm.controls.pageSize.value) === this.appliedPageSize) return;
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {
+        pageSize:
+          this.filtersForm.controls.pageSize.value === '20'
+            ? null
+            : this.filtersForm.controls.pageSize.value,
+        page: null,
+      },
+      queryParamsHandling: 'merge',
+    });
+  }
+
+  removeFilter(key: string, tagId?: string): void {
+    const value = key === 'tagIds' ? this.appliedTagIds().filter((id) => id !== tagId) : null;
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { [key]: value, page: null },
+      queryParamsHandling: 'merge',
+    });
+  }
+
+  private loadSelectedPerson(id: string): void {
+    if (!id) {
+      this.selectedPerson.set(null);
+      return;
+    }
+    if (this.selectedPerson()?.id === id) return;
+    const candidate = this.personCandidates().find((person) => person.id === id);
+    if (candidate) {
+      this.selectedPerson.set(candidate);
+      return;
+    }
+    this.peopleService
+      .getPerson(id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (person) => {
+          if (this.appliedPersonId() === id) this.selectedPerson.set(person);
+        },
+        error: () => {
+          if (this.appliedPersonId() === id) this.selectedPerson.set(null);
+        },
+      });
+  }
+
+  selectedPersonLabel(): string {
+    return (
+      this.selectedPerson()?.displayName ??
+      this.personCandidates().find((person) => person.id === this.appliedPersonId())?.displayName ??
+      this.i18n.translate('knowledgeDates.relatedPerson')
+    );
   }
 
   applyFilters(): void {
@@ -443,14 +546,13 @@ export class DatesListComponent implements OnInit {
   }
 
   private appliedFilters(): KnowledgeDateListFilters {
-    const raw = this.filtersForm.getRawValue();
     return {
       page: this.currentPage(),
-      pageSize: Number(raw.pageSize) as 20 | 50 | 100,
-      sort: raw.sort,
-      searchQuery: raw.searchQuery,
-      tagIds: this.selectedTagIds(),
-      relatedPersonId: raw.relatedPersonId,
+      pageSize: this.appliedPageSize,
+      sort: this.appliedSort,
+      searchQuery: this.appliedQuery(),
+      tagIds: this.appliedTagIds(),
+      relatedPersonId: this.appliedPersonId(),
     };
   }
 }

@@ -9,18 +9,14 @@ import { ConsentService } from '../../../../core/privacy/consent.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (!consent.cookieConsentAccepted()) {
-      <section
-        class="cookie-consent-banner position-fixed bottom-0 start-0 end-0 p-3"
-        data-testid="cookie-consent"
-        aria-live="polite"
-      >
-        <div class="container d-flex flex-column flex-md-row gap-3 align-items-md-center">
-          <p class="m-0 flex-grow-1">
+      <section class="cookie-consent-banner p-2" data-testid="cookie-consent" aria-live="polite">
+        <div class="container d-flex gap-2 align-items-center">
+          <p class="m-0 flex-grow-1 small">
             {{ 'shell.cookie.text' | t }}
           </p>
           <button
             type="button"
-            class="btn button-active flex-shrink-0"
+            class="btn btn-sm button-active flex-shrink-0"
             (click)="consent.acceptCookieConsent()"
           >
             {{ 'shell.cookie.accept' | t }}

@@ -37,6 +37,7 @@
         data-testid="resume-title"
         required
         [appResumeTextLimit]="titleMax()"
+        appWorkspaceFieldTarget
         formControlName="title"
       />
       @if (titleInvalid() && titleMessage(); as message) {
@@ -47,7 +48,16 @@
     }
     @if (ready()) {
       <p class="small text-body-secondary mb-0 mt-1" role="status" data-testid="resume-save-state">
-        {{ (unsaved() ? 'resumeWorkspace.editor.unsaved' : 'resumeWorkspace.editor.clean') | t }}
+        {{
+          (saving()
+            ? 'workspace.editor.saving'
+            : saveFailed()
+              ? 'workspace.editor.failed'
+              : unsaved()
+                ? 'resumeWorkspace.editor.unsaved'
+                : 'resumeWorkspace.editor.clean'
+          ) | t
+        }}
       </p>
     }
   </div>
@@ -66,6 +76,7 @@
           [invalid]="languageInvalid()"
           [controlDisabled]="false"
           testId="resume-language"
+          appWorkspaceFieldTarget
           formControlName="language"
         />
         @if (languageInvalid() && languageMessage(); as message) {

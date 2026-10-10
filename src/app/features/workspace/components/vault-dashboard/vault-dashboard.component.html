@@ -1,7 +1,7 @@
 <ds-foldable-section
   class="d-block mb-3"
   sectionKey="vault-recent"
-  [title]="'workspaceDashboard.vault.recent.title' | t"
+  [title]="'workspaceDashboard.continue' | t"
   summary=""
   [expanded]="recentExpanded()"
   (expandedChange)="expandedChange.emit({ key: 'vault-recent', expanded: $event })"
@@ -17,13 +17,10 @@
   } @else if (items().length === 0) {
     <ds-empty-state [message]="'workspaceDashboard.vault.recent.empty' | t" />
   } @else {
-    <ol class="row g-3 list-unstyled mb-0" data-testid="vault-recent">
+    <ol class="vault-recent list-unstyled mb-0" data-testid="vault-recent">
       @for (entry of items(); track entry.source + ':' + entry.id) {
-        <li class="col-12 col-md-6">
-          <a
-            class="vault-entry d-block h-100 border rounded-3 p-3 text-decoration-none"
-            [routerLink]="entryRoute(entry)"
-          >
+        <li class="border-bottom">
+          <a class="vault-entry d-block py-2 text-decoration-none" [routerLink]="entryRoute(entry)">
             <span class="d-block fw-semibold text-break mb-1">{{ entry.displayName }}</span>
             <span class="d-block small text-body-secondary">
               {{ kindLabel(entry.kind) }} ·
@@ -53,53 +50,48 @@
   } @else if (statistics(); as value) {
     <div data-testid="vault-statistics">
       <dl class="vault-statistics-totals mb-0">
-        <div class="d-flex flex-column border rounded-3 p-3">
+        <div class="d-flex flex-column border rounded-3 p-2">
           <dt class="small fw-normal text-body-secondary mb-2">
             {{ 'workspaceDashboard.vault.statistics.total' | t }}
           </dt>
-          <dd class="fs-3 fw-semibold lh-1 mb-0">{{ value.totalCount }}</dd>
+          <dd class="fs-5 fw-semibold lh-1 mb-0">{{ value.totalCount }}</dd>
         </div>
-        <div class="d-flex flex-column border rounded-3 p-3">
+        <div class="d-flex flex-column border rounded-3 p-2">
           <dt class="small fw-normal text-body-secondary mb-2">
             {{ 'workspaceDashboard.vault.statistics.knowledge' | t }}
           </dt>
-          <dd class="fs-3 fw-semibold lh-1 mb-0">{{ value.knowledgeCount }}</dd>
-          @if (knowledgeKinds().length > 0) {
-            <dd class="border-top pt-2 mt-3 mb-0">
-              <dl class="d-flex flex-column gap-2 mb-0">
-                @for (item of knowledgeKinds(); track item.source + ':' + item.kind) {
-                  <div class="d-flex justify-content-between align-items-baseline gap-3">
-                    <dt class="small fw-normal text-body-secondary">
-                      {{ kindLabel(item.kind) }}
-                    </dt>
-                    <dd class="small fw-semibold mb-0">{{ item.totalCount }}</dd>
-                  </div>
-                }
-              </dl>
-            </dd>
-          }
+          <dd class="fs-5 fw-semibold lh-1 mb-0">{{ value.knowledgeCount }}</dd>
         </div>
-        <div class="d-flex flex-column border rounded-3 p-3">
+        <div class="d-flex flex-column border rounded-3 p-2">
           <dt class="small fw-normal text-body-secondary mb-2">
             {{ 'workspaceDashboard.vault.kind.resume' | t }}
           </dt>
-          <dd class="fs-3 fw-semibold lh-1 mb-0">{{ value.resumeCount }}</dd>
+          <dd class="fs-5 fw-semibold lh-1 mb-0">{{ value.resumeCount }}</dd>
         </div>
-      </dl>
-      <dl class="vault-statistics-activity mt-3 mb-0">
-        <div class="d-flex flex-column justify-content-between bg-body-tertiary rounded-3 p-3">
+
+        <div class="d-flex flex-column justify-content-between bg-body-tertiary rounded-3 p-2">
           <dt class="small fw-normal text-body-secondary mb-2">
             {{ 'workspaceDashboard.vault.statistics.created' | t }}
           </dt>
-          <dd class="fs-4 fw-semibold lh-1 mb-0">{{ value.createdLast30DaysCount }}</dd>
+          <dd class="fs-5 fw-semibold lh-1 mb-0">{{ value.createdLast30DaysCount }}</dd>
         </div>
-        <div class="d-flex flex-column justify-content-between bg-body-tertiary rounded-3 p-3">
+        <div class="d-flex flex-column justify-content-between bg-body-tertiary rounded-3 p-2">
           <dt class="small fw-normal text-body-secondary mb-2">
             {{ 'workspaceDashboard.vault.statistics.active' | t }}
           </dt>
-          <dd class="fs-4 fw-semibold lh-1 mb-0">{{ value.createdOrUpdatedLast30DaysCount }}</dd>
+          <dd class="fs-5 fw-semibold lh-1 mb-0">{{ value.createdOrUpdatedLast30DaysCount }}</dd>
         </div>
       </dl>
+      @if (knowledgeKinds().length > 0) {
+        <dl class="vault-statistics-kinds mb-0 mt-3">
+          @for (item of knowledgeKinds(); track item.source + ':' + item.kind) {
+            <div class="d-flex align-items-baseline gap-2">
+              <dt class="small fw-normal text-body-secondary">{{ kindLabel(item.kind) }}</dt>
+              <dd class="small fw-semibold mb-0">{{ item.totalCount }}</dd>
+            </div>
+          }
+        </dl>
+      }
     </div>
   }
 </ds-foldable-section>

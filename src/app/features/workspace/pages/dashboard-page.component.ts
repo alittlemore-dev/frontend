@@ -16,7 +16,7 @@ import {
   untracked,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { I18nService } from '../../../core/i18n/i18n.service';
 import { AccountSettingsService } from '../../../core/auth/account-settings.service';
 import { TranslatePipe } from '../../../core/i18n/translate.pipe';
@@ -25,9 +25,8 @@ import { ApiError } from '../../../core/models/api-error.model';
 import { FoldableSectionComponent } from '@alittlemore.dev/design-system';
 import { ImportantInfoComponent } from '../components/important-info/important-info.component';
 import { EventsCalendarComponent } from '../components/events-calendar/events-calendar.component';
-import { formatAnnualDate } from '../knowledge/shared/annual-date';
-import { Calendar, CalendarEntry } from '../models/calendar.model';
-import { CalendarService } from '../services/calendar.service';
+import { CalendarOccurrence, CalendarOccurrences } from '../models/events.model';
+import { EventsService } from '../services/events.service';
 import { Temporal } from 'temporal-polyfill';
 import {
   VaultDashboardComponent,
@@ -76,7 +75,9 @@ const DASHBOARD_SECTIONS: readonly DashboardSectionKey[] = [
   styleUrl: './dashboard-page.component.scss',
 })
 export class DashboardPageComponent implements OnInit {
-  private readonly calendarService = inject(CalendarService);
+  private readonly eventsService = inject(EventsService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly i18n = inject(I18nService);
   private readonly preferences = inject(AccountSettingsService);
   private readonly destroyRef = inject(DestroyRef);
@@ -84,7 +85,11 @@ export class DashboardPageComponent implements OnInit {
   private upcomingLoadGeneration = 0;
   private previousTimeZone = this.preferences.timeZone();
 
-  readonly upcomingCalendar = signal<Calendar | null>(null);
+  reloadCalendar(): void {
+    this.document.defaultView?.location.reload();
+  }
+
+  readonly upcomingCalendar = signal<CalendarOccurrences | null>(null);
   readonly upcomingLoading = signal(false);
   readonly upcomingError = signal<ApiError | null>(null);
   readonly activeTab = signal<DashboardTabKey>('home');
@@ -94,10 +99,30 @@ export class DashboardPageComponent implements OnInit {
     this.loadCollapsedSectionKeys(),
   );
   readonly knownSectionKeys = signal<readonly DashboardSectionKey[]>(DASHBOARD_SECTIONS);
-  readonly datesSummary = computed(() => {
-    this.i18n.language();
-    const summary = this.upcomingCalendar()?.summary;
-    return `${this.i18n.translate('workspaceDashboard.dates.type.memorableDate')}: ${summary?.memorableDateCount ?? 0} · ${this.i18n.translate('workspaceDashboard.dates.type.birthday')}: ${summary?.birthdayCount ?? 0}`;
+  readonly upcomingEntries = computed(() => {
+    const zone = this.preferences.timeZone();
+    const now = Temporal.Instant.from(new Date().toISOString());
+    return [...(this.upcomingCalendar()?.entries ?? [])]
+      .filter(
+        (entry) =>
+          Temporal.Instant.compare(
+            entry.allDay
+              ? Temporal.PlainDate.from(entry.end).toZonedDateTime(zone).toInstant()
+              : Temporal.Instant.from(entry.end),
+            now,
+          ) > 0,
+      )
+      .sort((left, right) => {
+        const start = (entry: CalendarOccurrence): string =>
+          entry.allDay
+            ? Temporal.PlainDate.from(entry.start).toZonedDateTime(zone).toInstant().toString()
+            : entry.start;
+        return Temporal.Instant.compare(
+          Temporal.Instant.from(start(left)),
+          Temporal.Instant.from(start(right)),
+        );
+      })
+      .slice(0, 6);
   });
   constructor() {
     effect(() => {
@@ -108,6 +133,9 @@ export class DashboardPageComponent implements OnInit {
     });
   }
   ngOnInit(): void {
+    this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+      this.activeTab.set(params.get('tab') === 'month-calendar' ? 'month-calendar' : 'home');
+    });
     this.loadUpcomingDates();
   }
 
@@ -115,14 +143,11 @@ export class DashboardPageComponent implements OnInit {
     const generation = ++this.upcomingLoadGeneration;
     this.upcomingLoading.set(true);
     this.upcomingError.set(null);
-    this.calendarService
-      .getCalendar(
-        Temporal.Instant.from(new Date().toISOString())
-          .toZonedDateTimeISO(this.preferences.timeZone())
-          .toPlainDate()
-          .toString(),
-        'currentAndNextMonths',
-      )
+    const today = Temporal.Instant.from(new Date().toISOString())
+      .toZonedDateTimeISO(this.preferences.timeZone())
+      .toPlainDate();
+    this.eventsService
+      .occurrences(today.toString(), today.with({ day: 1 }).add({ months: 2 }).toString())
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (calendar) => {
@@ -162,6 +187,11 @@ export class DashboardPageComponent implements OnInit {
   setActiveTab(tabKey: DashboardTabKey): void {
     if (!this.tabs().some((tab) => tab.key === tabKey)) return;
     this.activeTab.set(tabKey);
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { tab: tabKey === 'home' ? null : tabKey },
+      queryParamsHandling: 'merge',
+    });
   }
 
   tabId(tabKey: DashboardTabKey): string {
@@ -172,48 +202,48 @@ export class DashboardPageComponent implements OnInit {
     return `dashboard-tabpanel-${tabKey}`;
   }
 
-  annualDateLabel(entry: CalendarEntry): string {
-    return formatAnnualDate(
-      { day: entry.annualDate.day, month: entry.annualDate.month, year: null },
-      this.i18n.dateLocale(),
-    );
+  entryRoute(entry: CalendarOccurrence): readonly string[] {
+    if (entry.kind === 'event') return ['/personal-workspace'];
+    return [
+      entry.kind === 'memorableDate'
+        ? '/personal-workspace/knowledge/dates'
+        : '/personal-workspace/knowledge/people',
+      entry.sourceId,
+    ];
   }
 
-  entryRoute(entry: CalendarEntry): readonly string[] {
-    if (entry.kind === 'memorableDate') {
-      return ['/personal-workspace/knowledge/dates', entry.id];
-    }
-    return ['/personal-workspace/knowledge/people', entry.id];
+  eventQuery(entry: CalendarOccurrence): Record<string, string> | null {
+    if (entry.kind !== 'event') return null;
+    return { tab: 'month-calendar', date: this.entryDay(entry) };
   }
 
-  additionalInfoItems(entry: CalendarEntry): readonly string[] {
-    const items: string[] = [];
-    if (entry.period === 'nextMonth') {
-      items.push(this.i18n.translate('workspaceDashboard.dates.nextMonth'));
-    }
-    if (entry.annualDate.year !== null) {
-      const years = entry.occurrenceYear - entry.annualDate.year;
-      if (years >= 0) {
-        const category = new Intl.PluralRules(this.i18n.dateLocale()).select(years);
-        const suffix = pluralSuffix(category);
-        const prefix = entry.kind === 'birthday' ? 'age' : 'anniversary';
-        items.push(
-          this.i18n.translate(`workspaceDashboard.dates.${prefix}.${suffix}`, { count: years }),
-        );
-      }
-    }
-    return items;
+  entryDay(entry: CalendarOccurrence): string {
+    return entry.allDay
+      ? entry.start
+      : Temporal.Instant.from(entry.start)
+          .toZonedDateTimeISO(this.preferences.timeZone())
+          .toPlainDate()
+          .toString();
+  }
+
+  entryDateLabel(entry: CalendarOccurrence): string {
+    return new Intl.DateTimeFormat(this.i18n.dateLocale(), {
+      dateStyle: 'medium',
+      ...(entry.allDay ? {} : { timeStyle: 'short' as const }),
+      timeZone: entry.allDay ? 'UTC' : this.preferences.timeZone(),
+    }).format(new Date(entry.allDay ? entry.start + 'T00:00:00Z' : entry.start));
   }
 
   private loadCollapsedSectionKeys(): ReadonlySet<DashboardSectionKey> {
     try {
       const storedValue = this.storage()?.getItem(DASHBOARD_COLLAPSED_SECTIONS_STORAGE_KEY);
-      if (storedValue === null || storedValue === undefined) return new Set<DashboardSectionKey>();
+      if (storedValue === null || storedValue === undefined)
+        return new Set<DashboardSectionKey>(['vault-statistics']);
       const parsedValue: unknown = JSON.parse(storedValue);
-      if (!Array.isArray(parsedValue)) return new Set<DashboardSectionKey>();
+      if (!Array.isArray(parsedValue)) return new Set<DashboardSectionKey>(['vault-statistics']);
       return new Set(parsedValue.filter(isDashboardSectionKey));
     } catch {
-      return new Set<DashboardSectionKey>();
+      return new Set<DashboardSectionKey>(['vault-statistics']);
     }
   }
 
@@ -235,9 +265,4 @@ export class DashboardPageComponent implements OnInit {
 
 function isDashboardSectionKey(value: unknown): value is DashboardSectionKey {
   return typeof value === 'string' && DASHBOARD_SECTIONS.some((sectionKey) => sectionKey === value);
-}
-
-function pluralSuffix(category: Intl.LDMLPluralRule): 'one' | 'few' | 'many' | 'other' {
-  if (category === 'one' || category === 'few' || category === 'many') return category;
-  return 'other';
 }

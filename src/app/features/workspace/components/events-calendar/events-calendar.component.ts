@@ -1,10 +1,22 @@
+import { DOCUMENT } from '@angular/common';
 import {
   EmptyStateComponent,
   ErrorMessageComponent,
   LoadingSpinnerComponent,
   LocalizedDatePickerComponent,
   type LocalizedDatePickerLabels,
+  IconComponent,
 } from '@alittlemore.dev/design-system';
+import {
+  CalendarComponent,
+  MiniCalendarComponent,
+  type CalendarEntry,
+  type CalendarLabels,
+  type CalendarRange,
+  type CalendarDateSelection,
+  type CalendarView,
+  type MiniCalendarLabels,
+} from '@alittlemore.dev/design-system/calendar';
 import { CdkTrapFocus } from '@angular/cdk/a11y';
 import {
   ChangeDetectionStrategy,
@@ -12,7 +24,6 @@ import {
   DestroyRef,
   ElementRef,
   Injector,
-  ViewChild,
   computed,
   effect,
   inject,
@@ -23,21 +34,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { RouterLink } from '@angular/router';
-import {
-  CalendarOptions,
-  DateClickInfo,
-  DatesSetInfo,
-  EventClickInfo,
-  FullCalendarComponent,
-  FullCalendarModule,
-} from '@fullcalendar/angular';
-import dayGridPlugin from '@fullcalendar/angular/daygrid';
-import interactionPlugin from '@fullcalendar/angular/interaction';
-import multiMonthPlugin from '@fullcalendar/angular/multimonth';
-import timeGridPlugin from '@fullcalendar/angular/timegrid';
-import classicThemePlugin from '@fullcalendar/angular/themes/classic';
-import ruLocale from 'fullcalendar/locales/ru';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Temporal } from 'temporal-polyfill';
 import { I18nService } from '../../../../core/i18n/i18n.service';
 import { AccountSettingsService } from '../../../../core/auth/account-settings.service';
@@ -65,14 +62,16 @@ interface VisibleRange {
   selector: 'app-events-calendar',
   standalone: true,
   imports: [
+    CalendarComponent,
+    MiniCalendarComponent,
     EmptyStateComponent,
     ErrorMessageComponent,
     LoadingSpinnerComponent,
     LocalizedDatePickerComponent,
+    IconComponent,
     CdkTrapFocus,
     RouterLink,
     TranslatePipe,
-    FullCalendarModule,
     EventEditorComponent,
     CalendarEntryCreateComponent,
   ],
@@ -82,6 +81,15 @@ interface VisibleRange {
 })
 export class EventsCalendarComponent {
   private readonly service = inject(EventsService);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+  private readonly document = inject(DOCUMENT);
+  private returnDay: string | null = null;
+  private readonly initialDate = validDate(this.route.snapshot.queryParamMap.get('date'));
+  private readonly initialView = calendarView(
+    this.route.snapshot.queryParamMap.get('view'),
+    (this.document.defaultView?.innerWidth ?? 1440) < 768,
+  );
   private readonly i18n = inject(I18nService);
   private readonly preferences = inject(AccountSettingsService);
   private readonly destroyRef = inject(DestroyRef);
@@ -89,21 +97,52 @@ export class EventsCalendarComponent {
   private readonly createButton = viewChild<ElementRef<HTMLButtonElement>>('createButton');
   private loadGeneration = 0;
   private lastLoadedTimeZone: string | null = null;
-  @ViewChild(FullCalendarComponent) calendar?: FullCalendarComponent;
 
   get timeZone(): string {
     return this.preferences.timeZone();
   }
-  readonly calendarTitle = signal('');
-  readonly activeView = signal('dayGridMonth');
+  readonly activeView = signal<CalendarView>(this.initialView);
+  readonly date = signal(this.initialDate ?? Temporal.Now.plainDateISO(this.timeZone).toString());
+  readonly today = computed(() => Temporal.Now.plainDateISO(this.timeZone).toString());
   readonly dateLocale = computed(() => this.i18n.dateLocale());
-  readonly pickerDate = signal<string | null>(null);
+  readonly calendarLabels = computed<CalendarLabels>(() => {
+    this.i18n.language();
+    const translate = (key: string): string =>
+      this.i18n.translate('workspaceDashboard.calendar.' + key);
+    return {
+      calendar: translate('title'),
+      previous: translate('previous'),
+      next: translate('next'),
+      today: translate('today'),
+      view: translate('view.label'),
+      views: {
+        month: translate('view.month'),
+        week: translate('view.week'),
+        day: translate('view.day'),
+        agenda: translate('view.list'),
+        year: translate('view.year'),
+      },
+      allDay: translate('allDay'),
+      noEvents: this.i18n.translate('workspaceEvents.empty'),
+      loading: this.i18n.translate('shared.loading'),
+      more: (count) => this.i18n.translate('workspaceDashboard.calendar.more', { count }),
+    };
+  });
+  readonly miniLabels = computed<MiniCalendarLabels>(() => {
+    this.i18n.language();
+    return {
+      calendar: this.i18n.translate('workspaceDashboard.calendar.chooseDay'),
+      previousMonth: this.i18n.translate('shared.datePicker.previousMonth'),
+      nextMonth: this.i18n.translate('shared.datePicker.nextMonth'),
+      keyboardHelp: this.i18n.translate('shared.miniCalendar.keyboardHelp'),
+    };
+  });
   readonly datePickerLabels = computed<LocalizedDatePickerLabels>(() => {
     this.i18n.language();
     return {
-      placeholder: this.i18n.translate('shared.datePicker.placeholder'),
       openCalendar: this.i18n.translate('workspaceDashboard.calendar.chooseDay'),
       changeCalendar: this.i18n.translate('workspaceDashboard.calendar.chooseDay'),
+      placeholder: this.i18n.translate('shared.datePicker.placeholder'),
       dialog: this.i18n.translate('shared.datePicker.dialog'),
       previousMonth: this.i18n.translate('shared.datePicker.previousMonth'),
       nextMonth: this.i18n.translate('shared.datePicker.nextMonth'),
@@ -127,6 +166,7 @@ export class EventsCalendarComponent {
   readonly loading = signal(false);
   readonly hasLoaded = signal(false);
   readonly error = signal<ApiError | null>(null);
+  readonly calendarFailed = signal(false);
   readonly selectedDay = signal<string | null>(null);
   readonly selectedOccurrence = signal<CalendarOccurrence | null>(null);
   readonly selectedEvent = signal<WorkspaceEvent | null>(null);
@@ -152,65 +192,52 @@ export class EventsCalendarComponent {
     const day = this.selectedDay();
     return day !== null && !this.loading() && this.rangeContains(day);
   });
-  readonly options = computed<CalendarOptions>(() => {
-    const language = this.i18n.language();
-    return {
-      plugins: [
-        classicThemePlugin,
-        dayGridPlugin,
-        timeGridPlugin,
-        multiMonthPlugin,
-        interactionPlugin,
-      ],
-      locales: [ruLocale],
-      locale: language ?? 'en',
-      firstDay: language === 'en' ? 0 : 1,
-      timeZone: this.timeZone,
-      initialView: 'dayGridMonth',
-      headerToolbar: false,
-      height: 'auto',
-      slotHeaderFormat: {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false,
-        omitZeroMinute: false,
-      },
-      eventTimeFormat: {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false,
-        omitZeroMinute: false,
-      },
-      buttons: {
-        today: { text: this.i18n.translate('workspaceDashboard.calendar.today') },
-        dayGridMonth: { text: this.i18n.translate('workspaceDashboard.calendar.view.month') },
-        timeGridWeek: { text: this.i18n.translate('workspaceDashboard.calendar.view.week') },
-        timeGridDay: { text: this.i18n.translate('workspaceDashboard.calendar.view.day') },
-        multiMonthYear: { text: this.i18n.translate('workspaceDashboard.calendar.view.year') },
-      },
-      slotDuration: '00:30:00',
-      slotHeaderInterval: '00:30:00',
-      dayMaxEvents: true,
-      moreLinkClick: (arg) => {
-        const day = Temporal.Instant.from(arg.date.toISOString())
-          .toZonedDateTimeISO(this.timeZone)
-          .toPlainDate()
-          .toString();
-        this.openDay(day);
-        return 'none';
-      },
-      datesSet: (arg) => this.onDatesSet(arg),
-      dateClick: (arg) => this.onDateClick(arg),
-      eventClick: (arg) => this.onEventClick(arg),
-      events: this.occurrences().entries.map((entry) => ({
-        id: entry.id,
-        title: this.entryTitle(entry),
-        start: entry.start,
-        end: entry.end,
-        allDay: entry.allDay,
-        classNames: [`workspace-calendar-${entry.kind}`],
-      })),
-    };
+  readonly entries = computed<readonly CalendarEntry[]>(() => {
+    this.i18n.language();
+    return this.occurrences().entries.map((entry) => ({
+      id: entry.id,
+      title: entry.displayName,
+      start: entry.start,
+      end: entry.end,
+      allDay: entry.allDay,
+      typeLabel: this.i18n.translate('workspaceDashboard.calendar.type.' + entry.kind),
+      tone:
+        entry.kind === 'birthday' ? 'info' : entry.kind === 'memorableDate' ? 'neutral' : 'accent',
+      icon:
+        entry.kind === 'birthday'
+          ? 'people'
+          : entry.kind === 'memorableDate'
+            ? 'document'
+            : 'calendar',
+    }));
+  });
+  readonly markedDates = computed<readonly string[]>(() => {
+    const range = this.range();
+    if (!range) return [];
+    const result = new Set<string>();
+    for (const entry of this.occurrences().entries) {
+      const start = entry.allDay
+        ? entry.start
+        : Temporal.Instant.from(entry.start)
+            .toZonedDateTimeISO(this.timeZone)
+            .toPlainDate()
+            .toString();
+      const end = entry.allDay
+        ? entry.end
+        : Temporal.Instant.from(entry.end)
+            .subtract({ nanoseconds: 1 })
+            .toZonedDateTimeISO(this.timeZone)
+            .toPlainDate()
+            .add({ days: 1 })
+            .toString();
+      for (
+        let day = start < range.startDate ? range.startDate : start;
+        day < end && day < range.endDate;
+        day = nextDate(day)
+      )
+        result.add(day);
+    }
+    return [...result];
   });
 
   constructor() {
@@ -222,23 +249,16 @@ export class EventsCalendarComponent {
     });
   }
 
-  onDatesSet(info: DatesSetInfo): void {
-    this.calendarTitle.set(info.view.title);
-    this.activeView.set(info.view.type);
-    const currentDate = info.view.calendar?.getDate();
-    this.pickerDate.set(
-      currentDate
-        ? Temporal.Instant.from(currentDate.toISOString())
-            .toZonedDateTimeISO(this.timeZone)
-            .toPlainDate()
-            .toString()
-        : info.startStr.slice(0, 10),
-    );
-    const range = {
-      startDate: info.startStr.slice(0, 10),
-      endDate: info.endStr.slice(0, 10),
-      viewType: info.view.type,
-    };
+  onRangeChange(info: CalendarRange): void {
+    this.date.set(info.date);
+    this.activeView.set(info.view);
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { date: info.date, view: CALENDAR_VIEWS[info.view], tab: 'month-calendar' },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
+    const range = { startDate: info.start, endDate: info.end, viewType: CALENDAR_VIEWS[info.view] };
     const previous = this.range();
     if (
       previous?.startDate === range.startDate &&
@@ -249,6 +269,10 @@ export class EventsCalendarComponent {
       return;
     this.range.set(range);
     this.load();
+  }
+
+  retryCalendar(): void {
+    this.document.defaultView?.location.reload();
   }
 
   load(): void {
@@ -276,17 +300,12 @@ export class EventsCalendarComponent {
       });
   }
 
-  onDateClick(info: DateClickInfo): void {
-    const date = info.dateStr.slice(0, 10);
-    if (info.view.type === 'dayGridMonth' || info.view.type === 'multiMonthYear') {
-      this.openDay(date);
+  onDateSelected(info: CalendarDateSelection): void {
+    if (this.activeView() === 'month' || this.activeView() === 'year' || info.allDay) {
+      this.openDay(info.date);
       return;
     }
-    if (info.allDay) {
-      this.openCreate({ allDay: true, start: date, end: date });
-      return;
-    }
-    const startInstant = Temporal.Instant.from(info.date.toISOString()).toString();
+    const startInstant = Temporal.Instant.from(info.start).toString();
     const endInstant = Temporal.Instant.from(startInstant).add({ hours: 1 }).toString();
     const start = Temporal.Instant.from(startInstant)
       .toZonedDateTimeISO(this.timeZone)
@@ -296,19 +315,12 @@ export class EventsCalendarComponent {
       .toZonedDateTimeISO(this.timeZone)
       .toPlainDateTime()
       .toString({ smallestUnit: 'minute' });
-    this.openCreate({
-      allDay: false,
-      start,
-      end,
-      startInstant,
-      endInstant,
-    });
+    this.openCreate({ allDay: false, start, end, startInstant, endInstant });
   }
-
-  onEventClick(info: EventClickInfo): void {
-    info.jsEvent.preventDefault();
-    const entry = this.occurrences().entries.find((item) => item.id === info.event.id);
+  onEntrySelected(info: CalendarEntry): void {
+    const entry = this.occurrences().entries.find((item) => item.id === info.id);
     if (!entry) return;
+    this.returnDay = null;
     this.selectOccurrence(entry);
   }
 
@@ -337,45 +349,39 @@ export class EventsCalendarComponent {
   }
 
   goToDate(date: string | null): void {
-    if (!date) return;
-    this.pickerDate.set(date);
-    this.calendar?.getApi().gotoDate(date);
-  }
-
-  previous(): void {
-    this.calendar?.getApi().prev();
-  }
-
-  next(): void {
-    this.calendar?.getApi().next();
-  }
-
-  today(): void {
-    this.calendar?.getApi().today();
-  }
-
-  changeView(view: string): void {
-    this.calendar?.getApi().changeView(view);
+    if (date) this.date.set(date);
   }
 
   openDay(date: string): void {
+    this.returnDay = null;
     this.selectedOccurrence.set(null);
     this.selectedDay.set(date);
   }
   closeDay(): void {
     this.selectedDay.set(null);
+    this.returnDay = null;
   }
   closeDetails(): void {
+    this.clearDetails();
+    if (this.returnDay) this.selectedDay.set(this.returnDay);
+  }
+  hasReturnDay(): boolean {
+    return this.returnDay !== null;
+  }
+  private clearDetails(): void {
     this.selectedOccurrence.set(null);
     this.selectedEvent.set(null);
     this.eventLoading.set(false);
   }
   showDayEntry(entry: CalendarOccurrence): void {
-    this.closeDay();
+    if (this.selectedDay()) this.returnDay = this.selectedDay();
+    this.selectedDay.set(null);
     this.selectOccurrence(entry);
   }
   openCreate(initial: EventEditorInitial | null = null): void {
-    this.closeDay();
+    this.returnDay = this.selectedDay();
+    this.selectedDay.set(null);
+    this.clearDetails();
     this.editorEvent.set(null);
     this.editorInitial.set(initial);
     this.editorOpen.set(true);
@@ -394,12 +400,16 @@ export class EventsCalendarComponent {
     if (!event) return;
     this.editorEvent.set(event);
     this.editorInitial.set(null);
-    this.closeDetails();
+    this.clearDetails();
     this.editorOpen.set(true);
   }
   closeEditor(): void {
     this.editorOpen.set(false);
-    afterNextRender(() => this.createButton()?.nativeElement.focus(), { injector: this.injector });
+    if (this.returnDay) this.selectedDay.set(this.returnDay);
+    else
+      afterNextRender(() => this.createButton()?.nativeElement.focus(), {
+        injector: this.injector,
+      });
   }
   onSaved(): void {
     this.closeEditor();
@@ -411,9 +421,7 @@ export class EventsCalendarComponent {
       : ['/personal-workspace/knowledge/people', entry.sourceId];
   }
   entryTitle(entry: CalendarOccurrence | UnplacedAnnualEntry): string {
-    return entry.kind === 'birthday'
-      ? `${this.i18n.translate('workspaceDashboard.dates.type.birthday')} · ${entry.displayName}`
-      : entry.displayName;
+    return `${this.i18n.translate('workspaceDashboard.calendar.type.' + entry.kind)} · ${entry.displayName}`;
   }
   annualLabel(entry: CalendarOccurrence | UnplacedAnnualEntry): string {
     if (!entry.annualDate) return '';
@@ -443,5 +451,29 @@ export class EventsCalendarComponent {
       timeZone: this.timeZone,
     });
     return `${formatter.format(new Date(entry.start))} – ${formatter.format(new Date(entry.end))}`;
+  }
+}
+
+const CALENDAR_VIEWS: Readonly<Record<CalendarView, string>> = {
+  month: 'dayGridMonth',
+  week: 'timeGridWeek',
+  day: 'timeGridDay',
+  year: 'multiMonthYear',
+  agenda: 'listWeek',
+};
+function calendarView(value: string | null, mobile: boolean): CalendarView {
+  return (
+    (Object.entries(CALENDAR_VIEWS).find(
+      ([view, legacy]) => value === view || value === legacy,
+    )?.[0] as CalendarView | undefined) ?? (mobile ? 'agenda' : 'month')
+  );
+}
+function validDate(value: string | null): string | null {
+  try {
+    return value && /^\d{4}-\d{2}-\d{2}$/.test(value)
+      ? Temporal.PlainDate.from(value, { overflow: 'reject' }).toString()
+      : null;
+  } catch {
+    return null;
   }
 }

@@ -1,107 +1,74 @@
-<link rel="stylesheet" href="/assets/fullcalendar/skeleton.css" />
-<link rel="stylesheet" href="/assets/fullcalendar/theme.css" />
-<link rel="stylesheet" href="/assets/fullcalendar/palette.css" />
-<section class="vstack gap-3" aria-label="{{ 'workspaceDashboard.calendar.title' | t }}">
-  <div
-    class="calendar-toolbar d-flex align-items-center gap-2 flex-wrap"
-    role="toolbar"
-    [attr.aria-label]="'workspaceDashboard.calendar.title' | t"
-  >
-    <div class="btn-group btn-group-sm" role="group">
-      <button
-        type="button"
-        class="btn btn-outline-secondary"
-        [attr.aria-label]="'workspaceDashboard.calendar.previous' | t"
-        [title]="'workspaceDashboard.calendar.previous' | t"
-        (click)="previous()"
-      >
-        ‹
-      </button>
-      <button
-        type="button"
-        class="btn btn-outline-secondary"
-        [attr.aria-label]="'workspaceDashboard.calendar.next' | t"
-        [title]="'workspaceDashboard.calendar.next' | t"
-        (click)="next()"
-      >
-        ›
-      </button>
-      <button type="button" class="btn btn-outline-secondary" (click)="today()">
-        {{ 'workspaceDashboard.calendar.today' | t }}
-      </button>
-    </div>
-    <h2 class="calendar-toolbar-title h5 mb-0">{{ calendarTitle() }}</h2>
-    <div class="calendar-toolbar-date">
-      <ds-localized-date-picker
-        class="calendar-date-picker"
-        inputId="calendar-navigation-date"
-        controlSize="small"
-        [value]="pickerDate()"
-        [dateLocale]="dateLocale()"
-        [labels]="datePickerLabels()"
-        [required]="false"
-        [invalid]="false"
-        [controlDisabled]="false"
-        [readonly]="false"
-        (valueChange)="goToDate($event)"
-      />
-    </div>
-    <div
-      class="btn-group btn-group-sm"
-      role="group"
-      [attr.aria-label]="'workspaceDashboard.calendar.title' | t"
-    >
-      <button
-        type="button"
-        class="btn btn-outline-secondary"
-        [class.active]="activeView() === 'dayGridMonth'"
-        [attr.aria-pressed]="activeView() === 'dayGridMonth'"
-        (click)="changeView('dayGridMonth')"
-      >
-        {{ 'workspaceDashboard.calendar.view.month' | t }}
-      </button>
-      <button
-        type="button"
-        class="btn btn-outline-secondary"
-        [class.active]="activeView() === 'timeGridWeek'"
-        [attr.aria-pressed]="activeView() === 'timeGridWeek'"
-        (click)="changeView('timeGridWeek')"
-      >
-        {{ 'workspaceDashboard.calendar.view.week' | t }}
-      </button>
-      <button
-        type="button"
-        class="btn btn-outline-secondary"
-        [class.active]="activeView() === 'timeGridDay'"
-        [attr.aria-pressed]="activeView() === 'timeGridDay'"
-        (click)="changeView('timeGridDay')"
-      >
-        {{ 'workspaceDashboard.calendar.view.day' | t }}
-      </button>
-      <button
-        type="button"
-        class="btn btn-outline-secondary"
-        [class.active]="activeView() === 'multiMonthYear'"
-        [attr.aria-pressed]="activeView() === 'multiMonthYear'"
-        (click)="changeView('multiMonthYear')"
-      >
-        {{ 'workspaceDashboard.calendar.view.year' | t }}
-      </button>
-    </div>
-    <button #createButton type="button" class="btn btn-success btn-sm" (click)="openCreate()">
-      {{ 'workspaceDashboard.calendar.create' | t }}
-    </button>
-  </div>
-  <p class="text-body-secondary small mb-0">
-    {{ 'workspaceDashboard.calendar.timeZone' | t }}: {{ timeZone }}
-  </p>
-  @if (loading() && !hasLoaded()) {
-    <ds-loading-spinner [ariaLabel]="'shared.loading' | t" />
-  }
+<section class="vstack gap-3" [attr.aria-label]="'workspaceDashboard.calendar.title' | t">
   @if (error()) {
     <ds-error-message [error]="error()!" [retryLabel]="'shared.retry' | t" (retry)="load()" />
   }
-  <full-calendar class="workspace-fullcalendar" [options]="options()" />
+  <div class="workspace-calendar-layout">
+    <div class="workspace-calendar-tools">
+      <button
+        #createButton
+        type="button"
+        class="btn btn-success btn-sm calendar-create"
+        (click)="openCreate()"
+      >
+        <ds-icon name="plus" [size]="16" /> {{ 'workspaceDashboard.calendar.create' | t }}
+      </button>
+      <div class="calendar-jump-date">
+        <label class="visually-hidden" for="workspace-calendar-jump">{{
+          'workspaceDashboard.calendar.chooseDay' | t
+        }}</label>
+        <ds-localized-date-picker
+          inputId="workspace-calendar-jump"
+          controlSize="small"
+          [value]="date()"
+          [dateLocale]="dateLocale()"
+          [labels]="datePickerLabels()"
+          [required]="false"
+          [invalid]="false"
+          [controlDisabled]="false"
+          [readonly]="false"
+          (valueChange)="goToDate($event)"
+        />
+      </div>
+      <ds-mini-calendar
+        id="workspace-mini-calendar"
+        [date]="date()"
+        [today]="today()"
+        [labels]="miniLabels()"
+        [dateLocale]="dateLocale()"
+        [markedDates]="markedDates()"
+        (dateChange)="goToDate($event)"
+      />
+      <p class="text-body-secondary small mb-0">
+        {{ 'workspaceDashboard.calendar.timeZone' | t }}: {{ timeZone }}
+      </p>
+    </div>
+    <div>
+      @if (calendarFailed()) {
+        <ds-error-message
+          [error]="{ message: 'workspaceDashboard.calendar.loadError' | t }"
+          [retryLabel]="'shared.retry' | t"
+          (retry)="retryCalendar()"
+        />
+      }
+      <ds-calendar
+        id="workspace-calendar"
+        [date]="date()"
+        [today]="today()"
+        [labels]="calendarLabels()"
+        [dateLocale]="dateLocale()"
+        [view]="activeView()"
+        [timeZone]="timeZone"
+        [entries]="entries()"
+        [loading]="loading()"
+        (loadError)="calendarFailed.set(true)"
+        (dateChange)="goToDate($event)"
+        (viewChange)="activeView.set($event)"
+        (rangeChange)="onRangeChange($event)"
+        (dateSelected)="onDateSelected($event)"
+        (entrySelected)="onEntrySelected($event)"
+      />
+    </div>
+  </div>
   @if (occurrences().unplacedAnnualEntries.length > 0) {
     <section class="alert alert-secondary mb-0" aria-labelledby="calendar-unplaced-heading">
       <h3 id="calendar-unplaced-heading" class="h6">
@@ -165,6 +132,9 @@
                     (click)="showDayEntry(entry)"
                   >
                     {{ entryTitle(entry) }}
+                    <span class="d-block small text-body-secondary">{{
+                      occurrenceTimeLabel(entry)
+                    }}</span>
                   </button>
                 </li>
               }
@@ -200,7 +170,7 @@
         <div class="modal-header">
           <div class="min-w-0">
             <p class="small text-body-secondary mb-1">
-              {{ 'workspaceDashboard.calendar.eventDetails' | t }}
+              {{ 'workspaceDashboard.calendar.type.' + entry.kind | t }}
             </p>
             <h2 id="calendar-event-title" class="modal-title fs-5 text-break">
               {{ entryTitle(entry) }}
@@ -210,7 +180,7 @@
             type="button"
             class="btn-close"
             cdkFocusInitial
-            [attr.aria-label]="'workspaceEvents.cancel' | t"
+            [attr.aria-label]="'shared.close' | t"
             (click)="closeDetails()"
           ></button>
         </div>
@@ -241,13 +211,13 @@
               }}</a>
             }
             <a [routerLink]="entryRoute(entry)">{{
-              'workspaceDashboard.calendar.legacyDetails' | t
+              'workspaceDashboard.calendar.sourceDetails' | t
             }}</a>
           }
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-outline-secondary btn-sm" (click)="closeDetails()">
-            {{ 'workspaceEvents.cancel' | t }}
+            {{ (hasReturnDay() ? 'workspaceDashboard.calendar.backToDay' : 'shared.close') | t }}
           </button>
           @if (selectedEvent()) {
             <button type="button" class="btn btn-success btn-sm" (click)="openEdit()">

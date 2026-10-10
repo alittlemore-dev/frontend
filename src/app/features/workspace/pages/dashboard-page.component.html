@@ -39,14 +39,13 @@
         summary=""
         [expanded]="isSectionExpanded('important-info')"
         (expandedChange)="setSectionExpanded('important-info', $event)"
-      >
-        <app-important-info />
-      </ds-foldable-section>
+        ><app-important-info
+      /></ds-foldable-section>
       <ds-foldable-section
         class="d-block mb-3"
         sectionKey="upcoming-dates"
-        [title]="'workspaceDashboard.dates.title' | t"
-        [summary]="datesSummary()"
+        [title]="'workspaceDashboard.upcoming' | t"
+        summary=""
         [expanded]="isSectionExpanded('upcoming-dates')"
         (expandedChange)="setSectionExpanded('upcoming-dates', $event)"
       >
@@ -58,74 +57,35 @@
             [retryLabel]="'shared.retry' | t"
             (retry)="loadUpcomingDates()"
           />
-        } @else if ((upcomingCalendar()?.entries?.length ?? 0) === 0) {
+        } @else if (upcomingEntries().length === 0) {
           <ds-empty-state [message]="'workspaceDashboard.dates.empty' | t" />
-        } @else if (upcomingCalendar(); as calendar) {
-          <div class="table-responsive">
-            <table
-              class="table table-sm align-middle mb-0 dashboard-dates-table"
-              data-testid="dashboard-dates-table"
-            >
-              <thead>
-                <tr>
-                  <th scope="col">{{ 'workspaceDashboard.dates.name' | t }}</th>
-                  <th scope="col">{{ 'workspaceDashboard.dates.date' | t }}</th>
-                  <th scope="col">{{ 'workspaceDashboard.dates.type' | t }}</th>
-                  <th scope="col">{{ 'workspaceDashboard.dates.people' | t }}</th>
-                  <th scope="col">{{ 'workspaceDashboard.dates.additionalInfo' | t }}</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (entry of calendar.entries; track entry.kind + ':' + entry.id) {
-                  <tr>
-                    <td>
-                      <a class="fw-semibold" [routerLink]="entryRoute(entry)">
-                        {{ entry.displayName }}
-                      </a>
-                    </td>
-                    <td>{{ annualDateLabel(entry) }}</td>
-                    <td>{{ 'workspaceDashboard.dates.type.' + entry.kind | t }}</td>
-                    <td>
-                      @if (entry.kind === 'memorableDate') {
-                        @for (person of entry.relatedPeople; track person.id) {
-                          <a
-                            class="d-block"
-                            [routerLink]="['/personal-workspace/knowledge/people', person.id]"
-                          >
-                            {{ person.displayName }}
-                          </a>
-                        } @empty {
-                          <span>{{ 'workspaceDashboard.dates.everyoneOrNobody' | t }}</span>
-                        }
-                      } @else {
-                        <span class="text-body-secondary">—</span>
-                      }
-                    </td>
-                    <td>
-                      @if (additionalInfoItems(entry); as items) {
-                        @if (items.length > 0) {
-                          <ul
-                            class="dashboard-extra mb-0 ps-3"
-                            [attr.data-testid]="'dashboard-extra-' + entry.id"
-                          >
-                            @for (item of items; track $index) {
-                              <li>{{ item }}</li>
-                            }
-                          </ul>
-                        } @else {
-                          <span class="text-body-secondary">—</span>
-                        }
-                      }
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
+        } @else {
+          <ul class="dashboard-entries list-unstyled mb-0">
+            @for (entry of upcomingEntries(); track entry.id) {
+              <li class="dashboard-upcoming-row">
+                <a
+                  class="fw-semibold"
+                  [routerLink]="entryRoute(entry)"
+                  [queryParams]="eventQuery(entry)"
+                  >{{ entry.displayName }}</a
+                >
+                <span class="small text-body-secondary"
+                  >{{ 'workspaceDashboard.calendar.type.' + entry.kind | t }} ·
+                  {{ entryDateLabel(entry) }}</span
+                >
+              </li>
+            }
+          </ul>
         }
+        <button
+          type="button"
+          class="btn btn-link btn-sm px-0 mt-2"
+          (click)="setActiveTab('month-calendar')"
+        >
+          {{ 'workspaceDashboard.calendar.title' | t }}
+        </button>
       </ds-foldable-section>
       <app-vault-dashboard
-        class="d-block"
         [recentExpanded]="isSectionExpanded('vault-recent')"
         [statisticsExpanded]="isSectionExpanded('vault-statistics')"
         [refreshVersion]="vaultRefreshVersion()"
@@ -140,8 +100,20 @@
       [attr.data-testid]="'dashboard-tabpanel-month-calendar'"
       [hidden]="activeTab() !== 'month-calendar'"
     >
-      @if (activeTab() === 'month-calendar') {
-        <app-events-calendar (knowledgeCreated)="onKnowledgeCreated()" />
+      @defer (when activeTab() === 'month-calendar') {
+        @if (activeTab() === 'month-calendar') {
+          <app-events-calendar (knowledgeCreated)="onKnowledgeCreated()" />
+        }
+      } @placeholder {
+        <span class="small text-body-secondary">{{ 'shared.loading' | t }}</span>
+      } @loading {
+        <ds-loading-spinner [ariaLabel]="'shared.loading' | t" />
+      } @error {
+        <ds-error-message
+          [error]="{ message: 'workspaceDashboard.calendar.loadError' | t }"
+          [retryLabel]="'shared.retry' | t"
+          (retry)="reloadCalendar()"
+        />
       }
     </div>
   </div>

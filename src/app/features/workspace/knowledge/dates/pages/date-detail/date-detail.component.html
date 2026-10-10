@@ -32,7 +32,16 @@
       </h1>
       @if (date() && !loading() && !error()) {
         <p class="small text-body-secondary mb-0 mt-1" role="status" data-testid="date-save-state">
-          {{ (unsavedChanges() ? 'workspace.editor.unsaved' : 'workspace.editor.clean') | t }}
+          {{
+            (saving()
+              ? 'workspace.editor.saving'
+              : saveFailed()
+                ? 'workspace.editor.failed'
+                : unsavedChanges()
+                  ? 'workspace.editor.unsaved'
+                  : 'workspace.editor.clean'
+            ) | t
+          }}
         </p>
       }
     </div>
@@ -64,6 +73,9 @@
   } @else if (error()) {
     <ds-error-message [error]="error()!" [retryLabel]="'shared.retry' | t" (retry)="loadDate()" />
   } @else if (date()) {
+    @if (saveFailed()) {
+      <p class="alert alert-danger" role="alert">{{ 'knowledgeDates.saveError' | t }}</p>
+    }
     <form id="date-detail-form" [formGroup]="dateForm" (ngSubmit)="saveDate()">
       <div class="detail-layout">
         <div class="detail-main">
@@ -78,6 +90,7 @@
                 id="date-name"
                 class="form-control form-control-sm"
                 dsControlValidationState
+                appWorkspaceFieldTarget
                 formControlName="displayName"
                 required
                 [attr.maxlength]="validationLimits.shortText"
@@ -102,6 +115,7 @@
                     [required]="true"
                     [invalid]="annualDateInvalid()"
                     [controlDisabled]="false"
+                    appWorkspaceFieldTarget
                     formControlName="day"
                   />
                 </div>
@@ -118,6 +132,7 @@
                     [required]="true"
                     [invalid]="annualDateInvalid()"
                     [controlDisabled]="false"
+                    appWorkspaceFieldTarget
                     formControlName="month"
                   />
                 </div>
@@ -130,6 +145,7 @@
                     max="9999"
                     class="form-control form-control-sm"
                     dsControlValidationState
+                    appWorkspaceFieldTarget
                     formControlName="year"
                   />
                 </div>
@@ -146,6 +162,7 @@
                 class="form-check-input"
                 type="checkbox"
                 dsControlValidationState
+                appWorkspaceFieldTarget
                 formControlName="notificationsEnabled"
               />
               <label class="form-check-label" for="date-notifications-enabled">{{
@@ -170,6 +187,47 @@
         <div class="detail-support">
           <section class="detail-section">
             <h2 class="h6">{{ 'knowledgeDates.section.people' | t }}</h2>
+            <ul id="date-related-people-list" class="list-group list-group-flush mb-2">
+              @for (person of visibleSelectedPeople(); track person.id) {
+                <li
+                  class="list-group-item d-flex justify-content-between align-items-center gap-2"
+                  [attr.data-testid]="'date-related-person-' + person.id"
+                >
+                  <a
+                    [routerLink]="['/personal-workspace/knowledge/people', person.id]"
+                    queryParamsHandling="preserve"
+                  >
+                    {{ person.displayName }}
+                  </a>
+                  <button
+                    type="button"
+                    class="btn btn-outline-danger btn-sm"
+                    (click)="removePerson(person.id)"
+                  >
+                    {{ 'shared.delete' | t }}
+                  </button>
+                </li>
+              } @empty {
+                <li class="list-group-item text-body-secondary">
+                  {{ 'knowledgeDates.peopleEmpty' | t }}
+                </li>
+              }
+            </ul>
+            @if (relatedPeopleCollapsible()) {
+              <button
+                type="button"
+                class="btn btn-link btn-sm align-self-start px-0"
+                data-testid="date-related-people-toggle"
+                aria-controls="date-related-people-list"
+                [attr.aria-expanded]="relatedPeopleExpanded()"
+                (click)="toggleRelatedPeopleExpanded()"
+              >
+                {{
+                  (relatedPeopleExpanded() ? 'shared.showLess' : 'shared.showAll')
+                    | t: { count: selectedPeople().length }
+                }}
+              </button>
+            }
             <label class="form-label" for="date-people-search">{{
               'knowledgeDates.peopleSearch' | t
             }}</label>
@@ -229,47 +287,6 @@
                 {{ 'knowledgeDates.peopleSearching' | t }}
               </p>
             }
-            <ul id="date-related-people-list" class="list-group list-group-flush mb-2">
-              @for (person of visibleSelectedPeople(); track person.id) {
-                <li
-                  class="list-group-item d-flex justify-content-between align-items-center gap-2"
-                  [attr.data-testid]="'date-related-person-' + person.id"
-                >
-                  <a
-                    [routerLink]="['/personal-workspace/knowledge/people', person.id]"
-                    queryParamsHandling="preserve"
-                  >
-                    {{ person.displayName }}
-                  </a>
-                  <button
-                    type="button"
-                    class="btn btn-outline-danger btn-sm"
-                    (click)="removePerson(person.id)"
-                  >
-                    {{ 'shared.delete' | t }}
-                  </button>
-                </li>
-              } @empty {
-                <li class="list-group-item text-body-secondary">
-                  {{ 'knowledgeDates.peopleEmpty' | t }}
-                </li>
-              }
-            </ul>
-            @if (relatedPeopleCollapsible()) {
-              <button
-                type="button"
-                class="btn btn-link btn-sm align-self-start px-0"
-                data-testid="date-related-people-toggle"
-                aria-controls="date-related-people-list"
-                [attr.aria-expanded]="relatedPeopleExpanded()"
-                (click)="toggleRelatedPeopleExpanded()"
-              >
-                {{
-                  (relatedPeopleExpanded() ? 'shared.showLess' : 'shared.showAll')
-                    | t: { count: selectedPeople().length }
-                }}
-              </button>
-            }
           </section>
           <details [open]="date()!.tags.length > 0" class="detail-section">
             <summary>
@@ -310,7 +327,7 @@
               }
             </div>
           </details>
-          <details [open]="date()!.attachments.length > 0" class="detail-section">
+          <details class="detail-section">
             <summary>
               {{ 'knowledgeDates.section.attachments' | t }}
               <span class="text-body-secondary fw-normal">· {{ date()!.attachments.length }}</span>

@@ -1,3 +1,7 @@
+import {
+  WorkspaceFieldFocusService,
+  WorkspaceFieldTargetDirective,
+} from '../../../../form-field-focus.directive';
 import { WorkspaceDetailNavigationService } from '../../../../services/workspace-detail-navigation.service';
 import {
   NotificationService,
@@ -9,6 +13,8 @@ import {
 } from '@alittlemore.dev/design-system';
 import { DOCUMENT } from '@angular/common';
 import {
+  afterNextRender,
+  Injector,
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
@@ -76,7 +82,9 @@ const RELATED_PEOPLE_PREVIEW_LIMIT = 10;
 @Component({
   selector: 'app-date-detail',
   standalone: true,
+  providers: [WorkspaceFieldFocusService],
   imports: [
+    WorkspaceFieldTargetDirective,
     ReactiveFormsModule,
     RouterLink,
     TranslatePipe,
@@ -114,6 +122,9 @@ export class DateDetailComponent implements OnInit {
   readonly error = signal<ApiError | null>(null);
   readonly date = signal<KnowledgeDateDetail | null>(null);
   readonly saving = signal(false);
+  readonly saveFailed = signal(false);
+  private readonly injector = inject(Injector);
+  private readonly fieldFocus = inject(WorkspaceFieldFocusService);
   readonly deleting = signal(false);
   readonly submitted = signal(false);
   readonly tags = signal<readonly KnowledgeTag[]>([]);
@@ -344,10 +355,12 @@ export class DateDetailComponent implements OnInit {
     if (this.editorImagePending() || this.saving()) {
       return;
     }
+    this.saveFailed.set(false);
     this.submitted.set(true);
     this.dateForm.markAllAsTouched();
     if (this.dateForm.invalid) {
       this.notifications.error(this.i18n.translate('knowledgeDates.validationError'));
+      afterNextRender(() => this.fieldFocus.focus(), { injector: this.injector });
       return;
     }
     this.saving.set(true);
@@ -365,6 +378,7 @@ export class DateDetailComponent implements OnInit {
         },
         error: () => {
           this.saving.set(false);
+          this.saveFailed.set(true);
           this.notifications.error(this.i18n.translate('knowledgeDates.saveError'));
         },
       });

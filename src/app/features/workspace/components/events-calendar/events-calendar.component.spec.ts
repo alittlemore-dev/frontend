@@ -1,193 +1,182 @@
-import { provideRouter } from '@angular/router';
-import { TestBed } from '@angular/core/testing';
-import { ChangeDetectionStrategy, Component, Input, signal } from '@angular/core';
+import { provideRouter, Router } from '@angular/router';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ChangeDetectionStrategy, Component, input, output, signal } from '@angular/core';
+import { By } from '@angular/platform-browser';
 import {
-  CalendarOptions,
-  DateClickInfo,
-  DatesSetInfo,
-  FullCalendarComponent,
-  FullCalendarModule,
-} from '@fullcalendar/angular';
-import { of, Subject } from 'rxjs';
-import { Temporal } from 'temporal-polyfill';
+  CalendarComponent,
+  type CalendarEntry,
+  type CalendarLabels,
+  type CalendarRange,
+  type CalendarDateSelection,
+  type CalendarView,
+} from '@alittlemore.dev/design-system/calendar';
+import { of, Subject, throwError } from 'rxjs';
 import { provideI18nTesting } from '../../../../testing/i18n-testing';
 import { EventsService } from '../../services/events.service';
 import { EventsCalendarComponent } from './events-calendar.component';
 import { PeopleService } from '../../knowledge/people/services/people.service';
 import { KnowledgeDatesService } from '../../knowledge/dates/services/dates.service';
 import { AccountSettingsService } from '../../../../core/auth/account-settings.service';
+import { CalendarOccurrence, CalendarOccurrences } from '../../models/events.model';
 
-// Match the third-party selector so the calendar can be replaced in this focus test.
 @Component({
   // eslint-disable-next-line @angular-eslint/component-selector
-  selector: 'full-calendar',
-  standalone: true,
-  template: '@for (title of titles; track $index) { <span>{{ title }}</span> }',
+  selector: 'ds-calendar',
+  template:
+    '@for (entry of entries(); track entry.id) { <button type="button" [attr.aria-label]="entry.typeLabel + \' · \' + entry.title" (click)="entrySelected.emit(entry)">{{ entry.title }}</button> }',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-class StubFullCalendarComponent {
-  @Input() options?: CalendarOptions;
-
-  get titles(): readonly string[] {
-    const events = this.options?.events;
-    return Array.isArray(events)
-      ? events.map((event: { title?: string }) => event.title ?? '')
-      : [];
-  }
+class CalendarStub {
+  readonly id = input('');
+  readonly date = input('');
+  readonly today = input('');
+  readonly labels = input<CalendarLabels>();
+  readonly dateLocale = input('');
+  readonly timeZone = input('');
+  readonly loading = input(false);
+  readonly view = input<CalendarView>('month');
+  readonly entries = input<readonly CalendarEntry[]>([]);
+  readonly dateChange = output<string>();
+  readonly viewChange = output<CalendarView>();
+  readonly rangeChange = output<CalendarRange>();
+  readonly dateSelected = output<CalendarDateSelection>();
+  readonly entrySelected = output<CalendarEntry>();
+  readonly loadError = output<void>();
 }
+const birthday: CalendarOccurrence = {
+  id: 'birthday-1',
+  sourceId: 'person-1',
+  kind: 'birthday',
+  displayName: 'Иван Иванов',
+  allDay: true,
+  start: '2026-10-02',
+  end: '2026-10-03',
+  annualDate: { day: 2, month: 10, year: 1990 },
+  relatedPeople: [],
+};
+const range: CalendarRange = {
+  start: '2026-09-27',
+  end: '2026-11-01',
+  date: '2026-10-02',
+  view: 'month',
+};
 
 describe('EventsCalendarComponent', () => {
-  const service = { occurrences: jest.fn(() => of({ entries: [], unplacedAnnualEntries: [] })) };
+  const service = { occurrences: jest.fn(), get: jest.fn() };
   const timeZone = signal('UTC');
-  beforeEach(() => {
+  let fixture: ComponentFixture<EventsCalendarComponent>;
+  beforeEach(async () => {
     jest.clearAllMocks();
-    service.occurrences.mockReturnValue(of({ entries: [], unplacedAnnualEntries: [] }));
-    timeZone.set('UTC');
     jest.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(1);
-    TestBed.configureTestingModule({
+    timeZone.set('UTC');
+    service.occurrences.mockReturnValue(of({ entries: [], unplacedAnnualEntries: [] }));
+    await TestBed.configureTestingModule({
+      imports: [EventsCalendarComponent],
       providers: [
         provideRouter([]),
-        provideI18nTesting({ 'workspaceDashboard.dates.type.birthday': 'День рождения' }),
+        provideI18nTesting(),
         { provide: EventsService, useValue: service },
         { provide: PeopleService, useValue: { createPerson: jest.fn() } },
         { provide: KnowledgeDatesService, useValue: { createDate: jest.fn() } },
         { provide: AccountSettingsService, useValue: { timeZone } },
       ],
-    });
-  });
-  afterEach(() => {
-    TestBed.resetTestingModule();
-    jest.restoreAllMocks();
-  });
-
-  it('identifies birthdays in calendar titles, day entries and event details', async () => {
-    await TestBed.configureTestingModule({ imports: [EventsCalendarComponent] })
+    })
       .overrideComponent(EventsCalendarComponent, {
-        remove: { imports: [FullCalendarModule] },
-        add: { imports: [StubFullCalendarComponent] },
+        remove: { imports: [CalendarComponent] },
+        add: { imports: [CalendarStub] },
       })
       .compileComponents();
-    const fixture = TestBed.createComponent(EventsCalendarComponent);
-    const birthday = {
-      id: 'birthday-1',
-      sourceId: 'person-1',
-      kind: 'birthday' as const,
-      displayName: 'Иван Иванов',
-      allDay: true,
-      start: '2026-10-02',
-      end: '2026-10-03',
-      annualDate: { day: 2, month: 10, year: 1990 },
-      relatedPeople: [],
-    };
-    service.occurrences.mockReturnValue(
-      of({
-        entries: [
-          birthday,
-          {
-            ...birthday,
-            id: 'date-1',
-            sourceId: 'date-1',
-            kind: 'memorableDate',
-            displayName: 'Годовщина',
-          },
-        ],
-        unplacedAnnualEntries: [],
+    fixture = TestBed.createComponent(EventsCalendarComponent);
+    fixture.detectChanges();
+  });
+  afterEach(() => {
+    fixture.destroy();
+    jest.restoreAllMocks();
+    TestBed.resetTestingModule();
+  });
+
+  it('shows a recoverable error when the calendar runtime cannot load', () => {
+    const calendar = fixture.debugElement.query(By.directive(CalendarStub))
+      .componentInstance as CalendarStub;
+    calendar.loadError.emit();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('ds-error-message')?.textContent).toContain(
+      'Не удалось загрузить календарь',
+    );
+    expect(fixture.nativeElement.querySelector('ds-error-message button')).not.toBeNull();
+  });
+
+  it('requests each visible half-open range once and retains the legacy URL contract', () => {
+    const navigate = jest.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+    fixture.componentInstance.onRangeChange(range);
+    fixture.componentInstance.onRangeChange(range);
+    expect(service.occurrences).toHaveBeenCalledTimes(1);
+    expect(service.occurrences).toHaveBeenCalledWith('2026-09-27', '2026-11-01');
+    expect(navigate).toHaveBeenLastCalledWith(
+      [],
+      expect.objectContaining({
+        queryParams: { date: '2026-10-02', view: 'dayGridMonth', tab: 'month-calendar' },
+        queryParamsHandling: 'merge',
+        replaceUrl: true,
       }),
     );
-    fixture.componentInstance.range.set({
-      startDate: '2026-10-01',
-      endDate: '2026-11-01',
-      viewType: 'dayGridMonth',
-    });
-    fixture.detectChanges();
-    const root = fixture.nativeElement as HTMLElement;
-    expect(root.querySelector('full-calendar')?.textContent).toContain(
-      'День рождения · Иван Иванов',
-    );
-    expect(root.querySelector('full-calendar')?.textContent).toContain('Годовщина');
-    expect(root.querySelector('full-calendar')?.textContent).not.toContain(
-      'День рождения · Годовщина',
-    );
-    fixture.componentInstance.openDay('2026-10-02');
-    fixture.detectChanges();
-    const button = Array.from(root.querySelectorAll<HTMLButtonElement>('.list-group button')).find(
-      (item) => item.textContent?.includes('День рождения · Иван Иванов'),
-    );
-    expect(button).toBeDefined();
-    button!.click();
-    fixture.detectChanges();
-    expect(root.querySelector('#calendar-event-title')?.textContent?.trim()).toBe(
-      'День рождения · Иван Иванов',
-    );
   });
-
-  it('requests the visible half-open range and uses 30-minute slots without inner scrolling', () => {
-    const component = TestBed.runInInjectionContext(() => new EventsCalendarComponent());
-    component.onDatesSet({
-      startStr: '2026-09-27T00:00:00+04:00',
-      endStr: '2026-11-01T00:00:00+04:00',
-      view: { type: 'dayGridMonth', title: 'October 2026' },
-    } as DatesSetInfo);
-    expect(service.occurrences).toHaveBeenCalledWith('2026-09-27', '2026-11-01');
-    expect(component.options().slotDuration).toBe('00:30:00');
-    expect(component.options().height).toBe('auto');
-    expect(component.options().headerToolbar).toBe(false);
-    expect(component.options().slotHeaderFormat).toEqual({
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-      omitZeroMinute: false,
+  it('keeps previous entries while loading and ignores a stale response', () => {
+    const first = new Subject<CalendarOccurrences>();
+    const second = new Subject<CalendarOccurrences>();
+    service.occurrences.mockReturnValueOnce(first).mockReturnValueOnce(second);
+    fixture.componentInstance.occurrences.set({ entries: [birthday], unplacedAnnualEntries: [] });
+    fixture.componentInstance.onRangeChange(range);
+    fixture.componentInstance.onRangeChange({
+      ...range,
+      start: '2026-11-01',
+      end: '2026-12-01',
+      date: '2026-11-02',
     });
-    expect(component.calendarTitle()).toBe('October 2026');
+    expect(fixture.componentInstance.entries()[0].id).toBe(birthday.id);
+    second.next({ entries: [], unplacedAnnualEntries: [] });
+    first.next({ entries: [birthday], unplacedAnnualEntries: [] });
+    expect(fixture.componentInstance.entries()).toEqual([]);
+    expect(fixture.componentInstance.loading()).toBe(false);
   });
-
-  it('opens month dates for details and day slots for one-hour creation', () => {
-    const component = TestBed.runInInjectionContext(() => new EventsCalendarComponent());
-    component.onDateClick({
-      dateStr: '2026-10-01',
-      allDay: true,
-      view: { type: 'dayGridMonth' },
-    } as DateClickInfo);
-    expect(component.selectedDay()).toBe('2026-10-01');
-    const clickedInstant = '2026-10-01T05:30:00Z';
-    component.onDateClick({
-      dateStr: '2026-10-01T09:30:00+04:00',
-      date: new Date(clickedInstant),
-      allDay: false,
-      view: { type: 'timeGridDay' },
-    } as DateClickInfo);
-    const start = Temporal.Instant.from(clickedInstant)
-      .toZonedDateTimeISO(component.timeZone)
-      .toPlainDateTime()
-      .toString({ smallestUnit: 'minute' });
-    const end = Temporal.Instant.from(clickedInstant)
-      .add({ hours: 1 })
-      .toZonedDateTimeISO(component.timeZone)
-      .toPlainDateTime()
-      .toString({ smallestUnit: 'minute' });
-    expect(component.editorInitial()).toEqual({
-      allDay: false,
-      start,
-      end,
-      startInstant: clickedInstant,
-      endInstant: '2026-10-01T06:30:00Z',
-    });
+  it('identifies entry types and opens the birthday modal from the calendar', async () => {
+    service.occurrences.mockReturnValue(of({ entries: [birthday], unplacedAnnualEntries: [] }));
+    fixture.componentInstance.onRangeChange(range);
+    fixture.detectChanges();
+    const button = fixture.nativeElement.querySelector('ds-calendar button') as HTMLButtonElement;
+    expect(button.getAttribute('aria-label')).toContain('День рождения');
+    button.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(fixture.nativeElement.querySelector('.calendar-dialog[role="dialog"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('#calendar-event-title').textContent).toContain(
+      birthday.displayName,
+    );
+    expect(
+      fixture.nativeElement.querySelector('.calendar-dialog[role="dialog"] a').getAttribute('href'),
+    ).toBe('/personal-workspace/knowledge/people/person-1');
   });
-
-  it('preserves both fall-back folds as exact one-hour intervals', () => {
-    const component = TestBed.runInInjectionContext(() => new EventsCalendarComponent());
-    Object.defineProperty(component, 'timeZone', { value: 'America/New_York' });
+  it('opens dates and all-day overflow as day details in every view', () => {
+    for (const view of ['month', 'year', 'week', 'day'] as const) {
+      fixture.componentInstance.activeView.set(view);
+      fixture.componentInstance.onDateSelected({
+        date: '2026-10-02',
+        start: '2026-10-02',
+        allDay: true,
+      });
+      expect(fixture.componentInstance.selectedDay()).toBe('2026-10-02');
+      expect(fixture.componentInstance.editorOpen()).toBe(false);
+    }
+  });
+  it('uses exact one-hour instants for both daylight-saving folds', () => {
+    timeZone.set('America/New_York');
+    fixture.componentInstance.activeView.set('day');
     for (const [start, end] of [
       ['2026-11-01T05:30:00Z', '2026-11-01T06:30:00Z'],
       ['2026-11-01T06:30:00Z', '2026-11-01T07:30:00Z'],
     ]) {
-      component.onDateClick({
-        date: new Date(start),
-        dateStr: '2026-11-01T01:30:00',
-        allDay: false,
-        view: { type: 'timeGridDay' },
-      } as DateClickInfo);
-      expect(component.editorInitial()).toEqual(
+      fixture.componentInstance.onDateSelected({ date: '2026-11-01', start, allDay: false });
+      expect(fixture.componentInstance.editorInitial()).toEqual(
         expect.objectContaining({
           start: '2026-11-01T01:30',
           startInstant: start,
@@ -196,279 +185,106 @@ describe('EventsCalendarComponent', () => {
       );
     }
   });
-
-  it('uses the design-system date picker to jump dates without changing view', () => {
-    const component = TestBed.runInInjectionContext(() => new EventsCalendarComponent());
-    const gotoDate = jest.fn();
-    const changeView = jest.fn();
-    component.calendar = {
-      getApi: () => ({ getDate: () => new Date('2026-10-16T00:00:00Z'), gotoDate, changeView }),
-    } as unknown as FullCalendarComponent;
-    component.goToDate('2026-11-07');
-    expect(gotoDate).toHaveBeenCalledWith('2026-11-07');
-    expect(changeView).not.toHaveBeenCalled();
-    expect(component.selectedDay()).toBeNull();
-    expect(component.pickerDate()).toBe('2026-11-07');
+  it('selects a date without changing the active view or opening a detail modal', () => {
+    fixture.componentInstance.activeView.set('week');
+    fixture.componentInstance.goToDate('2026-11-07');
+    expect(fixture.componentInstance.date()).toBe('2026-11-07');
+    expect(fixture.componentInstance.activeView()).toBe('week');
+    expect(fixture.componentInstance.selectedDay()).toBeNull();
   });
-
-  it('renders the design-system calendar trigger in the toolbar', async () => {
-    await TestBed.configureTestingModule({ imports: [EventsCalendarComponent] })
-      .overrideComponent(EventsCalendarComponent, {
-        remove: { imports: [FullCalendarModule] },
-        add: { imports: [StubFullCalendarComponent] },
-      })
-      .compileComponents();
-    const fixture = TestBed.createComponent(EventsCalendarComponent);
-    fixture.detectChanges();
-    const root = fixture.nativeElement as HTMLElement;
-    const icon = root.querySelector(
-      'ds-localized-date-picker .temporal-picker-field-trigger',
-    ) as HTMLButtonElement;
-    expect(icon.getAttribute('aria-label')).toBeTruthy();
-    expect(icon.querySelector('svg')).not.toBeNull();
-    expect(root.querySelector('input[type="date"]')).toBeNull();
-    icon.click();
-    fixture.detectChanges();
-    expect(root.querySelector('ds-calendar-dialog [role="dialog"]')).not.toBeNull();
-    fixture.destroy();
-  });
-
-  it('keeps the visible events and calendar options stable while a new range loads', () => {
-    const pending = new Subject<{ entries: []; unplacedAnnualEntries: [] }>();
-    const component = TestBed.runInInjectionContext(() => new EventsCalendarComponent());
-    component.hasLoaded.set(true);
-    component.occurrences.set({ entries: [], unplacedAnnualEntries: [] });
-    const previous = component.occurrences();
-    const options = component.options();
-    service.occurrences.mockReturnValueOnce(pending.asObservable());
-
-    component.onDatesSet({
-      startStr: '2026-11-01T00:00:00Z',
-      endStr: '2026-12-01T00:00:00Z',
-      view: { type: 'dayGridMonth', title: 'November 2026' },
-    } as DatesSetInfo);
-
-    expect(component.loading()).toBe(true);
-    expect(component.occurrences()).toBe(previous);
-    expect(component.options()).toBe(options);
-    pending.next({ entries: [], unplacedAnnualEntries: [] });
-    pending.complete();
-    expect(component.loading()).toBe(false);
-  });
-
-  it('does not flash a loader over the calendar after its initial load', async () => {
-    await TestBed.configureTestingModule({ imports: [EventsCalendarComponent] })
-      .overrideComponent(EventsCalendarComponent, {
-        remove: { imports: [FullCalendarModule] },
-        add: { imports: [StubFullCalendarComponent] },
-      })
-      .compileComponents();
-    const fixture = TestBed.createComponent(EventsCalendarComponent);
-    fixture.componentInstance.hasLoaded.set(true);
-    fixture.componentInstance.loading.set(true);
-    fixture.detectChanges();
-    const root = fixture.nativeElement as HTMLElement;
-    expect(root.querySelector('full-calendar')).not.toBeNull();
-    expect(root.querySelector('ds-loading-spinner')).toBeNull();
-    fixture.destroy();
-  });
-
-  it('renders zero-minute hours as HH:mm in the live FullCalendar time grid', async () => {
-    await TestBed.configureTestingModule({
-      imports: [EventsCalendarComponent],
-    }).compileComponents();
-    const fixture = TestBed.createComponent(EventsCalendarComponent);
-    // Jest wraps these ESM defaults; the browser build receives the plugin objects directly.
-    const originalOptions = fixture.componentInstance.options;
-    Object.defineProperty(fixture.componentInstance, 'options', {
-      value: () => {
-        const options = originalOptions();
-        return {
-          ...options,
-          plugins: options.plugins?.map(
-            (plugin) => (plugin as { default?: typeof plugin }).default ?? plugin,
-          ),
-        };
-      },
-    });
-    fixture.detectChanges();
-    fixture.componentInstance.changeView('timeGridDay');
-    fixture.detectChanges();
-    const root = fixture.nativeElement as HTMLElement;
-    const sixPm = root.querySelector('[data-time="18:00:00"]');
-    expect(sixPm?.textContent).toContain('18:00');
-    fixture.destroy();
-  });
-
-  it('uses the calendar zone for a more-link day near UTC midnight', () => {
-    const component = TestBed.runInInjectionContext(() => new EventsCalendarComponent());
-    Object.defineProperty(component, 'timeZone', { value: 'America/New_York' });
-    const moreLinkClick = component.options().moreLinkClick as (arg: { date: Date }) => string;
-    moreLinkClick({ date: new Date('2026-10-02T02:30:00Z') });
-    expect(component.selectedDay()).toBe('2026-10-01');
-  });
-
-  it('shows a timed occurrence on its calendar-local day and keeps unplaced annual entries', () => {
-    const component = TestBed.runInInjectionContext(() => new EventsCalendarComponent());
-    const entry = {
-      id: 'occ-1',
-      sourceId: 'event-1',
-      kind: 'event' as const,
-      displayName: 'Late call',
-      allDay: false,
-      start: '2026-10-01T21:30:00Z',
-      end: '2026-10-01T22:30:00Z',
-      annualDate: null,
-      relatedPeople: [],
-    };
-    component.occurrences.set({
-      entries: [entry],
-      unplacedAnnualEntries: [
-        {
-          sourceId: 'date-1',
-          kind: 'memorableDate',
-          displayName: 'Leap day',
-          annualDate: { day: 29, month: 2, year: null },
-          relatedPeople: [],
-        },
-      ],
-    });
-    const day = Temporal.Instant.from(entry.start)
-      .toZonedDateTimeISO(component.timeZone)
-      .toPlainDate()
-      .toString();
-    component.openDay(day);
-    expect(component.dayEntries()).toEqual([entry]);
-    expect(component.occurrences().unplacedAnnualEntries).toHaveLength(1);
-    expect(component.occurrenceTimeLabel(entry)).not.toContain('2026-10-01T21:30:00Z');
-  });
-
-  it('requeries and moves a fixed UTC occurrence to the new account-local day', () => {
-    const entry = {
-      id: 'occ-1',
-      sourceId: 'event-1',
-      kind: 'event' as const,
-      displayName: 'Late call',
+  it('requeries when the account time zone changes and moves a timed occurrence to its local day', () => {
+    const timed: CalendarOccurrence = {
+      ...birthday,
+      id: 'call',
+      kind: 'event',
       allDay: false,
       start: '2026-10-02T01:30:00Z',
       end: '2026-10-02T02:30:00Z',
       annualDate: null,
-      relatedPeople: [],
     };
-    timeZone.set('UTC');
-    service.occurrences.mockReturnValue(of({ entries: [entry], unplacedAnnualEntries: [] }));
-    const component = TestBed.runInInjectionContext(() => new EventsCalendarComponent());
-    component.onDatesSet({
-      startStr: '2026-10-01T00:00:00Z',
-      endStr: '2026-11-01T00:00:00Z',
-      view: { type: 'dayGridMonth' },
-    } as DatesSetInfo);
-    component.openDay('2026-10-01');
-    expect(component.dayEntries()).toEqual([]);
+    service.occurrences.mockReturnValue(of({ entries: [timed], unplacedAnnualEntries: [] }));
+    fixture.componentInstance.onRangeChange(range);
+    fixture.componentInstance.openDay('2026-10-01');
+    expect(fixture.componentInstance.dayEntries()).toEqual([]);
     timeZone.set('Pacific/Honolulu');
-    TestBed.tick();
-    expect(service.occurrences).toHaveBeenLastCalledWith('2026-10-01', '2026-11-01');
+    fixture.detectChanges();
     expect(service.occurrences).toHaveBeenCalledTimes(2);
-    expect(component.options().timeZone).toBe('Pacific/Honolulu');
-    expect(component.dayEntries()).toEqual([entry]);
-    expect(entry.start).toBe('2026-10-02T01:30:00Z');
+    expect(fixture.componentInstance.dayEntries()).toEqual([timed]);
+    expect(fixture.componentInstance.markedDates()).toContain('2026-10-01');
+    expect(timed.start).toBe('2026-10-02T01:30:00Z');
   });
-
-  it('focuses and closes the day dialog with Escape, restoring the trigger', async () => {
-    await TestBed.configureTestingModule({ imports: [EventsCalendarComponent] })
-      .overrideComponent(EventsCalendarComponent, {
-        remove: { imports: [FullCalendarModule] },
-        add: { imports: [StubFullCalendarComponent] },
-      })
-      .compileComponents();
+  it('respects exclusive all-day ends in day details and mini-calendar marks', () => {
+    const trip = { ...birthday, id: 'trip', start: '2026-10-14', end: '2026-10-17' };
+    service.occurrences.mockReturnValue(of({ entries: [trip], unplacedAnnualEntries: [] }));
+    fixture.componentInstance.onRangeChange(range);
+    fixture.componentInstance.openDay('2026-10-16');
+    expect(fixture.componentInstance.dayEntries()).toEqual([trip]);
+    fixture.componentInstance.openDay('2026-10-17');
+    expect(fixture.componentInstance.dayEntries()).toEqual([]);
+    expect(fixture.componentInstance.markedDates()).toEqual([
+      '2026-10-14',
+      '2026-10-15',
+      '2026-10-16',
+    ]);
+  });
+  it('shows a failed range request inline and retries the same range', () => {
+    service.occurrences.mockReturnValueOnce(throwError(() => ({ message: 'Unavailable' })));
+    fixture.componentInstance.onRangeChange(range);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('ds-error-message').textContent).toContain(
+      'Unavailable',
+    );
+    (fixture.nativeElement.querySelector('ds-error-message button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(service.occurrences).toHaveBeenCalledTimes(2);
+    expect(fixture.componentInstance.error()).toBeNull();
+  });
+  it('focuses and closes the day modal with Escape, restoring the trigger', async () => {
     const trigger = document.createElement('button');
     document.body.appendChild(trigger);
     trigger.focus();
-    const fixture = TestBed.createComponent(EventsCalendarComponent);
-    document.body.appendChild(fixture.nativeElement);
-    fixture.detectChanges();
-    fixture.componentInstance.range.set({
-      startDate: '2026-10-01',
-      endDate: '2026-11-01',
-      viewType: 'dayGridMonth',
-    });
-    fixture.componentInstance.openDay('2026-10-01');
+    fixture.componentInstance.onRangeChange(range);
+    fixture.componentInstance.openDay('2026-10-02');
     fixture.detectChanges();
     await fixture.whenStable();
-    const dialog = (fixture.nativeElement as HTMLElement).querySelector(
-      '.calendar-dialog[role="dialog"]',
-    ) as HTMLElement;
-    const close = dialog.querySelector('.btn-close') as HTMLButtonElement;
+    const close = fixture.nativeElement.querySelector(
+      '.calendar-dialog[role="dialog"] .btn-close',
+    ) as HTMLButtonElement;
     expect(document.activeElement).toBe(close);
     close.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     fixture.detectChanges();
-    expect(
-      (fixture.nativeElement as HTMLElement).querySelector('.calendar-dialog[role="dialog"]'),
-    ).toBeNull();
+    expect(fixture.nativeElement.querySelector('.calendar-dialog[role="dialog"]')).toBeNull();
     expect(document.activeElement).toBe(trigger);
-    fixture.destroy();
-    (fixture.nativeElement as HTMLElement).remove();
     trigger.remove();
   });
-  it('uses the selected day for knowledge creation and reloads the calendar after saving', async () => {
-    await TestBed.configureTestingModule({ imports: [EventsCalendarComponent] })
-      .overrideComponent(EventsCalendarComponent, {
-        remove: { imports: [FullCalendarModule] },
-        add: { imports: [StubFullCalendarComponent] },
-      })
-      .compileComponents();
-    const fixture = TestBed.createComponent(EventsCalendarComponent);
-    const component = fixture.componentInstance;
-    component.range.set({
-      startDate: '2026-10-01',
-      endDate: '2026-11-01',
-      viewType: 'dayGridMonth',
-    });
-    component.selectedDay.set('2026-10-03');
-    component.createOnSelectedDay();
-    expect(component.editorOpen()).toBe(true);
-    expect(component.editorInitial()?.start).toBe('2026-10-03');
-    expect(component.selectedDay()).toBeNull();
-    const created = jest.fn();
-    component.knowledgeCreated.subscribe(created);
-    component.onKnowledgeSaved();
-    expect(component.editorOpen()).toBe(false);
-    expect(service.occurrences).toHaveBeenCalledWith('2026-10-01', '2026-11-01');
-    expect(created).toHaveBeenCalledTimes(1);
-    component.openCreate();
-    expect(component.editorInitial()).toBeNull();
+  it('returns from entry details to the selected day', () => {
+    fixture.componentInstance.occurrences.set({ entries: [birthday], unplacedAnnualEntries: [] });
+    fixture.componentInstance.openDay('2026-10-02');
+    fixture.componentInstance.showDayEntry(birthday);
+    fixture.detectChanges();
+    (
+      fixture.nativeElement.querySelector(
+        '.calendar-dialog[role="dialog"] .modal-footer button',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    expect(fixture.componentInstance.selectedDay()).toBe('2026-10-02');
+    expect(fixture.nativeElement.querySelectorAll('.calendar-dialog[role="dialog"]')).toHaveLength(
+      1,
+    );
   });
-  it('restores focus to the persistent toolbar after cancelling creation from a day dialog', async () => {
-    await TestBed.configureTestingModule({ imports: [EventsCalendarComponent] })
-      .overrideComponent(EventsCalendarComponent, {
-        remove: { imports: [FullCalendarModule] },
-        add: { imports: [StubFullCalendarComponent] },
-      })
-      .compileComponents();
-    const fixture = TestBed.createComponent(EventsCalendarComponent);
-    fixture.detectChanges();
+  it('returns to the selected day after creation and refreshes related summaries after knowledge save', () => {
+    fixture.componentInstance.onRangeChange(range);
     fixture.componentInstance.openDay('2026-10-03');
+    fixture.componentInstance.createOnSelectedDay();
+    expect(fixture.componentInstance.editorInitial()?.start).toBe('2026-10-03');
+    const created = jest.fn();
+    fixture.componentInstance.knowledgeCreated.subscribe(created);
+    fixture.componentInstance.onKnowledgeSaved();
     fixture.detectChanges();
-    expect(
-      fixture.nativeElement.querySelectorAll('.calendar-toolbar > button.btn-success').length,
-    ).toBe(1);
-    expect(
-      fixture.nativeElement.querySelectorAll('section[role="dialog"] .modal-footer button').length,
-    ).toBe(2);
-    const toolbarButton = fixture.nativeElement.querySelector(
-      '.calendar-toolbar > button.btn-success',
-    );
-    const launch = fixture.nativeElement.querySelector(
-      'section[role="dialog"] .modal-footer button.btn-success',
-    );
-    launch.focus();
-    launch.click();
-    fixture.detectChanges();
-    fixture.nativeElement
-      .querySelector('app-calendar-entry-create .modal-footer button.btn-outline-secondary')
-      .click();
-    fixture.detectChanges();
-    await fixture.whenStable();
-    expect(document.activeElement).toBe(toolbarButton);
+    expect(fixture.componentInstance.selectedDay()).toBe('2026-10-03');
+    expect(fixture.componentInstance.editorOpen()).toBe(false);
+    expect(service.occurrences).toHaveBeenCalledTimes(2);
+    expect(created).toHaveBeenCalledTimes(1);
   });
 });

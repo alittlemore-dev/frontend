@@ -34,7 +34,7 @@ export class ServiceIdentityService {
   });
   readonly labelKey = computed(() => {
     const service = this.service();
-    return service === 'site' ? 'siteBuild.hero.logoAlt' : `shell.services.${service}`;
+    return `shell.services.${service}`;
   });
 
   constructor() {

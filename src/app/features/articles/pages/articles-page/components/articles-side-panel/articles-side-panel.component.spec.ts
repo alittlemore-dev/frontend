@@ -1,3 +1,4 @@
+import { provideRouter } from '@angular/router';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideI18nTesting } from '../../../../../../testing/i18n-testing';
 import { ArticleTree } from '../../../../models/articles.model';
@@ -9,7 +10,7 @@ describe('ArticlesSidePanelComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [ArticlesSidePanelComponent],
-      providers: [provideI18nTesting()],
+      providers: [provideI18nTesting(), provideRouter([])],
     }).compileComponents();
 
     fixture = TestBed.createComponent(ArticlesSidePanelComponent);
@@ -38,20 +39,18 @@ describe('ArticlesSidePanelComponent', () => {
     fixture.componentRef.setInput('currentSlug', 'typed-articles');
     fixture.detectChanges();
 
-    const folder = fixture.nativeElement.querySelector(
-      '[data-testid="articles-tree-folder"]',
-    ) as HTMLButtonElement;
+    const folder = fixture.nativeElement.querySelector('ds-navigation button') as HTMLButtonElement;
     folder.click();
     fixture.detectChanges();
 
-    const article = fixture.nativeElement.querySelector(
-      '[data-testid="articles-tree-article"]',
-    ) as HTMLButtonElement;
+    const article = fixture.nativeElement.querySelector('ds-navigation a') as HTMLButtonElement;
 
-    expect(fixture.nativeElement.querySelector('ds-foldable-tree ul')).toBeTruthy();
-    expect(fixture.nativeElement.querySelector('ds-foldable-tree')).not.toBeNull();
     expect(folder.getAttribute('aria-expanded')).toBe('true');
     expect(article.getAttribute('aria-current')).toBe('page');
-    expect(article.classList).toContain('active');
+    expect(article.getAttribute('href')).toBe('/ru/competency/articles/typed-articles');
+    const selected = jest.fn();
+    fixture.componentInstance.articleSelected.subscribe(selected);
+    article.click();
+    expect(selected).toHaveBeenCalledWith('typed-articles');
   });
 });

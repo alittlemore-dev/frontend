@@ -1,4 +1,4 @@
-import { DOCUMENT, isPlatformBrowser } from '@angular/common';
+import { DOCUMENT, NgTemplateOutlet, isPlatformBrowser } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -20,6 +20,7 @@ import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
 import { ApiError } from '../../../../core/models/api-error.model';
 import {
   NotificationService,
+  SidebarComponent,
   EmptyStateComponent,
   ErrorMessageComponent,
   LocalizedDatePickerComponent,
@@ -55,6 +56,8 @@ interface EngagedViewState {
   selector: 'app-articles-page',
   standalone: true,
   imports: [
+    NgTemplateOutlet,
+    SidebarComponent,
     EmptyStateComponent,
     ErrorMessageComponent,
     LoadingSpinnerComponent,
@@ -124,12 +127,7 @@ export class ArticlesPageComponent implements OnInit {
       this.publishedFrom() !== '' ||
       this.publishedTo() !== '',
   );
-  readonly sidePanelToggleLabel = computed(() => {
-    this.language();
-    return this.i18n.translate(
-      this.sidePanelOpen() ? 'articles.sidePanel.close' : 'articles.sidePanel.open',
-    );
-  });
+  readonly listNavigationQuery = computed(() => this.buildListQueryParams({ page: this.page() }));
   readonly dateLocale = computed(() => this.i18n.dateLocale());
   readonly datePickerLabels = computed<LocalizedDatePickerLabels>(() => {
     this.language();
@@ -200,17 +198,9 @@ export class ArticlesPageComponent implements OnInit {
       });
   }
 
-  toggleSidePanel(): void {
-    this.sidePanelOpen.update((value) => {
-      const next = !value;
-      this.storage()?.setItem(SIDE_PANEL_STORAGE_KEY, String(next));
-      return next;
-    });
-  }
-
-  closeSidePanel(): void {
-    this.sidePanelOpen.set(false);
-    this.storage()?.setItem(SIDE_PANEL_STORAGE_KEY, 'false');
+  setSidePanelOpen(open: boolean): void {
+    this.sidePanelOpen.set(open);
+    this.storage()?.setItem(SIDE_PANEL_STORAGE_KEY, String(open));
   }
 
   openArticle(slug: string): void {

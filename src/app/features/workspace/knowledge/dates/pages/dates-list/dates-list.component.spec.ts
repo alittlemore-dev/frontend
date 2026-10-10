@@ -55,6 +55,7 @@ describe('DatesListComponent', () => {
   let peopleService: {
     listTags: jest.Mock;
     listPeople: jest.Mock;
+    getPerson: jest.Mock;
   };
   let notifications: { success: jest.Mock; error: jest.Mock };
   let router: Router;
@@ -67,6 +68,7 @@ describe('DatesListComponent', () => {
       deleteDate: jest.fn().mockReturnValue(of(void 0)),
     };
     peopleService = {
+      getPerson: jest.fn(() => of(PERSON)),
       listTags: jest.fn().mockReturnValue(of(DATE.tags)),
       listPeople: jest.fn().mockReturnValue(of({ totalCount: 1, totalPages: 1, people: [PERSON] })),
     };
@@ -106,6 +108,23 @@ describe('DatesListComponent', () => {
   });
 
   afterEach(() => fixture?.destroy());
+
+  it('retains the named selected person even outside the search page', () => {
+    peopleService.listPeople.mockReturnValue(of({ totalCount: 0, totalPages: 1, people: [] }));
+    fixture = TestBed.createComponent(DatesListComponent);
+    fixture.detectChanges();
+    expect(peopleService.getPerson).toHaveBeenCalledWith('person-1');
+    expect(fixture.componentInstance.selectedPersonLabel()).toBe(PERSON.displayName);
+    expect(fixture.componentInstance.personOptions()).toContainEqual({
+      value: PERSON.id,
+      label: PERSON.displayName,
+    });
+    fixture.componentInstance.searchPeople('Another person');
+    expect(fixture.componentInstance.personOptions()).toContainEqual({
+      value: PERSON.id,
+      label: PERSON.displayName,
+    });
+  });
 
   it.each([2024, null])('creates a leap date with a numeric or cleared year %s', (year) => {
     fixture = TestBed.createComponent(DatesListComponent);
@@ -147,7 +166,7 @@ describe('DatesListComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Семья');
   });
 
-  it('shows ten related People per Date row until the row is expanded', () => {
+  it('shows a compact preview of related people that expands to all links', () => {
     datesResponse = of({
       totalCount: 1,
       totalPages: 3,
@@ -166,7 +185,7 @@ describe('DatesListComponent', () => {
 
     expect(
       fixture.nativeElement.querySelectorAll('[data-testid^="dates-related-person-date-1-"]'),
-    ).toHaveLength(10);
+    ).toHaveLength(3);
 
     const toggle = fixture.nativeElement.querySelector(
       '[data-testid="dates-related-people-toggle-date-1"]',

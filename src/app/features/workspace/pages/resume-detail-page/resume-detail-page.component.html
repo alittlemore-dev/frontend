@@ -11,6 +11,8 @@
       [languageInvalid]="fieldInvalid(resumeForm.controls.language)"
       [languageMessage]="fieldMessage(resumeForm.controls.language)"
       [unsaved]="unsavedChanges()"
+      [saving]="saving()"
+      [saveFailed]="formError() !== null"
       [saveDisabled]="saving() || deleting() || loading() || exporting() || photoProcessing()"
       [deleteDisabled]="saving() || deleting() || loading() || exporting()"
       (back)="goBack()"
@@ -21,6 +23,11 @@
       (deleteResume)="deleteResume()"
     />
 
+    @if (unsavedChanges() && (mode() === 'preview' || exportModalOpen())) {
+      <p class="small text-body-secondary" role="status">
+        {{ 'resumeWorkspace.preview.draft' | t }}
+      </p>
+    }
     <p id="resume-reorder-help" class="visually-hidden">
       {{ 'resumeWorkspace.editor.reorderHelp' | t }}
     </p>
@@ -245,7 +252,15 @@
                 </p>
                 <ul class="mb-0 ps-3">
                   @for (issue of validationIssues(); track issue.message) {
-                    <li>{{ issue.message }}</li>
+                    <li>
+                      <button
+                        type="button"
+                        class="btn btn-link text-danger text-start p-0"
+                        (click)="focusValidationIssue(issue)"
+                      >
+                        {{ issue.message }}
+                      </button>
+                    </li>
                   }
                 </ul>
               </section>
@@ -284,6 +299,7 @@
                             data-testid="resume-profile-full-name"
                             required
                             [appResumeTextLimit]="validationLimits.shortText"
+                            appWorkspaceFieldTarget
                             formControlName="fullName"
                           />
                           @if (
@@ -307,6 +323,7 @@
                             "
                             required
                             [appResumeTextLimit]="validationLimits.shortText"
+                            appWorkspaceFieldTarget
                             formControlName="role"
                           />
                         </div>
@@ -318,6 +335,7 @@
                             id="resume-profile-location"
                             class="form-control form-control-sm"
                             [appResumeTextLimit]="validationLimits.shortText"
+                            appWorkspaceFieldTarget
                             formControlName="location"
                           />
                         </div>
@@ -343,6 +361,7 @@
                               fieldInvalid(resumeForm.controls.profile.controls.email)
                             "
                             [appResumeTextLimit]="validationLimits.email"
+                            appWorkspaceFieldTarget
                             formControlName="email"
                           />
                           @if (
@@ -364,6 +383,7 @@
                             id="resume-profile-phone"
                             class="form-control form-control-sm"
                             [appResumeTextLimit]="64"
+                            appWorkspaceFieldTarget
                             formControlName="phone"
                           />
                         </div>
@@ -375,6 +395,7 @@
                             id="resume-profile-telegram"
                             class="form-control form-control-sm"
                             [appResumeTextLimit]="validationLimits.shortText"
+                            appWorkspaceFieldTarget
                             formControlName="telegram"
                           />
                         </div>
@@ -397,6 +418,7 @@
                               fieldInvalid(resumeForm.controls.profile.controls.websiteUrl)
                             "
                             [appResumeTextLimit]="validationLimits.url"
+                            appWorkspaceFieldTarget
                             formControlName="websiteUrl"
                           />
                           @if (
@@ -419,6 +441,7 @@
                               fieldInvalid(resumeForm.controls.profile.controls.linkedinUrl)
                             "
                             [appResumeTextLimit]="validationLimits.url"
+                            appWorkspaceFieldTarget
                             formControlName="linkedinUrl"
                           />
                           @if (
@@ -441,6 +464,7 @@
                               fieldInvalid(resumeForm.controls.profile.controls.githubUrl)
                             "
                             [appResumeTextLimit]="validationLimits.url"
+                            appWorkspaceFieldTarget
                             formControlName="githubUrl"
                           />
                           @if (
@@ -508,6 +532,7 @@
                         [class.is-invalid]="fieldInvalid(resumeForm.controls.summary.controls.text)"
                         data-testid="resume-summary"
                         [appResumeTextLimit]="validationLimits.summary"
+                        appWorkspaceFieldTarget
                         formControlName="text"
                         appTextareaAutosize
                         rows="1"
@@ -596,6 +621,7 @@
                               [attr.data-testid]="'resume-skill-' + index + '-category'"
                               required
                               [appResumeTextLimit]="validationLimits.shortText"
+                              appWorkspaceFieldTarget
                               formControlName="category"
                             />
                           </div>
@@ -770,6 +796,7 @@
                               [id]="'resume-experience-' + index + '-company'"
                               required
                               [appResumeTextLimit]="validationLimits.shortText"
+                              appWorkspaceFieldTarget
                               formControlName="company"
                             />
                           </div>
@@ -786,6 +813,7 @@
                               [id]="'resume-experience-' + index + '-position'"
                               required
                               [appResumeTextLimit]="validationLimits.shortText"
+                              appWorkspaceFieldTarget
                               formControlName="position"
                             />
                           </div>
@@ -818,6 +846,7 @@
                                       fieldInvalid(experienceItem.controls.companyWebsiteUrl)
                                     "
                                     [appResumeTextLimit]="validationLimits.url"
+                                    appWorkspaceFieldTarget
                                     formControlName="companyWebsiteUrl"
                                   />
                                   @if (
@@ -839,6 +868,7 @@
                                     class="form-control form-control-sm"
                                     [id]="'resume-experience-' + index + '-location'"
                                     [appResumeTextLimit]="validationLimits.shortText"
+                                    appWorkspaceFieldTarget
                                     formControlName="location"
                                   />
                                 </div>
@@ -857,6 +887,7 @@
                               [required]="false"
                               [invalid]="false"
                               [controlDisabled]="false"
+                              appWorkspaceFieldTarget
                               formControlName="currentStatus"
                             />
                           </div>
@@ -869,6 +900,7 @@
                             </label>
                             <ds-localized-date-picker
                               [inputId]="'resume-experience-' + index + '-start-date'"
+                              appWorkspaceFieldTarget
                               formControlName="startDate"
                               controlSize="small"
                               [dateLocale]="dateLocale()"
@@ -890,6 +922,7 @@
                             </label>
                             <ds-localized-date-picker
                               [inputId]="'resume-experience-' + index + '-end-date'"
+                              appWorkspaceFieldTarget
                               formControlName="endDate"
                               controlSize="small"
                               [dateLocale]="dateLocale()"
@@ -914,6 +947,7 @@
                               class="form-control form-control-sm"
                               [id]="'resume-experience-' + index + '-summary'"
                               [appResumeTextLimit]="validationLimits.experienceSummary"
+                              appWorkspaceFieldTarget
                               formControlName="summary"
                               appTextareaAutosize
                               rows="1"
@@ -1225,6 +1259,7 @@
                                           "
                                           required
                                           [appResumeTextLimit]="validationLimits.shortText"
+                                          appWorkspaceFieldTarget
                                           formControlName="name"
                                         />
                                       </div>
@@ -1252,6 +1287,7 @@
                                             '-description'
                                           "
                                           [appResumeTextLimit]="validationLimits.projectDescription"
+                                          appWorkspaceFieldTarget
                                           formControlName="description"
                                           appTextareaAutosize
                                           rows="1"
@@ -1597,6 +1633,7 @@
                                                   '-role'
                                                 "
                                                 [appResumeTextLimit]="validationLimits.shortText"
+                                                appWorkspaceFieldTarget
                                                 formControlName="role"
                                               />
                                             </div>
@@ -1623,6 +1660,7 @@
                                                   '-team-size'
                                                 "
                                                 [appResumeTextLimit]="validationLimits.shortText"
+                                                appWorkspaceFieldTarget
                                                 formControlName="teamSize"
                                               />
                                             </div>
@@ -1649,6 +1687,7 @@
                                                   '-scale'
                                                 "
                                                 [appResumeTextLimit]="validationLimits.shortText"
+                                                appWorkspaceFieldTarget
                                                 formControlName="scale"
                                               />
                                             </div>
@@ -1678,6 +1717,7 @@
                                                   '-url'
                                                 "
                                                 [appResumeTextLimit]="validationLimits.url"
+                                                appWorkspaceFieldTarget
                                                 formControlName="url"
                                               />
                                               @if (
@@ -1806,6 +1846,7 @@
                               [id]="'resume-education-' + index + '-institution'"
                               required
                               [appResumeTextLimit]="validationLimits.shortText"
+                              appWorkspaceFieldTarget
                               formControlName="institution"
                             />
                           </div>
@@ -1822,6 +1863,7 @@
                               [id]="'resume-education-' + index + '-degree'"
                               required
                               [appResumeTextLimit]="validationLimits.shortText"
+                              appWorkspaceFieldTarget
                               formControlName="degree"
                             />
                           </div>
@@ -1838,6 +1880,7 @@
                               [id]="'resume-education-' + index + '-field'"
                               required
                               [appResumeTextLimit]="validationLimits.shortText"
+                              appWorkspaceFieldTarget
                               formControlName="field"
                             />
                           </div>
@@ -1851,6 +1894,7 @@
                             </label>
                             <ds-localized-date-picker
                               [inputId]="'resume-education-' + index + '-start-date'"
+                              appWorkspaceFieldTarget
                               formControlName="startDate"
                               controlSize="small"
                               [dateLocale]="dateLocale()"
@@ -1872,6 +1916,7 @@
                             </label>
                             <ds-localized-date-picker
                               [inputId]="'resume-education-' + index + '-end-date'"
+                              appWorkspaceFieldTarget
                               formControlName="endDate"
                               controlSize="small"
                               [dateLocale]="dateLocale()"
@@ -1898,6 +1943,7 @@
                               [id]="'resume-education-' + index + '-location'"
                               required
                               [appResumeTextLimit]="validationLimits.shortText"
+                              appWorkspaceFieldTarget
                               formControlName="location"
                             />
                           </div>
@@ -1922,6 +1968,7 @@
                                     class="form-control form-control-sm"
                                     [id]="'resume-education-' + index + '-description'"
                                     [appResumeTextLimit]="validationLimits.educationDescription"
+                                    appWorkspaceFieldTarget
                                     formControlName="description"
                                     appTextareaAutosize
                                     rows="1"
@@ -2008,6 +2055,7 @@
                               [id]="'resume-language-' + index + '-name'"
                               required
                               [appResumeTextLimit]="validationLimits.shortText"
+                              appWorkspaceFieldTarget
                               formControlName="name"
                             />
                           </div>
@@ -2024,6 +2072,7 @@
                               [id]="'resume-language-' + index + '-proficiency'"
                               required
                               [appResumeTextLimit]="validationLimits.shortText"
+                              appWorkspaceFieldTarget
                               formControlName="proficiency"
                             />
                           </div>
@@ -2112,6 +2161,7 @@
                               [id]="'resume-certification-' + index + '-name'"
                               required
                               [appResumeTextLimit]="validationLimits.shortText"
+                              appWorkspaceFieldTarget
                               formControlName="name"
                             />
                           </div>
@@ -2126,6 +2176,7 @@
                               class="form-control form-control-sm"
                               [id]="'resume-certification-' + index + '-issuer'"
                               [appResumeTextLimit]="validationLimits.shortText"
+                              appWorkspaceFieldTarget
                               formControlName="issuer"
                             />
                           </div>
@@ -2138,6 +2189,7 @@
                             </label>
                             <ds-localized-date-picker
                               [inputId]="'resume-certification-' + index + '-issued-on'"
+                              appWorkspaceFieldTarget
                               formControlName="issuedOn"
                               controlSize="small"
                               [dateLocale]="dateLocale()"
@@ -2160,6 +2212,7 @@
                             </label>
                             <ds-localized-date-picker
                               [inputId]="'resume-certification-' + index + '-expires-on'"
+                              appWorkspaceFieldTarget
                               formControlName="expiresOn"
                               controlSize="small"
                               [dateLocale]="dateLocale()"
@@ -2194,6 +2247,7 @@
                                     class="form-control form-control-sm"
                                     [id]="'resume-certification-' + index + '-credential-url'"
                                     [appResumeTextLimit]="validationLimits.url"
+                                    appWorkspaceFieldTarget
                                     formControlName="credentialUrl"
                                   />
                                 </div>
@@ -2310,6 +2364,7 @@
                               [id]="'resume-additional-section-' + sectionIndex + '-title'"
                               required
                               [appResumeTextLimit]="validationLimits.shortText"
+                              appWorkspaceFieldTarget
                               formControlName="title"
                             />
                           </div>
@@ -2410,6 +2465,7 @@
                                           "
                                           required
                                           [appResumeTextLimit]="validationLimits.shortText"
+                                          appWorkspaceFieldTarget
                                           formControlName="title"
                                         />
                                       </div>
@@ -2449,6 +2505,7 @@
                                                   '-url'
                                                 "
                                                 [appResumeTextLimit]="validationLimits.url"
+                                                appWorkspaceFieldTarget
                                                 formControlName="url"
                                               />
                                               @if (
@@ -2489,6 +2546,7 @@
                                           [appResumeTextLimit]="
                                             validationLimits.additionalDescription
                                           "
+                                          appWorkspaceFieldTarget
                                           formControlName="description"
                                           appTextareaAutosize
                                           rows="1"

@@ -114,8 +114,7 @@
     overflow-wrap: anywhere;
   }
 
-  .detail-editor .form-control-sm,
-  :host ::ng-deep .site-select-trigger-small {
+  .detail-editor .form-control-sm:not([type='number']) {
     min-height: 2.4375rem;
     padding: 0.5rem 0.625rem;
   }
@@ -138,7 +137,7 @@
     }
 
     .detail-editor .form-control,
-    :host ::ng-deep .site-select-trigger-small {
+    :host ::ng-deep .detail-editor .site-select-trigger-small {
       font-size: 1rem;
     }
   }

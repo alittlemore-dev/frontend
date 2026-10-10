@@ -473,6 +473,24 @@ describe('ResumeDetailPageComponent', () => {
     );
   });
 
+  it('opens the relevant section and focuses the field chosen in the error summary', async () => {
+    const component = fixture.componentInstance;
+    component.resumeForm.controls.profile.controls.email.setValue('Invalid email');
+    component.saveResume();
+    fixture.detectChanges();
+    component.setActiveTab('skills');
+    fixture.detectChanges();
+    const issue = elementByTestId<HTMLElement>('resume-validation-summary').querySelector(
+      'button',
+    ) as HTMLButtonElement;
+    issue.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(component.activeTab()).toBe('profile');
+    expect(document.activeElement).toBe(elementById('resume-profile-email'));
+    expect(service.updateResume).not.toHaveBeenCalled();
+  });
+
   it('shows contact advice without blocking export or opening a confirmation', () => {
     const confirm = jest.spyOn(window, 'confirm');
     setElementValueById('resume-profile-email', '');

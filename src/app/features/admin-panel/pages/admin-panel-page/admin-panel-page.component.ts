@@ -1,25 +1,21 @@
-import { NgTemplateOutlet } from '@angular/common';
-import { BreakpointObserver } from '@angular/cdk/layout';
+import { SidebarComponent } from '@alittlemore.dev/design-system';
 import { AuthModalService } from '../../../../core/auth/auth-modal.service';
+import { SectionNavigationComponent } from '../../../../shared/ui/section-navigation/section-navigation.component';
+import { NavigationPreferencesService } from '../../../../core/routing/navigation-preferences.service';
+import { BreakpointObserver } from '@angular/cdk/layout';
 import {
   ChangeDetectionStrategy,
   Component,
   computed,
   effect,
   inject,
-  viewChild,
+  signal,
+  untracked,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { filter, map } from 'rxjs';
-import {
-  DrawerComponent,
-  FoldableTreeComponent,
-  FoldableTreeItem,
-  FoldableTreeSection,
-} from '@alittlemore.dev/design-system';
 import { AuthService } from '../../../../core/auth/auth.service';
-import { I18nService } from '../../../../core/i18n/i18n.service';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
 import { ADMIN_PANEL_NAVIGATION_SECTIONS } from '../../admin-panel-navigation';
 import { AdminPanelNavigationSection } from '../../models/admin-panel-navigation.model';
@@ -27,25 +23,27 @@ import { AdminPanelNavigationSection } from '../../models/admin-panel-navigation
 @Component({
   selector: 'app-admin-panel-page',
   standalone: true,
-  imports: [DrawerComponent, FoldableTreeComponent, NgTemplateOutlet, RouterOutlet, TranslatePipe],
+  imports: [SidebarComponent, SectionNavigationComponent, RouterOutlet, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './admin-panel-page.component.html',
   styleUrl: './admin-panel-page.component.scss',
 })
 export class AdminPanelPageComponent {
   private readonly auth = inject(AuthService);
-  private readonly i18n = inject(I18nService);
   private readonly router = inject(Router);
-
-  private readonly drawer = viewChild(DrawerComponent);
-  private readonly authModal = inject(AuthModalService);
   private readonly desktop = toSignal(
     inject(BreakpointObserver)
-      .observe('(min-width: 992px)')
+      .observe('(min-width: 768px)')
       .pipe(map((state) => state.matches)),
     { initialValue: false },
   );
-  readonly sidePanelOpen = computed(() => this.drawer()?.isOpen() ?? false);
+  private readonly authModal = inject(AuthModalService);
+  private readonly manualOpen = signal<boolean | null>(null);
+  readonly navigationOpen = computed(
+    () =>
+      this.manualOpen() ??
+      (this.desktop() && !this.contextualNavigation() && !this.navigationCollapsed()),
+  );
   readonly currentUrl = toSignal(
     this.router.events.pipe(
       filter((event): event is NavigationEnd => event instanceof NavigationEnd),
@@ -69,40 +67,14 @@ export class AdminPanelPageComponent {
       ),
     })).filter((section) => section.pages.length > 0);
   });
-  readonly defaultExpandedSectionKeys = computed<readonly string[]>(() =>
-    this.visibleNavigationSections().map((section) => section.key),
-  );
-  readonly sidePanelToggleLabel = computed(() =>
-    this.i18n.translate(
-      this.sidePanelOpen() ? 'adminPanel.sidePanel.close' : 'adminPanel.sidePanel.open',
-    ),
-  );
-  readonly rootItems = computed<readonly FoldableTreeItem[]>(() => {
-    this.i18n.language();
-    return [
-      {
-        key: 'dashboard',
-        label: this.i18n.translate('adminPanel.section.dashboard'),
-        badgeText: null,
-      },
-    ];
-  });
-  readonly sections = computed<readonly FoldableTreeSection[]>(() => {
-    this.i18n.language();
-    return this.visibleNavigationSections().map((section) => {
-      const items = section.pages.map((page) => ({
-        key: page.key,
-        label: this.i18n.translate(page.labelKey),
-        badgeText: page.badgeTextKey === null ? null : this.i18n.translate(page.badgeTextKey),
-      }));
-      return {
-        key: section.key,
-        label: this.i18n.translate(section.labelKey),
-        trailingText: String(items.length),
-        items,
-      };
-    });
-  });
+  private readonly navigationPreferences = inject(NavigationPreferencesService);
+  readonly navigationCollapsed = signal(this.navigationPreferences.collapsed('admin'));
+  readonly home = {
+    key: 'dashboard',
+    labelKey: 'adminPanel.section.dashboard',
+    route: '/admin-panel/dashboard',
+    icon: 'dashboard' as const,
+  };
   readonly selectedPageKey = computed<string | null>(() => {
     const path = this.currentUrl().split(/[?#]/u, 1)[0];
     if (path === '/admin-panel' || path === '/admin-panel/' || path === '/admin-panel/dashboard') {
@@ -118,32 +90,21 @@ export class AdminPanelPageComponent {
 
   constructor() {
     effect(() => {
-      if ((this.desktop() && !this.contextualNavigation()) || this.authModal.isLoginOpen()) {
-        this.closeSidePanel();
-      }
+      this.currentUrl();
+      this.desktop();
+      this.authModal.isLoginOpen();
+      untracked(() => this.manualOpen.set(null));
     });
   }
 
-  toggleSidePanel(): void {
-    if (this.sidePanelOpen()) this.closeSidePanel();
-    else this.drawer()?.open();
-  }
-
-  closeSidePanel(): void {
-    this.drawer()?.close();
-  }
-
-  selectPage(pageKey: string): void {
-    if (pageKey === 'dashboard') {
-      this.closeSidePanel();
-      this.router.navigateByUrl('/admin-panel/dashboard');
-      return;
+  setNavigationOpen(open: boolean): void {
+    this.manualOpen.set(open);
+    if (this.desktop() && !this.contextualNavigation()) {
+      this.navigationCollapsed.set(!open);
+      this.navigationPreferences.setCollapsed('admin', !open);
     }
-    const page = this.visibleNavigationSections()
-      .flatMap((section) => section.pages)
-      .find((item) => item.key === pageKey);
-    if (!page) return;
-    this.closeSidePanel();
-    this.router.navigateByUrl(page.route);
+  }
+  onSectionSelected(): void {
+    if (!this.desktop()) this.manualOpen.set(false);
   }
 }

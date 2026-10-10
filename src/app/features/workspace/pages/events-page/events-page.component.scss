@@ -1,3 +1,19 @@
 :host {
   display: block;
+  min-width: 0;
+}
+
+.event-row {
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1.5fr) minmax(0, 0.8fr) auto;
+}
+
+.event-row .btn-link {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 767.98px) {
+  .event-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
 }

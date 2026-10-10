@@ -1,3 +1,8 @@
+import { ActivatedRoute, Router } from '@angular/router';
+import {
+  ActionsDropdownComponent,
+  DropdownAction,
+} from '../../components/actions-dropdown/actions-dropdown.component';
 import { DOCUMENT } from '@angular/common';
 import {
   EmptyStateComponent,
@@ -35,6 +40,7 @@ import { Temporal } from 'temporal-polyfill';
     FormsModule,
     TranslatePipe,
     EventEditorComponent,
+    ActionsDropdownComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './events-page.component.html',
@@ -42,6 +48,8 @@ import { Temporal } from 'temporal-polyfill';
 })
 export class EventsPageComponent implements OnInit {
   private readonly service = inject(EventsService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly notifications = inject(NotificationService);
   private readonly i18n = inject(I18nService);
   private readonly preferences = inject(AccountSettingsService);
@@ -69,6 +77,18 @@ export class EventsPageComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+      this.search.set(params.get('q') ?? '');
+      if (params.get('create') === 'true') {
+        this.openCreate();
+        void this.router.navigate([], {
+          relativeTo: this.route,
+          queryParams: { create: null },
+          queryParamsHandling: 'merge',
+          replaceUrl: true,
+        });
+      }
+    });
     this.load();
   }
 
@@ -90,6 +110,35 @@ export class EventsPageComponent implements OnInit {
       });
   }
 
+  setSearch(query: string): void {
+    this.search.set(query);
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { q: query || null },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
+  }
+  eventActions(event: WorkspaceEvent): DropdownAction[] {
+    return [
+      {
+        id: 'edit',
+        label: this.i18n.translate('workspaceEvents.edit'),
+        destructive: false,
+        disabled: false,
+      },
+      {
+        id: 'delete',
+        label: this.i18n.translate('workspaceEvents.delete'),
+        destructive: true,
+        disabled: this.deletingId() === event.id,
+      },
+    ];
+  }
+  handleAction(action: string, event: WorkspaceEvent): void {
+    if (action === 'edit') this.openEdit(event);
+    if (action === 'delete') this.remove(event);
+  }
   openCreate(): void {
     this.selected.set(null);
     this.editorOpen.set(true);

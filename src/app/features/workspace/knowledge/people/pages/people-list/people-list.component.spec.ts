@@ -103,7 +103,9 @@ describe('PeopleListComponent', () => {
       searchQuery: 'Иван',
       tagIds: ['tag-1', 'tag-2'],
     });
-    expect(fixture.nativeElement.textContent).toContain('Люди не найдены.');
+    expect(fixture.nativeElement.textContent).toContain(
+      'Нет совпадений. Измените или сбросьте фильтры.',
+    );
   });
 
   it('shows loading and then populated content', () => {
@@ -190,23 +192,6 @@ describe('PeopleListComponent', () => {
     expect(contacts?.textContent).toContain('ivan@example.com');
     expect(contacts?.textContent).toContain('@ivanov');
     expect(contacts?.textContent).not.toContain('Не задано');
-  });
-
-  it('shows one placeholder when every contact is empty', () => {
-    peopleResponse = of({
-      totalCount: 1,
-      totalPages: 2,
-      people: [{ ...PERSON, email: '', phone: '', telegram: '' }],
-    });
-    fixture = TestBed.createComponent(PeopleListComponent);
-    fixture.detectChanges();
-
-    const contacts = fixture.nativeElement.querySelector(
-      '[data-testid="people-contacts-person-1"]',
-    ) as HTMLElement | null;
-    const placeholders = contacts?.textContent?.match(/Не задано/g) ?? [];
-
-    expect(placeholders).toHaveLength(1);
   });
 
   it('keeps the latest page when an older request succeeds later', () => {
@@ -300,7 +285,67 @@ describe('PeopleListComponent', () => {
     });
   });
 
-  it('creates and revokes protected photo object URLs', () => {
+  it('reloads the applied query without submitting draft filters', () => {
+    fixture = TestBed.createComponent(PeopleListComponent);
+    fixture.detectChanges();
+    fixture.componentInstance.filtersForm.controls.searchQuery.setValue('Draft');
+    fixture.componentInstance.toggleTag('draft-tag');
+    fixture.componentInstance.loadPeople();
+    expect(peopleService.listPeople).toHaveBeenLastCalledWith(
+      expect.objectContaining({ searchQuery: 'Иван', tagIds: ['tag-1', 'tag-2'] }),
+    );
+  });
+
+  it('bounds photo requests, retries failures, and reuses unchanged photos', () => {
+    const responses = Array.from({ length: 5 }, () => new Subject<Blob>());
+    const create = jest.fn(() => 'blob:protected');
+    Object.defineProperty(window.URL, 'createObjectURL', { configurable: true, value: create });
+    Object.defineProperty(window.URL, 'revokeObjectURL', { configurable: true, value: jest.fn() });
+    const people = responses.map((_, index) => ({
+      ...PERSON,
+      id: String(index),
+      photo: {
+        id: `photo-${index}`,
+        itemId: String(index),
+        kind: 'personPhoto' as const,
+        processing: 'normalizedRasterImage' as const,
+        mimeType: 'image/webp',
+        sizeBytes: 10,
+        name: 'photo.webp',
+        originalName: 'photo.webp',
+        contentPath: '',
+        createdAt: PERSON.createdAt,
+        updatedAt: PERSON.updatedAt,
+      },
+    }));
+    peopleResponse = of({ totalCount: 5, totalPages: 2, people });
+    peopleService.getFileContent.mockImplementation(
+      (id: string) => responses[Number(id.split('-')[1])],
+    );
+    fixture = TestBed.createComponent(PeopleListComponent);
+    fixture.detectChanges();
+    expect(peopleService.getFileContent).toHaveBeenCalledTimes(3);
+    responses[0].next(new Blob(['photo']));
+    responses[0].complete();
+    expect(peopleService.getFileContent).toHaveBeenCalledTimes(4);
+    responses[1].error(new Error('Unavailable'));
+    expect(fixture.componentInstance.photoErrors().has('1')).toBe(true);
+    responses[2].next(new Blob(['photo']));
+    responses[2].complete();
+    responses[3].next(new Blob(['photo']));
+    responses[3].complete();
+    responses[4].next(new Blob(['photo']));
+    responses[4].complete();
+    peopleService.getFileContent.mockReturnValue(of(new Blob(['retry'])));
+    fixture.componentInstance.retryPhotos();
+    expect(fixture.componentInstance.photoErrors().size).toBe(0);
+    expect(create).toHaveBeenCalledTimes(5);
+    peopleService.getFileContent.mockClear();
+    fixture.componentInstance.loadPeople();
+    expect(peopleService.getFileContent).not.toHaveBeenCalled();
+  });
+
+  it.each(['failed reload', 'destruction'])('releases protected photos on %s', (reason) => {
     const createObjectURL = jest.fn().mockReturnValue('blob:private-photo');
     const revokeObjectURL = jest.fn();
     Object.defineProperty(window.URL, 'createObjectURL', {
@@ -340,7 +385,12 @@ describe('PeopleListComponent', () => {
     expect(peopleService.getFileContent).toHaveBeenCalledWith('photo-1');
     expect(createObjectURL).toHaveBeenCalled();
 
-    fixture.destroy();
+    if (reason === 'failed reload') {
+      const response = new Subject<PeoplePage>();
+      peopleResponse = response;
+      fixture.componentInstance.loadPeople();
+      response.error(new Error('Unavailable'));
+    } else fixture.destroy();
     expect(revokeObjectURL).toHaveBeenCalledWith('blob:private-photo');
   });
 });

@@ -1,59 +1,71 @@
-<section class="vstack gap-3">
-  <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
-    <h1 class="h3 mb-0">{{ 'workspaceEvents.title' | t }}</h1>
-    <button type="button" class="btn btn-success" (click)="openCreate()">
-      {{ 'workspaceEvents.create' | t }}
-    </button>
+<section class="events-page">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
+    <h1 class="h4 mb-0">{{ 'workspaceEvents.title' | t }}</h1>
+    <div class="d-flex flex-wrap gap-2">
+      <button type="button" class="btn btn-success btn-sm" (click)="openCreate()">
+        {{ 'workspaceEvents.create' | t }}
+      </button>
+      <button type="button" class="btn btn-outline-secondary btn-sm" (click)="load()">
+        {{ 'shared.update' | t }}
+      </button>
+    </div>
   </div>
-  <label class="visually-hidden" for="workspace-events-search">{{
-    'workspaceEvents.search' | t
-  }}</label>
-  <input
-    id="workspace-events-search"
-    class="form-control"
-    type="search"
-    [ngModel]="search()"
-    (ngModelChange)="search.set($event)"
-    [placeholder]="'workspaceEvents.search' | t"
-  />
+  <div class="collection-search mb-3">
+    <div class="flex-grow-1">
+      <label class="visually-hidden" for="workspace-events-search">{{
+        'workspaceEvents.search' | t
+      }}</label>
+      <input
+        id="workspace-events-search"
+        class="form-control form-control-sm"
+        type="search"
+        [ngModel]="search()"
+        (ngModelChange)="setSearch($event)"
+        [placeholder]="'workspaceEvents.search' | t"
+      />
+    </div>
+  </div>
   @if (loading()) {
     <ds-loading-spinner [ariaLabel]="'shared.loading' | t" />
   } @else if (error()) {
     <ds-error-message [error]="error()!" [retryLabel]="'shared.retry' | t" (retry)="load()" />
   } @else if (filteredEvents().length === 0) {
-    <ds-empty-state [message]="'workspaceEvents.empty' | t" />
+    <ds-empty-state
+      [message]="(search() ? 'shared.filters.noResults' : 'workspaceEvents.empty') | t"
+    />
   } @else {
-    <ul class="list-group">
+    <ul class="list-unstyled collection-list mb-3" [attr.aria-label]="'workspaceEvents.title' | t">
       @for (event of filteredEvents(); track event.id) {
-        <li
-          class="list-group-item d-flex align-items-start justify-content-between gap-3 flex-wrap"
-        >
-          <div>
-            <h2 class="h6 mb-1">{{ event.title }}</h2>
-            @if (event.description) {
-              <p class="mb-1 text-body-secondary text-break">{{ event.description }}</p>
-            }
-            <small class="text-body-secondary"
-              >{{ eventDateLabel(event) }} ·
-              {{ 'workspaceEvents.frequency.' + event.recurrence.frequency | t }}</small
-            >
-          </div>
-          <div class="d-flex gap-2">
+        <li class="collection-row event-row" [id]="'event-' + event.id">
+          <div class="min-w-0">
             <button
               type="button"
-              class="btn btn-sm btn-outline-secondary"
+              class="btn btn-link d-block text-start fw-semibold p-0"
+              aria-haspopup="dialog"
               (click)="openEdit(event)"
             >
-              {{ 'workspaceEvents.edit' | t }}
+              {{ event.title }}
             </button>
-            <button
-              type="button"
-              class="btn btn-sm btn-outline-danger"
-              [disabled]="deletingId() === event.id"
-              (click)="remove(event)"
-            >
-              {{ 'workspaceEvents.delete' | t }}
-            </button>
+            @if (event.description) {
+              <details class="small mt-1 text-body-secondary">
+                <summary>{{ 'workspaceEvents.description' | t }}</summary>
+                <p class="mb-0 text-break">{{ event.description }}</p>
+              </details>
+            }
+          </div>
+          <span class="row-metadata small text-body-secondary">{{ eventDateLabel(event) }}</span>
+          <span class="row-metadata small text-body-secondary">{{
+            'workspaceEvents.frequency.' + event.recurrence.frequency | t
+          }}</span>
+          <div class="row-actions">
+            <app-actions-dropdown
+              [testId]="'event-actions-' + event.id"
+              [actions]="eventActions(event)"
+              [buttonLabel]="'shared.actions' | t"
+              [ariaLabel]="('shared.actions' | t) + ': ' + event.title"
+              [destructiveActionLabel]="'shared.destructiveAction' | t"
+              (actionSelected)="handleAction($event, event)"
+            />
           </div>
         </li>
       }

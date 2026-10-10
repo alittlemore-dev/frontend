@@ -1,3 +1,4 @@
+import { WorkspaceFieldTargetDirective } from '../../form-field-focus.directive';
 import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
 import { ControlContainer, ReactiveFormsModule } from '@angular/forms';
 import { SiteSelectComponent, SiteSelectOption } from '@alittlemore.dev/design-system';
@@ -6,7 +7,13 @@ import { ResumeTextLimitDirective } from '../../resume-text-limit.directive';
 
 @Component({
   selector: 'app-resume-editor-header',
-  imports: [ReactiveFormsModule, SiteSelectComponent, TranslatePipe, ResumeTextLimitDirective],
+  imports: [
+    WorkspaceFieldTargetDirective,
+    ReactiveFormsModule,
+    SiteSelectComponent,
+    TranslatePipe,
+    ResumeTextLimitDirective,
+  ],
   viewProviders: [
     { provide: ControlContainer, useFactory: () => inject(ControlContainer, { skipSelf: true }) },
   ],
@@ -25,6 +32,8 @@ export class ResumeEditorHeaderComponent {
   readonly languageInvalid = input(false);
   readonly languageMessage = input<string | null>(null);
   readonly unsaved = input(false);
+  readonly saving = input(false);
+  readonly saveFailed = input(false);
   readonly saveDisabled = input(false);
   readonly deleteDisabled = input(false);
   readonly back = output<void>();

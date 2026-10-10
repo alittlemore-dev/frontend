@@ -1,3 +1,7 @@
+import {
+  WorkspaceFieldFocusService,
+  WorkspaceFieldTargetDirective,
+} from '../../../../form-field-focus.directive';
 import { WorkspaceDetailNavigationService } from '../../../../services/workspace-detail-navigation.service';
 import { TextareaAutosizeDirective } from '../../../../../../shared/directives/textarea-autosize.directive';
 import {
@@ -11,6 +15,8 @@ import {
 } from '@alittlemore.dev/design-system';
 import { DOCUMENT } from '@angular/common';
 import {
+  afterNextRender,
+  Injector,
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
@@ -115,7 +121,9 @@ const RELATED_DATE_PREVIEW_LIMIT = 10;
 @Component({
   selector: 'app-person-detail',
   standalone: true,
+  providers: [WorkspaceFieldFocusService],
   imports: [
+    WorkspaceFieldTargetDirective,
     TextareaAutosizeDirective,
     ReactiveFormsModule,
     TranslatePipe,
@@ -164,6 +172,9 @@ export class PersonDetailComponent implements OnInit, OnDestroy {
   readonly error = signal<ApiError | null>(null);
   readonly person = signal<PersonDetail | null>(null);
   readonly saving = signal(false);
+  readonly saveFailed = signal(false);
+  private readonly injector = inject(Injector);
+  private readonly fieldFocus = inject(WorkspaceFieldFocusService);
   readonly deleting = signal(false);
   readonly submitted = signal(false);
   readonly tags = signal<readonly KnowledgeTag[]>([]);
@@ -479,6 +490,7 @@ export class PersonDetailComponent implements OnInit, OnDestroy {
     if (this.editorImagePending() || this.saving()) {
       return;
     }
+    this.saveFailed.set(false);
     this.submitted.set(true);
     this.personForm.markAllAsTouched();
     this.relationshipForms.markAllAsTouched();
@@ -487,6 +499,7 @@ export class PersonDetailComponent implements OnInit, OnDestroy {
         this.relationshipsExpanded.set(true);
       }
       this.notifications.error(this.i18n.translate('knowledgePeople.validationError'));
+      afterNextRender(() => this.fieldFocus.focus(), { injector: this.injector });
       return;
     }
     this.saving.set(true);
@@ -504,6 +517,7 @@ export class PersonDetailComponent implements OnInit, OnDestroy {
         },
         error: () => {
           this.saving.set(false);
+          this.saveFailed.set(true);
           this.notifications.error(this.i18n.translate('knowledgePeople.saveError'));
         },
       });

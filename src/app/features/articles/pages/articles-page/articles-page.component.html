@@ -1,100 +1,32 @@
 <main class="container py-4">
-  <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3">
-    <div class="d-flex align-items-start gap-2 min-w-0">
-      @if (!isDetailRoute()) {
-        <button
-          type="button"
-          class="btn btn-outline-secondary articles-icon-toggle flex-shrink-0"
-          data-testid="articles-side-panel-toggle"
-          [attr.aria-label]="sidePanelToggleLabel()"
-          [attr.aria-expanded]="sidePanelOpen()"
-          [title]="sidePanelToggleLabel()"
-          (click)="toggleSidePanel()"
-        >
-          @if (sidePanelOpen()) {
-            <svg
-              data-testid="articles-side-panel-close-icon"
-              aria-hidden="true"
-              xmlns="http://www.w3.org/2000/svg"
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path d="m15 18-6-6 6-6"></path>
-              <path d="M20 4v16"></path>
-              <path d="M4 6h8"></path>
-              <path d="M4 12h6"></path>
-              <path d="M4 18h8"></path>
-            </svg>
-          } @else {
-            <svg
-              data-testid="articles-side-panel-open-icon"
-              aria-hidden="true"
-              xmlns="http://www.w3.org/2000/svg"
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path d="m9 18 6-6-6-6"></path>
-              <path d="M4 4v16"></path>
-              <path d="M12 6h8"></path>
-              <path d="M14 12h6"></path>
-              <path d="M12 18h8"></path>
-            </svg>
-          }
-        </button>
-      }
-      <div>
-        <h1 class="fw-bold mb-1 text-break">{{ 'articles.title' | t }}</h1>
-        @if (activeTag()) {
-          <div class="small text-body-secondary">
-            {{ 'articles.activeTag' | t: { name: activeTag()!.name } }}
-          </div>
-        }
-      </div>
-    </div>
-  </div>
-
-  <div
-    class="articles-layout"
-    [class.articles-layout-panel-open]="sidePanelOpen() && !isDetailRoute()"
-  >
-    @if (!isDetailRoute()) {
-      <aside
-        class="articles-side-panel border-end pe-lg-3"
-        data-testid="articles-side-panel"
-        [class.articles-side-panel-open]="sidePanelOpen()"
-        [class.articles-side-panel-closed]="!sidePanelOpen()"
-        [attr.aria-hidden]="!sidePanelOpen()"
-        [attr.inert]="sidePanelOpen() ? null : ''"
-      >
-        <app-articles-side-panel
-          [tree]="tree()"
-          [currentSlug]="currentSlug()"
-          (articleSelected)="openArticle($event)"
-          (closePanel)="closeSidePanel()"
-        />
-      </aside>
-      @if (sidePanelOpen()) {
-        <button
-          type="button"
-          class="articles-mobile-backdrop d-lg-none"
-          [attr.aria-label]="'shared.close' | t"
-          (click)="closeSidePanel()"
-        ></button>
-      }
-    }
-
+  <h1 class="fw-bold mb-3 text-break">{{ 'articles.title' | t }}</h1>
+  @if (activeTag()) {
+    <p class="small text-body-secondary">
+      {{ 'articles.activeTag' | t: { name: activeTag()!.name } }}
+    </p>
+  }
+  @if (isDetailRoute()) {
+    <ng-container [ngTemplateOutlet]="articleContent" />
+  } @else {
+    <ds-sidebar
+      panelId="articles-folders"
+      [label]="'articles.folders' | t"
+      [openLabel]="'articles.sidePanel.open' | t"
+      [closeLabel]="'articles.sidePanel.close' | t"
+      [open]="sidePanelOpen()"
+      (openChange)="setSidePanelOpen($event)"
+    >
+      <app-articles-side-panel
+        dsSidebarNavigation
+        [tree]="tree()"
+        [currentSlug]="currentSlug()"
+        [queryParams]="listNavigationQuery()"
+        (articleSelected)="openArticle($event)"
+      />
+      <ng-container [ngTemplateOutlet]="articleContent" />
+    </ds-sidebar>
+  }
+  <ng-template #articleContent>
     <section class="articles-content">
       @if (!isDetailRoute()) {
         <form
@@ -222,5 +154,5 @@
         />
       }
     </section>
-  </div>
+  </ng-template>
 </main>

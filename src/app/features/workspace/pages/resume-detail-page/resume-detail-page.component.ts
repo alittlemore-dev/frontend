@@ -1,3 +1,7 @@
+import {
+  WorkspaceFieldFocusService,
+  WorkspaceFieldTargetDirective,
+} from '../../form-field-focus.directive';
 import { WorkspaceDetailNavigationService } from '../../services/workspace-detail-navigation.service';
 import {
   ModalScrollDirective,
@@ -142,6 +146,7 @@ interface ResumeThemeOption {
 }
 
 interface ResumeValidationIssue {
+  control?: AbstractControl<unknown>;
   tab: ResumeEditorTab | null;
   message: string;
 }
@@ -296,7 +301,9 @@ const RESUME_THEME_OPTIONS: readonly ResumeThemeOption[] = [
 @Component({
   selector: 'app-resume-detail-page',
   standalone: true,
+  providers: [WorkspaceFieldFocusService],
   imports: [
+    WorkspaceFieldTargetDirective,
     ResumeOptionalFieldsDirective,
     ReactiveFormsModule,
     CdkDrag,
@@ -334,6 +341,7 @@ export class ResumeDetailPageComponent implements OnInit {
   private readonly i18n = inject(I18nService);
   private readonly formBuilder = inject(NonNullableFormBuilder);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly fieldFocus = inject(WorkspaceFieldFocusService);
   private readonly document = inject(DOCUMENT);
   private readonly injector = inject(Injector);
   private readonly resumeId = this.resolveResumeId();
@@ -1482,6 +1490,19 @@ export class ResumeDetailPageComponent implements OnInit {
     return { ...value, profile: { ...value.profile, photoDataUrl: '' } };
   }
 
+  focusValidationIssue(issue: ResumeValidationIssue): void {
+    this.mode.set('edit');
+    if (issue.tab) this.activeTab.set(issue.tab);
+    let parent = issue.control?.parent;
+    while (parent) {
+      this.setGroupExpanded(parent, true);
+      parent = parent.parent;
+    }
+    afterNextRender(() => this.fieldFocus.focus(issue.control ?? null), {
+      injector: this.injector,
+    });
+  }
+
   private handleInvalidResumeForm(): void {
     this.resumeForm.markAllAsTouched();
     this.editorGroups().forEach(({ group }) => {
@@ -1495,6 +1516,7 @@ export class ResumeDetailPageComponent implements OnInit {
     if (firstIssue?.tab !== null && firstIssue?.tab !== undefined) {
       this.activeTab.set(firstIssue.tab);
     }
+    if (firstIssue) this.focusValidationIssue(firstIssue);
     this.notifications.error(this.validationNotificationMessage(firstIssue));
   }
 
@@ -2170,6 +2192,7 @@ export class ResumeDetailPageComponent implements OnInit {
     const message = this.fieldMessage(control) ?? this.i18n.translate('validation.invalid');
     issues.push({
       tab,
+      control,
       message: this.i18n.translate('resumeWorkspace.validationIssue', {
         field: path.join(this.i18n.translate('resumeWorkspace.validationPathSeparator')),
         message,

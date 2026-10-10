@@ -2,7 +2,7 @@ import { NotificationService } from '@alittlemore.dev/design-system';
 import { chooseSiteSelectOption } from '@alittlemore.dev/design-system/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
-import { of } from 'rxjs';
+import { of, Subject } from 'rxjs';
 import { provideI18nTesting } from '../../../../testing/i18n-testing';
 import { EventsService } from '../../services/events.service';
 import { EventEditorComponent } from './event-editor.component';
@@ -32,6 +32,26 @@ describe('EventEditorComponent', () => {
   afterEach(() => {
     TestBed.resetTestingModule();
     jest.restoreAllMocks();
+  });
+
+  it('keeps a failed save visible and allows retrying the same draft', () => {
+    const failure = new Subject<never>();
+    service.create.mockReturnValueOnce(failure);
+    const component = fixture.componentInstance;
+    component.form.controls.title.setValue('Retry this event');
+    component.form.controls.dateTimeRange.setValue({
+      start: '2026-10-10T09:00',
+      end: '2026-10-10T10:00',
+    });
+    component.submit();
+    failure.error(new Error('Network unavailable'));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[role="alert"]')).not.toBeNull();
+    expect(component.form.controls.title.value).toBe('Retry this event');
+    component.submit();
+    fixture.detectChanges();
+    expect(service.create).toHaveBeenCalledTimes(2);
+    expect(component.saveFailed()).toBe(false);
   });
 
   it('saves an all-day event with an exclusive API end date', () => {

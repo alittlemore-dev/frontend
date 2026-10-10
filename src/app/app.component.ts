@@ -52,6 +52,11 @@ import { SiteHeaderComponent } from './features/shell/components/site-header/sit
       </div>
     }
   `,
+  styles: `
+    :host {
+      --sidebar-sticky-top: 4.5rem;
+    }
+  `,
 })
 export class AppComponent {
   readonly authModal = inject(AuthModalService);

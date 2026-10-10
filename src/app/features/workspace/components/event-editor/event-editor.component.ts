@@ -1,3 +1,7 @@
+import {
+  WorkspaceFieldFocusService,
+  WorkspaceFieldTargetDirective,
+} from '../../form-field-focus.directive';
 import { TextareaAutosizeDirective } from '../../../../shared/directives/textarea-autosize.directive';
 import {
   LocalizedDatePickerComponent,
@@ -16,6 +20,8 @@ import {
 import { CdkTrapFocus } from '@angular/cdk/a11y';
 import { NgTemplateOutlet } from '@angular/common';
 import {
+  afterNextRender,
+  Injector,
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
@@ -55,7 +61,9 @@ interface EventFormValue extends Omit<EventDraft, 'start' | 'end' | 'untilDate'>
 @Component({
   selector: 'app-event-editor',
   standalone: true,
+  providers: [WorkspaceFieldFocusService],
   imports: [
+    WorkspaceFieldTargetDirective,
     TextareaAutosizeDirective,
     CdkTrapFocus,
     NgTemplateOutlet,
@@ -76,10 +84,13 @@ export class EventEditorComponent {
   private readonly i18n = inject(I18nService);
   private readonly preferences = inject(AccountSettingsService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly fieldFocus = inject(WorkspaceFieldFocusService);
+  private readonly injector = inject(Injector);
   private readonly unsavedScope = inject(UnsavedChangesService).createScope(this.destroyRef);
   private readonly unsavedSource: UnsavedChangesSource;
   private exactBaseline: { value: EventFormValue; instants: ExactEventInstants } | null = null;
 
+  readonly timeZoneLabel = computed(() => this.preferences.timeZone());
   readonly event = input<WorkspaceEvent | null>(null);
   readonly initial = input<EventEditorInitial | null>(null);
   readonly embedded = input(false);
@@ -88,6 +99,7 @@ export class EventEditorComponent {
   readonly submitting = signal(false);
   readonly submitted = signal(false);
   readonly validationError = signal<string | null>(null);
+  readonly saveFailed = signal(false);
   readonly snapshot = signal<EventFormValue>(this.emptyForm());
   readonly active = signal(true);
   readonly dateLocale = computed(() => this.i18n.dateLocale());
@@ -253,17 +265,31 @@ export class EventEditorComponent {
 
   submit(): void {
     this.submitted.set(true);
+    if (this.submitting()) return;
+    this.form.markAllAsTouched();
     this.validationError.set(null);
+    this.saveFailed.set(false);
     if (this.form.controls.title.hasError('maxlength')) {
       this.validationError.set('workspaceEvents.titleTooLong');
+      afterNextRender(() => this.fieldFocus.focus(), { injector: this.injector });
       return;
     }
     if (this.form.controls.description.hasError('maxlength')) {
       this.validationError.set('workspaceEvents.descriptionTooLong');
+      afterNextRender(() => this.fieldFocus.focus(), { injector: this.injector });
       return;
     }
     if (this.form.invalid || !this.form.controls.title.value.trim()) {
       this.validationError.set('workspaceEvents.required');
+      afterNextRender(
+        () =>
+          this.fieldFocus.focus(
+            this.form.controls.title.invalid || !this.form.controls.title.value.trim()
+              ? this.form.controls.title
+              : null,
+          ),
+        { injector: this.injector },
+      );
       return;
     }
     let payload;
@@ -286,6 +312,15 @@ export class EventEditorComponent {
       payload = draftToPayload(this.toDraft(value), this.preferences.timeZone(), exact);
     } catch {
       this.validationError.set('workspaceEvents.invalidRange');
+      afterNextRender(
+        () =>
+          this.fieldFocus.focus(
+            this.form.controls.allDay.value
+              ? this.form.controls.dateRange
+              : this.form.controls.dateTimeRange,
+          ),
+        { injector: this.injector },
+      );
       return;
     }
     this.submitting.set(true);
@@ -302,6 +337,7 @@ export class EventEditorComponent {
       },
       error: () => {
         this.submitting.set(false);
+        this.saveFailed.set(true);
         this.notifications.error(this.i18n.translate('workspaceEvents.saveError'));
       },
     });

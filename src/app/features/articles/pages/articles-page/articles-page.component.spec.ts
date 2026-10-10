@@ -325,36 +325,31 @@ describe('ArticlesPageComponent', () => {
     expect(articlesService.getAdminTree).not.toHaveBeenCalled();
   });
 
-  it('renders the side panel toggle to the left of the title as an icon-only control with localized state labels', () => {
+  it('keeps one inline folder panel when closing and reopening with localized controls', () => {
     paramMap.next(convertToParamMap({}));
     fixture.detectChanges();
-
-    const title = fixture.nativeElement.querySelector('h1') as HTMLElement;
-    const toggle = fixture.nativeElement.querySelector(
-      '[data-testid="articles-side-panel-toggle"]',
-    ) as HTMLButtonElement;
-
-    expect(toggle.compareDocumentPosition(title) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(toggle.textContent?.trim()).toBe('');
+    const toggle = fixture.nativeElement.querySelector('ds-sidebar button') as HTMLButtonElement;
+    const panel = fixture.nativeElement.querySelector('#articles-folders') as HTMLElement;
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
     expect(toggle.getAttribute('aria-label')).toBe('Открыть папки');
-    expect(toggle.title).toBe('Открыть папки');
-
     toggle.click();
     fixture.detectChanges();
-
     expect(toggle.getAttribute('aria-label')).toBe('Скрыть папки');
-    expect(toggle.title).toBe('Скрыть папки');
-    expect(toggle.querySelector('[data-testid="articles-side-panel-close-icon"]')).toBeTruthy();
+    expect(panel.hidden).toBe(false);
+    toggle.click();
+    fixture.detectChanges();
+    expect(panel.hidden).toBe(true);
+    toggle.click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#articles-folders')).toBe(panel);
   });
 
   it('hides folders and list filters on article detail routes', () => {
     fixture.componentInstance.sidePanelOpen.set(true);
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('[data-testid="articles-side-panel-toggle"]')).toBe(
-      null,
-    );
-    expect(fixture.nativeElement.querySelector('[data-testid="articles-side-panel"]')).toBe(null);
+    expect(fixture.nativeElement.querySelector('ds-sidebar button')).toBe(null);
+    expect(fixture.nativeElement.querySelector('ds-sidebar')).toBe(null);
     expect(fixture.nativeElement.querySelector('[data-testid="articles-filter-form"]')).toBe(null);
     expect(fixture.nativeElement.querySelector('[data-testid="articles-tag-filters"]')).toBe(null);
   });

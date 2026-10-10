@@ -1,14 +1,16 @@
-.dashboard-dates-table {
-  min-width: 52rem;
+.dashboard-upcoming-row {
+  display: grid;
+  gap: 0.25rem;
+  padding-block: 0.5rem;
+  border-bottom: 1px solid var(--border-color-solid);
+  overflow-wrap: anywhere;
 }
-
-.dashboard-extra {
-  min-width: 11rem;
+.dashboard-entries {
+  display: grid;
+  column-gap: 1.5rem;
 }
-
-.dashboard-stat-value {
-  font-size: 2rem;
-  font-weight: 600;
-  line-height: 1;
-  margin-bottom: 0.75rem;
+@media (min-width: 1200px) {
+  .dashboard-entries {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }

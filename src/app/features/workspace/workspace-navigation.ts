@@ -7,6 +7,7 @@ export const WORKSPACE_NAVIGATION_SECTIONS: readonly WorkspaceNavigationSection[
     pages: [
       {
         key: 'resumes',
+        icon: 'document',
         labelKey: 'workspace.section.resumes',
         route: '/personal-workspace/resumes',
         badgeTextKey: null,
@@ -19,18 +20,21 @@ export const WORKSPACE_NAVIGATION_SECTIONS: readonly WorkspaceNavigationSection[
     pages: [
       {
         key: 'knowledge-people',
+        icon: 'people',
         labelKey: 'workspace.section.people',
         route: '/personal-workspace/knowledge/people',
         badgeTextKey: null,
       },
       {
         key: 'knowledge-dates',
+        icon: 'calendar',
         labelKey: 'workspace.section.dates',
         route: '/personal-workspace/knowledge/dates',
         badgeTextKey: null,
       },
       {
         key: 'events',
+        icon: 'calendar',
         labelKey: 'workspaceEvents.title',
         route: '/personal-workspace/events',
         badgeTextKey: null,

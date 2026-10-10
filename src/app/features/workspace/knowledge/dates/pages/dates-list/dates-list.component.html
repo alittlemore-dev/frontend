@@ -1,6 +1,6 @@
 <div class="knowledge-dates-page">
   <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
-    <h2 class="h4 mb-0">{{ 'knowledgeDates.title' | t }}</h2>
+    <h1 class="h4 mb-0">{{ 'knowledgeDates.title' | t }}</h1>
     <div class="d-flex gap-2">
       <button
         type="button"
@@ -16,17 +16,9 @@
     </div>
   </div>
 
-  <form class="card card-body mb-3" [formGroup]="filtersForm" (ngSubmit)="applyFilters()">
-    <div class="row g-3 align-items-end">
-      <div class="col-12 col-lg-4">
-        <label class="form-label" for="dates-search">{{ 'knowledgeDates.search' | t }}</label>
-        <input
-          id="dates-search"
-          class="form-control form-control-sm"
-          formControlName="searchQuery"
-        />
-      </div>
-      <div class="col-6 col-lg-2">
+  <form class="mb-3" [formGroup]="filtersForm" (ngSubmit)="applyFilters()">
+    <div class="collection-search">
+      <div class="filter-sort">
         <label class="form-label" for="dates-sort">{{ 'knowledgeDates.sort' | t }}</label>
         <ds-site-select
           inputId="dates-sort"
@@ -39,20 +31,38 @@
           formControlName="sort"
         />
       </div>
-      <div class="col-6 col-lg-2">
-        <label class="form-label" for="dates-page-size">{{ 'knowledgeDates.pageSize' | t }}</label>
-        <ds-site-select
-          inputId="dates-page-size"
-          [options]="pageSizeOptions"
-          controlSize="small"
-          appearance="default"
-          [required]="true"
-          [invalid]="false"
-          [controlDisabled]="false"
-          formControlName="pageSize"
+      <div class="flex-grow-1">
+        <label class="visually-hidden" for="dates-search">{{ 'knowledgeDates.search' | t }}</label>
+        <input
+          id="dates-search"
+          type="search"
+          class="form-control form-control-sm"
+          formControlName="searchQuery"
+          [placeholder]="'knowledgeDates.search' | t"
         />
       </div>
-      <div class="col-12 col-lg-4">
+      <button type="submit" class="btn btn-primary btn-sm">
+        {{ 'knowledgeDates.applyFilters' | t }}
+      </button>
+      <button
+        type="button"
+        class="btn btn-outline-secondary btn-sm"
+        [attr.aria-expanded]="filtersOpen()"
+        aria-controls="dates-filters"
+        (click)="filtersOpen.set(!filtersOpen())"
+      >
+        {{ 'shared.filters.title' | t }}
+        @if (filterCount()) {
+          ({{ filterCount() }})
+        }
+      </button>
+    </div>
+    <div
+      id="dates-filters"
+      class="collection-filters border-bottom pb-3 mt-3"
+      [hidden]="!filtersOpen()"
+    >
+      <div class="filter-person">
         <label class="form-label" for="dates-person-search">{{
           'knowledgeDates.relatedPerson' | t
         }}</label>
@@ -65,6 +75,7 @@
         />
         <ds-site-select
           inputId="dates-related-person"
+          [attr.aria-label]="'knowledgeDates.relatedPerson' | t"
           [options]="personOptions()"
           controlSize="small"
           appearance="default"
@@ -74,33 +85,65 @@
           formControlName="relatedPersonId"
         />
       </div>
+      <fieldset class="mt-3">
+        <legend class="fs-6">{{ 'knowledgeDates.tags' | t }}</legend>
+        <div class="d-flex flex-wrap gap-2">
+          @for (tag of tags(); track tag.id) {
+            <label class="form-check form-check-inline m-0">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                [checked]="selectedTagIds().includes(tag.id)"
+                (change)="toggleTag(tag.id)"
+              />
+              <span class="form-check-label">{{ tag.name }}</span>
+            </label>
+          } @empty {
+            <span class="text-body-secondary">{{ 'shared.notSet' | t }}</span>
+          }
+        </div>
+      </fieldset>
     </div>
-    <fieldset class="mt-3">
-      <legend class="fs-6">{{ 'knowledgeDates.tags' | t }}</legend>
-      <div class="d-flex flex-wrap gap-2">
-        @for (tag of tags(); track tag.id) {
-          <label class="form-check form-check-inline m-0">
-            <input
-              class="form-check-input"
-              type="checkbox"
-              [checked]="selectedTagIds().includes(tag.id)"
-              (change)="toggleTag(tag.id)"
-            />
-            <span class="form-check-label">{{ tag.name }}</span>
-          </label>
-        } @empty {
-          <span class="text-body-secondary">{{ 'shared.notSet' | t }}</span>
+    @if (hasFilters()) {
+      <div
+        class="d-flex flex-wrap align-items-center gap-2 mt-2"
+        [attr.aria-label]="'shared.filters.applied' | t"
+      >
+        @if (appliedQuery()) {
+          <button
+            type="button"
+            class="btn btn-outline-secondary btn-sm"
+            (click)="removeFilter('q')"
+          >
+            {{ appliedQuery() }} <span aria-hidden="true">×</span
+            ><span class="visually-hidden">{{ 'shared.filters.remove' | t }}</span>
+          </button>
         }
+        @for (tag of appliedTags(); track tag.id) {
+          <button
+            type="button"
+            class="btn btn-outline-secondary btn-sm"
+            (click)="removeFilter('tagIds', tag.id)"
+          >
+            {{ tag.name }} <span aria-hidden="true">×</span
+            ><span class="visually-hidden">{{ 'shared.filters.remove' | t }}</span>
+          </button>
+        }
+        @if (appliedPersonId()) {
+          <button
+            type="button"
+            class="btn btn-outline-secondary btn-sm"
+            (click)="removeFilter('relatedPersonId')"
+          >
+            {{ selectedPersonLabel() }} <span aria-hidden="true">×</span
+            ><span class="visually-hidden">{{ 'shared.filters.remove' | t }}</span>
+          </button>
+        }
+        <button type="button" class="btn btn-link btn-sm" (click)="resetFilters()">
+          {{ 'knowledgeDates.resetFilters' | t }}
+        </button>
       </div>
-    </fieldset>
-    <div class="d-flex gap-2 mt-3">
-      <button type="submit" class="btn btn-primary btn-sm">
-        {{ 'knowledgeDates.applyFilters' | t }}
-      </button>
-      <button type="button" class="btn btn-outline-secondary btn-sm" (click)="resetFilters()">
-        {{ 'knowledgeDates.resetFilters' | t }}
-      </button>
-    </div>
+    }
   </form>
 
   @if (loading()) {
@@ -108,109 +151,118 @@
   } @else if (error()) {
     <ds-error-message [error]="error()!" [retryLabel]="'shared.retry' | t" (retry)="loadDates()" />
   } @else if ((page()?.dates?.length ?? 0) === 0) {
-    <ds-empty-state [message]="'knowledgeDates.empty' | t" />
+    <ds-empty-state
+      [message]="(hasFilters() ? 'shared.filters.noResults' : 'knowledgeDates.empty') | t"
+    />
   } @else if (page()) {
-    <div class="table-responsive">
-      <table class="table table-sm align-middle">
-        <thead>
-          <tr>
-            <th scope="col">{{ 'knowledgeDates.name' | t }}</th>
-            <th scope="col">{{ 'knowledgeDates.date' | t }}</th>
-            <th scope="col">{{ 'knowledgeDates.people' | t }}</th>
-            <th scope="col">{{ 'knowledgeDates.tags' | t }}</th>
-            <th scope="col">{{ 'shared.actions' | t }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (value of page()!.dates; track value.id) {
-            <tr>
-              <td>
+    <ul class="list-unstyled collection-list mb-3" aria-label="{{ 'knowledgeDates.title' | t }}">
+      @for (value of page()!.dates; track value.id) {
+        <li class="collection-row dates-row" [id]="'date-' + value.id">
+          <div class="min-w-0">
+            <a
+              class="fw-semibold"
+              [routerLink]="['/personal-workspace/knowledge/dates', value.id]"
+              queryParamsHandling="preserve"
+              >{{ value.displayName }}</a
+            >
+            <span class="d-block small text-body-secondary">{{ annualDateLabel(value.date) }}</span>
+          </div>
+          <div class="small row-metadata">
+            <div [id]="'dates-related-people-' + value.id">
+              @for (person of relatedPeopleForRow(value); track person.id) {
                 <a
-                  class="fw-semibold"
-                  [routerLink]="['/personal-workspace/knowledge/dates', value.id]"
+                  class="d-block"
+                  [routerLink]="['/personal-workspace/knowledge/people', person.id]"
                   queryParamsHandling="preserve"
+                  [attr.data-testid]="'dates-related-person-' + value.id + '-' + person.id"
                 >
-                  {{ value.displayName }}
+                  {{ person.displayName }}
                 </a>
-              </td>
-              <td>{{ annualDateLabel(value.date) }}</td>
-              <td>
-                <div [id]="'dates-related-people-' + value.id">
-                  @for (person of relatedPeopleForRow(value); track person.id) {
-                    <a
-                      class="d-block"
-                      [routerLink]="['/personal-workspace/knowledge/people', person.id]"
-                      queryParamsHandling="preserve"
-                      [attr.data-testid]="'dates-related-person-' + value.id + '-' + person.id"
-                    >
-                      {{ person.displayName }}
-                    </a>
-                  } @empty {
-                    <span class="text-body-secondary">{{ 'shared.notSet' | t }}</span>
-                  }
-                </div>
-                @if (relatedPeopleCollapsible(value)) {
-                  <button
-                    type="button"
-                    class="btn btn-link btn-sm px-0"
-                    [attr.data-testid]="'dates-related-people-toggle-' + value.id"
-                    [attr.aria-controls]="'dates-related-people-' + value.id"
-                    [attr.aria-expanded]="relatedPeopleExpanded(value.id)"
-                    (click)="toggleRelatedPeople(value.id)"
-                  >
-                    {{
-                      (relatedPeopleExpanded(value.id) ? 'shared.showLess' : 'shared.showAll')
-                        | t: { count: value.relatedPeople.length }
-                    }}
-                  </button>
+              }
+            </div>
+            @if (relatedPeopleCollapsible(value)) {
+              <button
+                type="button"
+                class="btn btn-link btn-sm px-0"
+                [attr.data-testid]="'dates-related-people-toggle-' + value.id"
+                [attr.aria-controls]="'dates-related-people-' + value.id"
+                [attr.aria-expanded]="relatedPeopleExpanded(value.id)"
+                (click)="toggleRelatedPeople(value.id)"
+              >
+                {{
+                  (relatedPeopleExpanded(value.id) ? 'shared.showLess' : 'shared.showAll')
+                    | t: { count: value.relatedPeople.length }
+                }}
+              </button>
+            }
+          </div>
+          <div class="row-tags small text-body-secondary">
+            @for (tag of value.tags.slice(0, 2); track tag.id) {
+              <span>{{ tag.name }}</span>
+            }
+            @if (value.tags.length > 2) {
+              <details>
+                <summary>{{ 'shared.showAll' | t: { count: value.tags.length } }}</summary>
+                @for (tag of value.tags.slice(2); track tag.id) {
+                  <span class="d-block">{{ tag.name }}</span>
                 }
-              </td>
-              <td>
-                <div class="d-flex flex-wrap gap-1">
-                  @for (tag of value.tags; track tag.id) {
-                    <span class="badge text-bg-secondary">{{ tag.name }}</span>
-                  } @empty {
-                    <span class="text-body-secondary">{{ 'shared.notSet' | t }}</span>
-                  }
-                </div>
-              </td>
-              <td class="text-end">
-                <app-actions-dropdown
-                  [actions]="dateActions(value)"
-                  [buttonLabel]="'shared.actions' | t"
-                  [ariaLabel]="'shared.actions' | t"
-                  [destructiveActionLabel]="'shared.destructiveAction' | t"
-                  [testId]="'dates-actions-' + value.id"
-                  (actionSelected)="handleDateAction($event, value)"
-                />
-              </td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    </div>
-    <div class="d-flex justify-content-between align-items-center gap-3">
+              </details>
+            }
+          </div>
+          <div class="row-actions">
+            <app-actions-dropdown
+              [actions]="dateActions(value)"
+              [buttonLabel]="'shared.actions' | t"
+              [ariaLabel]="('shared.actions' | t) + ': ' + value.displayName"
+              [destructiveActionLabel]="'shared.destructiveAction' | t"
+              [testId]="'dates-actions-' + value.id"
+              (actionSelected)="handleDateAction($event, value)"
+            />
+          </div>
+        </li>
+      }
+    </ul>
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
       <span class="small text-body-secondary">
         {{ 'knowledgeDates.page' | t }} {{ currentPage() }} / {{ page()!.totalPages }} ·
         {{ 'knowledgeDates.total' | t: { count: page()!.totalCount } }}
       </span>
-      <div class="btn-group btn-group-sm">
-        <button
-          type="button"
-          class="btn btn-outline-secondary"
-          [disabled]="!canPrevious()"
-          (click)="goToPage(currentPage() - 1)"
-        >
-          {{ 'shared.back' | t }}
-        </button>
-        <button
-          type="button"
-          class="btn btn-outline-secondary"
-          [disabled]="!canNext()"
-          (click)="goToPage(currentPage() + 1)"
-        >
-          {{ 'shared.next' | t }}
-        </button>
+      <div class="d-flex align-items-center gap-2" [formGroup]="filtersForm">
+        <div class="pagination-size">
+          <label class="form-label" for="dates-page-size">{{
+            'knowledgeDates.pageSize' | t
+          }}</label>
+          <ds-site-select
+            inputId="dates-page-size"
+            [options]="pageSizeOptions"
+            controlSize="small"
+            appearance="default"
+            [required]="true"
+            [invalid]="false"
+            [controlDisabled]="false"
+            formControlName="pageSize"
+          />
+        </div>
+        @if (page()!.totalPages > 1) {
+          <div class="btn-group btn-group-sm">
+            <button
+              type="button"
+              class="btn btn-outline-secondary"
+              [disabled]="!canPrevious()"
+              (click)="goToPage(currentPage() - 1)"
+            >
+              {{ 'shared.back' | t }}
+            </button>
+            <button
+              type="button"
+              class="btn btn-outline-secondary"
+              [disabled]="!canNext()"
+              (click)="goToPage(currentPage() + 1)"
+            >
+              {{ 'shared.next' | t }}
+            </button>
+          </div>
+        }
       </div>
     </div>
   }

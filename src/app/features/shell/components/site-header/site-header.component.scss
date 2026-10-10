@@ -66,3 +66,21 @@
   background: var(--accent-soft-color);
   color: var(--link-readable-color);
 }
+
+.service-name {
+  max-width: 30vw;
+  line-height: 1.2;
+}
+@media (max-width: 575.98px) {
+  .service-logo {
+    width: 28px;
+    height: 28px;
+  }
+  .navbar > div,
+  .navbar > div > div {
+    gap: 0.5rem !important;
+  }
+  .account-menu-name {
+    max-width: 18vw;
+  }
+}

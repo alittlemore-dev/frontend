@@ -1,3 +1,4 @@
+import { WorkspaceDetailNavigationService } from '../../services/workspace-detail-navigation.service';
 import {
   ModalScrollDirective,
   NotificationService,
@@ -84,6 +85,7 @@ const RESUME_LANGUAGE_OPTIONS: readonly ResumeLanguageOption[] = [
   styleUrl: './resumes-page.component.scss',
 })
 export class ResumesPageComponent implements OnInit {
+  private readonly navigation = inject(WorkspaceDetailNavigationService);
   private readonly resumeWorkspace = inject(ResumeWorkspaceService);
   private readonly notifications = inject(NotificationService);
   private readonly i18n = inject(I18nService);
@@ -144,6 +146,17 @@ export class ResumesPageComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+      if (params.get('create') === 'true') {
+        this.openCreateDialog();
+        void this.router.navigate([], {
+          relativeTo: this.route,
+          queryParams: { create: null },
+          queryParamsHandling: 'merge',
+          replaceUrl: true,
+        });
+      }
+    });
     this.setupQueryState();
   }
 
@@ -161,6 +174,7 @@ export class ResumesPageComponent implements OnInit {
             return;
           }
           this.resumes.set(resumes);
+          this.navigation.restorePosition();
           this.loading.set(false);
         },
         error: (err: ApiError) => {

@@ -41,6 +41,23 @@ describe('WorkspaceDetailNavigationService', () => {
     expect(router.url).toBe('/personal-workspace/knowledge/people?search=Ivan#person-1');
   });
 
+  it('restores the previous scroll position only after its list has rendered', async () => {
+    const harness = await RouterTestingHarness.create();
+    const scroll = jest.spyOn(window, 'scrollTo').mockImplementation(() => undefined);
+    await harness.navigateByUrl('/personal-workspace/knowledge/people?page=2');
+    const position = Object.getOwnPropertyDescriptor(window, 'scrollY');
+    Object.defineProperty(window, 'scrollY', { configurable: true, value: 520 });
+    await harness.navigateByUrl('/personal-workspace/knowledge/people/person-1');
+    navigation.back('/personal-workspace/knowledge/people');
+    await harness.fixture.whenStable();
+    navigation.restorePosition();
+    harness.fixture.detectChanges();
+    TestBed.tick();
+    expect(scroll).toHaveBeenCalledWith({ top: 520, behavior: 'instant' });
+    if (position) Object.defineProperty(window, 'scrollY', position);
+    jest.restoreAllMocks();
+  });
+
   it('returns from a linked date to the person that opened it', async () => {
     const harness = await RouterTestingHarness.create();
     await harness.navigateByUrl('/personal-workspace/knowledge/people/person-1');

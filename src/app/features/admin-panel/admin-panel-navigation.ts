@@ -7,6 +7,7 @@ export const ADMIN_PANEL_NAVIGATION_SECTIONS: readonly AdminPanelNavigationSecti
     pages: [
       {
         key: 'team',
+        icon: 'people',
         labelKey: 'adminPanel.section.team',
         route: '/admin-panel/workspace/team',
         badgeTextKey: null,
@@ -21,6 +22,7 @@ export const ADMIN_PANEL_NAVIGATION_SECTIONS: readonly AdminPanelNavigationSecti
     pages: [
       {
         key: 'articles',
+        icon: 'document',
         labelKey: 'shell.nav.articles',
         route: '/admin-panel/articles',
         badgeTextKey: null,
@@ -29,6 +31,7 @@ export const ADMIN_PANEL_NAVIGATION_SECTIONS: readonly AdminPanelNavigationSecti
       },
       {
         key: 'article-folders',
+        icon: 'folder',
         labelKey: 'adminPanel.section.articleFolders',
         route: '/admin-panel/article-folders',
         badgeTextKey: null,
@@ -59,6 +62,7 @@ export const ADMIN_PANEL_NAVIGATION_SECTIONS: readonly AdminPanelNavigationSecti
     pages: [
       {
         key: 'matrix-questions',
+        icon: 'document',
         labelKey: 'adminPanel.section.matrixQuestions',
         route: '/admin-panel/matrix-questions',
         badgeTextKey: null,

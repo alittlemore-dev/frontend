@@ -4,34 +4,59 @@
 .calendar-dialog {
   overflow-y: auto;
 }
-.calendar-toolbar-title {
-  min-width: 9rem;
-  flex: 1 1 10rem;
+.workspace-calendar-layout {
+  display: grid;
+  grid-template-columns: 13rem minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
 }
-.calendar-toolbar-date {
-  flex: 0 0 auto;
+.workspace-calendar-tools {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
 }
-.calendar-date-picker {
-  width: 2.5rem;
+.calendar-create {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
 }
-.calendar-date-picker ::ng-deep .temporal-picker-field-endpoint {
+@media (max-width: 1199.98px) {
+  .workspace-calendar-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .workspace-calendar-tools {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+  }
+  .workspace-calendar-tools ds-mini-calendar {
+    display: none;
+  }
+}
+@media (max-width: 575.98px) {
+  .workspace-calendar-tools {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.5rem;
+  }
+  .calendar-create {
+    justify-self: start;
+  }
+}
+
+.calendar-jump-date {
   display: none;
 }
-.calendar-date-picker ::ng-deep .temporal-picker-field-trigger {
-  min-height: 2rem;
-  border-inline-start: 0;
-}
-.workspace-fullcalendar {
-  --fc-classic-background: var(--bs-body-bg);
-  --fc-classic-foreground: var(--bs-body-color);
-  --fc-classic-muted-foreground: var(--bs-secondary-color);
-  --fc-classic-border: var(--bs-border-color);
-  --fc-classic-faint: var(--bs-tertiary-bg);
-  --fc-classic-muted: var(--bs-secondary-bg);
-  --fc-classic-button: var(--bs-secondary-bg);
-  --fc-classic-button-border: var(--bs-border-color);
-  --fc-classic-button-foreground: var(--bs-body-color);
-  --fc-classic-event: var(--bs-success);
-  --fc-classic-event-contrast: var(--bs-white);
-  --fc-classic-today: var(--accent-soft-color);
+@media (max-width: 1199.98px) {
+  .workspace-calendar-tools {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+  .calendar-jump-date {
+    display: block;
+    width: 10rem;
+  }
+  .workspace-calendar-tools p {
+    flex: 1 1 12rem;
+  }
 }

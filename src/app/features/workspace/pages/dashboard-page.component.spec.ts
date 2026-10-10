@@ -1,13 +1,12 @@
 import { NotificationService } from '@alittlemore.dev/design-system';
 import { DOCUMENT } from '@angular/common';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, DeferBlockState, TestBed } from '@angular/core/testing';
 import { ChangeDetectionStrategy, Component, output, signal } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { NEVER } from 'rxjs';
 import { I18nService } from '../../../core/i18n/i18n.service';
 
 import { provideI18nTesting } from '../../../testing/i18n-testing';
-import { CalendarService } from '../services/calendar.service';
 import { EventsService } from '../services/events.service';
 import { ImportantInfoService } from '../services/important-info.service';
 import { DashboardPageComponent } from './dashboard-page.component';
@@ -30,12 +29,12 @@ const DASHBOARD_COLLAPSED_SECTIONS_STORAGE_KEY = 'dashboardCollapsedSections';
 describe('DashboardPageComponent', () => {
   let fixture: ComponentFixture<DashboardPageComponent>;
   const timeZone = signal('UTC');
-  const getCalendar = jest.fn(() => NEVER);
+  const occurrences = jest.fn(() => NEVER);
 
   beforeEach(async () => {
     localStorage.clear();
     timeZone.set('UTC');
-    getCalendar.mockClear();
+    occurrences.mockClear();
     await TestBed.configureTestingModule({
       providers: [
         provideRouter([]),
@@ -44,9 +43,9 @@ describe('DashboardPageComponent', () => {
           useValue: { recent: jest.fn(() => NEVER), statistics: jest.fn(() => NEVER) },
         },
         provideI18nTesting(),
-        { provide: CalendarService, useValue: { getCalendar } },
+
         { provide: AccountSettingsService, useValue: { timeZone } },
-        { provide: EventsService, useValue: { occurrences: jest.fn(() => NEVER) } },
+        { provide: EventsService, useValue: { occurrences } },
         { provide: ImportantInfoService, useValue: { list: jest.fn(() => NEVER) } },
         {
           provide: NotificationService,
@@ -74,21 +73,22 @@ describe('DashboardPageComponent', () => {
     const root = fixture.nativeElement.firstElementChild as HTMLElement;
     const tabs = root.querySelector('[data-testid="dashboard-tabs"]');
 
-    expect(root.firstElementChild).toBe(tabs);
-    expect(root.querySelector('h2')).toBeNull();
-    expect(root.querySelector('[data-testid="dashboard-refresh"]')).toBeNull();
+    expect(tabs?.getAttribute('role')).toBe('tablist');
+    expect(root.querySelector('[role="tab"][aria-selected="true"]')).not.toBeNull();
   });
 
-  it('shows the month calendar without a collapse control', () => {
+  it('loads the calendar only after selecting its tab', async () => {
     fixture = TestBed.createComponent(DashboardPageComponent);
     fixture.detectChanges();
 
+    expect(fixture.nativeElement.querySelector('app-events-calendar')).toBeNull();
     const calendarTab = fixture.nativeElement.querySelector(
       '[data-testid="dashboard-tab-month-calendar"]',
     ) as HTMLButtonElement;
     calendarTab.click();
     fixture.detectChanges();
 
+    await (await fixture.getDeferBlocks())[0].render(DeferBlockState.Complete);
     const calendarPanel = fixture.nativeElement.querySelector(
       '[data-testid="dashboard-tabpanel-month-calendar"]',
     ) as HTMLElement;
@@ -97,6 +97,24 @@ describe('DashboardPageComponent', () => {
     expect(
       calendarPanel.querySelector('[data-testid="ds-section-toggle-month-calendar"]'),
     ).toBeNull();
+  });
+
+  it('offers recovery when the calendar code cannot be loaded', async () => {
+    fixture = TestBed.createComponent(DashboardPageComponent);
+    fixture.detectChanges();
+    fixture.componentInstance.activeTab.set('month-calendar');
+    fixture.detectChanges();
+    await (await fixture.getDeferBlocks())[0].render(DeferBlockState.Error);
+    const panel = fixture.nativeElement.querySelector(
+      '[data-testid="dashboard-tabpanel-month-calendar"]',
+    ) as HTMLElement;
+    expect(panel.querySelector('[role="alert"]')).not.toBeNull();
+    expect(panel.querySelector('ds-loading-spinner')).toBeNull();
+    const reload = jest
+      .spyOn(fixture.componentInstance, 'reloadCalendar')
+      .mockImplementation(() => undefined);
+    (panel.querySelector('button') as HTMLButtonElement).click();
+    expect(reload).toHaveBeenCalled();
   });
 
   it('loads only known collapsed sections from browser storage', () => {
@@ -140,7 +158,8 @@ describe('DashboardPageComponent', () => {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       providers: [
-        { provide: CalendarService, useValue: { getCalendar: jest.fn() } },
+        provideRouter([]),
+        { provide: EventsService, useValue: { occurrences: jest.fn() } },
         { provide: AccountSettingsService, useValue: { timeZone } },
         { provide: I18nService, useValue: {} },
         { provide: DOCUMENT, useValue: { defaultView: null } },
@@ -159,7 +178,7 @@ describe('DashboardPageComponent', () => {
     fixture.componentInstance.setSectionExpanded('upcoming-dates', false);
 
     expect(localStorage.getItem(DASHBOARD_COLLAPSED_SECTIONS_STORAGE_KEY)).toBe(
-      JSON.stringify(['upcoming-dates']),
+      JSON.stringify(['vault-statistics', 'upcoming-dates']),
     );
   });
 
@@ -168,10 +187,10 @@ describe('DashboardPageComponent', () => {
     try {
       fixture = TestBed.createComponent(DashboardPageComponent);
       fixture.detectChanges();
-      expect(getCalendar).toHaveBeenCalledWith('2026-10-02', 'currentAndNextMonths');
+      expect(occurrences).toHaveBeenCalledWith('2026-10-02', '2026-12-01');
       timeZone.set('Pacific/Honolulu');
       TestBed.tick();
-      expect(getCalendar).toHaveBeenLastCalledWith('2026-10-01', 'currentAndNextMonths');
+      expect(occurrences).toHaveBeenLastCalledWith('2026-10-01', '2026-12-01');
     } finally {
       jest.useRealTimers();
     }

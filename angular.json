@@ -69,21 +69,6 @@
                 "output": "/assets/design-system"
               },
               {
-                "glob": "skeleton.css",
-                "input": "node_modules/@fullcalendar/angular",
-                "output": "/assets/fullcalendar"
-              },
-              {
-                "glob": "theme.css",
-                "input": "node_modules/@fullcalendar/angular/themes/classic",
-                "output": "/assets/fullcalendar"
-              },
-              {
-                "glob": "palette.css",
-                "input": "node_modules/@fullcalendar/angular/themes/classic",
-                "output": "/assets/fullcalendar"
-              },
-              {
                 "glob": "**/*",
                 "input": "public"
               }

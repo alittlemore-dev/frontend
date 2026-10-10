@@ -1,3 +1,5 @@
+import { EMPTY, Subscription, catchError, from, mergeMap, tap } from 'rxjs';
+import { WorkspaceDetailNavigationService } from '../../../../services/workspace-detail-navigation.service';
 import { KnowledgeQuickCreateDialogComponent } from '../../../shared/quick-create-dialog.component';
 import {
   NotificationService,
@@ -84,7 +86,27 @@ export class PeopleListComponent implements OnInit, OnDestroy {
   private readonly tagDraftUnsavedSource: UnsavedChangesSource;
   private peopleLoadGeneration = 0;
   private photoLoadGeneration = 0;
+  private photoRequest: Subscription | null = null;
+  private readonly loadedPhotoIds = new Map<string, string>();
+  readonly photoErrors = signal<ReadonlySet<string>>(new Set());
 
+  private readonly navigation = inject(WorkspaceDetailNavigationService);
+  readonly filtersOpen = signal(false);
+  private appliedSort: PersonListSort = 'updatedNewest';
+  private appliedPageSize: 20 | 50 | 100 = 20;
+  readonly appliedQuery = signal('');
+  readonly appliedTagIds = signal<readonly string[]>([]);
+  readonly filterCount = computed(() => this.appliedTagIds().length);
+  readonly appliedTags = computed(() =>
+    this.appliedTagIds().map(
+      (id) =>
+        this.tags().find((tag) => tag.id === id) ?? {
+          id,
+          name: this.i18n.translate('shared.filters.tag'),
+        },
+    ),
+  );
+  readonly hasFilters = computed(() => this.appliedQuery() !== '' || this.filterCount() > 0);
   readonly loading = signal(false);
   readonly error = signal<ApiError | null>(null);
   readonly page = signal<PeoplePage | null>(null);
@@ -133,6 +155,9 @@ export class PeopleListComponent implements OnInit, OnDestroy {
   readonly validationLimits = VALIDATION_LIMITS;
 
   constructor() {
+    this.filtersForm.controls.pageSize.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.changePageSize());
     this.createUnsavedSource = this.unsavedScope.registerSource(
       this.createSnapshot,
       this.createDialogOpen,
@@ -149,13 +174,26 @@ export class PeopleListComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.loadTags();
     this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+      if (params.get('create') === 'true') {
+        this.openCreateDialog();
+        void this.router.navigate([], {
+          relativeTo: this.route,
+          queryParams: { create: null },
+          queryParamsHandling: 'merge',
+          replaceUrl: true,
+        });
+      }
       const page = positiveInteger(params.get('page'), 1);
       const pageSize = pageSizeValue(params.get('pageSize'));
       const sort = sortValue(params.get('sort'));
       const searchQuery = params.get('q')?.trim() ?? '';
       const tagIds = unique(params.getAll('tagIds').filter((value) => value.trim() !== ''));
       this.currentPage.set(page);
+      this.appliedSort = sort;
+      this.appliedPageSize = pageSize;
       this.selectedTagIds.set(tagIds);
+      this.appliedTagIds.set(tagIds);
+      this.appliedQuery.set(searchQuery);
       this.filtersForm.setValue(
         { searchQuery, sort, pageSize: String(pageSize) as '20' | '50' | '100' },
         { emitEvent: false },
@@ -165,6 +203,7 @@ export class PeopleListComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.photoRequest?.unsubscribe();
     this.revokePhotoUrls();
   }
 
@@ -187,12 +226,17 @@ export class PeopleListComponent implements OnInit, OnDestroy {
           }
           this.page.set(page);
           this.loading.set(false);
+          this.navigation.restorePosition();
           this.loadPhotoUrls(page);
         },
         error: (error: ApiError) => {
           if (generation !== this.peopleLoadGeneration) {
             return;
           }
+          this.photoRequest?.unsubscribe();
+          ++this.photoLoadGeneration;
+          this.revokePhotoUrls();
+          this.photoErrors.set(new Set());
           this.error.set(error);
           this.loading.set(false);
           this.notifications.error(this.i18n.translate('knowledgePeople.loadError'));
@@ -212,6 +256,30 @@ export class PeopleListComponent implements OnInit, OnDestroy {
           this.notifications.error(this.i18n.translate('knowledgePeople.tags.loadError'));
         },
       });
+  }
+
+  changePageSize(): void {
+    if (Number(this.filtersForm.controls.pageSize.value) === this.appliedPageSize) return;
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {
+        pageSize:
+          this.filtersForm.controls.pageSize.value === '20'
+            ? null
+            : this.filtersForm.controls.pageSize.value,
+        page: null,
+      },
+      queryParamsHandling: 'merge',
+    });
+  }
+
+  removeFilter(key: string, tagId?: string): void {
+    const value = key === 'tagIds' ? this.appliedTagIds().filter((id) => id !== tagId) : null;
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { [key]: value, page: null },
+      queryParamsHandling: 'merge',
+    });
   }
 
   applyFilters(): void {
@@ -447,40 +515,59 @@ export class PeopleListComponent implements OnInit, OnDestroy {
   }
 
   private appliedFilters(): PeopleListFilters {
-    const raw = this.filtersForm.getRawValue();
     return {
       page: this.currentPage(),
-      pageSize: Number(raw.pageSize) as 20 | 50 | 100,
-      sort: raw.sort,
-      searchQuery: raw.searchQuery,
-      tagIds: this.selectedTagIds(),
+      pageSize: this.appliedPageSize,
+      sort: this.appliedSort,
+      searchQuery: this.appliedQuery(),
+      tagIds: this.appliedTagIds(),
     };
+  }
+
+  retryPhotos(): void {
+    const page = this.page();
+    if (page) this.loadPhotoUrls(page);
   }
 
   private loadPhotoUrls(page: PeoplePage): void {
     const browserUrl = this.document.defaultView?.URL;
-    this.revokePhotoUrls();
+    this.photoRequest?.unsubscribe();
     const generation = ++this.photoLoadGeneration;
-    if (browserUrl === undefined) {
-      return;
+    if (!browserUrl) return;
+    const urls = { ...this.photoUrls() };
+    for (const [id, url] of Object.entries(urls)) {
+      const fileId = page.people.find((person) => person.id === id)?.photo?.id;
+      if (fileId === this.loadedPhotoIds.get(id)) continue;
+      browserUrl.revokeObjectURL(url);
+      delete urls[id];
+      this.loadedPhotoIds.delete(id);
     }
-    for (const person of page.people) {
-      if (person.photo === null) {
-        continue;
-      }
-      this.peopleService
-        .getFileContent(person.photo.id)
-        .pipe(takeUntilDestroyed(this.destroyRef))
-        .subscribe({
-          next: (blob) => {
-            if (generation !== this.photoLoadGeneration) {
-              return;
-            }
-            const url = browserUrl.createObjectURL(blob);
-            this.photoUrls.update((urls) => ({ ...urls, [person.id]: url }));
-          },
-        });
-    }
+    this.photoUrls.set(urls);
+    this.photoErrors.set(new Set());
+    this.photoRequest = from(
+      page.people.filter((person) => person.photo !== null && !urls[person.id]),
+    )
+      .pipe(
+        mergeMap(
+          (person) =>
+            this.peopleService.getFileContent(person.photo!.id).pipe(
+              tap((blob) => {
+                if (generation !== this.photoLoadGeneration) return;
+                const url = browserUrl.createObjectURL(blob);
+                this.loadedPhotoIds.set(person.id, person.photo!.id);
+                this.photoUrls.update((current) => ({ ...current, [person.id]: url }));
+              }),
+              catchError(() => {
+                if (generation === this.photoLoadGeneration)
+                  this.photoErrors.update((ids) => new Set([...ids, person.id]));
+                return EMPTY;
+              }),
+            ),
+          3,
+        ),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe();
   }
 
   private revokePhotoUrls(): void {
@@ -492,6 +579,7 @@ export class PeopleListComponent implements OnInit, OnDestroy {
       }
     }
     this.photoUrls.set({});
+    this.loadedPhotoIds.clear();
   }
 }
 

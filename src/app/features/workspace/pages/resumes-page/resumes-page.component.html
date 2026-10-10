@@ -1,6 +1,6 @@
 <div class="resumes-page">
   <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
-    <h2 class="h4 mb-0">{{ 'resumeWorkspace.title' | t }}</h2>
+    <h1 class="h4 mb-0">{{ 'resumeWorkspace.title' | t }}</h1>
     <div class="d-flex flex-wrap gap-2">
       <button
         type="button"
@@ -27,73 +27,61 @@
   } @else if ((resumes()?.resumes?.length ?? 0) === 0) {
     <ds-empty-state [message]="'resumeWorkspace.empty' | t" />
   } @else if (resumes()) {
-    <div class="table-responsive">
-      <table class="table table-sm align-middle">
-        <thead>
-          <tr>
-            <th>{{ 'resumeWorkspace.field.title' | t }}</th>
-            <th>{{ 'resumeWorkspace.updatedAt' | t }}</th>
-            <th>{{ 'resumeWorkspace.createdAt' | t }}</th>
-            <th>{{ 'resumeWorkspace.completeness' | t }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (resume of resumes()!.resumes; track resume.id) {
-            <tr>
-              <td>
-                <a
-                  class="fw-semibold"
-                  [routerLink]="['/personal-workspace/resumes', resume.id]"
-                  queryParamsHandling="preserve"
-                >
-                  {{ resume.title }}
-                </a>
-                <span class="badge text-bg-secondary ms-2">
-                  {{ languageLabelKey(resume.language) | t }}
-                </span>
-                <span class="d-block small text-body-secondary">
-                  {{ resume.content.profile.fullName.trim() || ('shared.notSet' | t) }}
-                </span>
-              </td>
-              <td>
-                <time [attr.datetime]="resume.updatedAt" data-testid="resume-date">
-                  {{ formatDate(resume.updatedAt) }}
-                </time>
-              </td>
-              <td>
-                <time [attr.datetime]="resume.createdAt" data-testid="resume-date">
-                  {{ formatDate(resume.createdAt) }}
-                </time>
-              </td>
-              <td>{{ completedSections(resume) }}/5</td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    </div>
+    <ul class="list-unstyled collection-list mb-3" [attr.aria-label]="'resumeWorkspace.title' | t">
+      @for (resume of resumes()!.resumes; track resume.id) {
+        <li class="collection-row resume-row" [id]="'resume-' + resume.id">
+          <div class="min-w-0">
+            <a
+              class="fw-semibold"
+              [routerLink]="['/personal-workspace/resumes', resume.id]"
+              queryParamsHandling="preserve"
+              >{{ resume.title }}</a
+            >
+            <span class="d-block small text-body-secondary"
+              >{{ resume.content.profile.fullName }}
+              @if (resume.content.profile.role) {
+                · {{ resume.content.profile.role }}
+              }
+            </span>
+          </div>
+          <span class="small text-body-secondary">{{ languageLabelKey(resume.language) | t }}</span>
+          <span class="small text-body-secondary"
+            >{{ 'resumeWorkspace.updatedAt' | t }} ·
+            <time [attr.datetime]="resume.updatedAt" data-testid="resume-date">{{
+              formatDate(resume.updatedAt)
+            }}</time></span
+          >
+          <span class="small text-body-secondary">{{
+            'resumeWorkspace.completeness' | t: { count: completedSections(resume) }
+          }}</span>
+        </li>
+      }
+    </ul>
 
     <div class="d-flex justify-content-between align-items-center gap-3">
       <span class="small text-body-secondary">
         {{ 'resumeWorkspace.page' | t }} {{ page() }} / {{ resumes()!.totalPages }}
       </span>
-      <div class="btn-group btn-group-sm">
-        <button
-          type="button"
-          class="btn btn-outline-secondary"
-          [disabled]="page() <= 1"
-          (click)="previousPage()"
-        >
-          {{ 'shared.back' | t }}
-        </button>
-        <button
-          type="button"
-          class="btn btn-outline-secondary"
-          [disabled]="page() >= resumes()!.totalPages"
-          (click)="nextPage()"
-        >
-          {{ 'shared.next' | t }}
-        </button>
-      </div>
+      @if (resumes()!.totalPages > 1) {
+        <div class="btn-group btn-group-sm">
+          <button
+            type="button"
+            class="btn btn-outline-secondary"
+            [disabled]="page() <= 1"
+            (click)="previousPage()"
+          >
+            {{ 'shared.back' | t }}
+          </button>
+          <button
+            type="button"
+            class="btn btn-outline-secondary"
+            [disabled]="page() >= resumes()!.totalPages"
+            (click)="nextPage()"
+          >
+            {{ 'shared.next' | t }}
+          </button>
+        </div>
+      }
     </div>
   }
 
@@ -148,7 +136,7 @@
                 </label>
                 <input
                   id="resume-create-title"
-                  class="form-control"
+                  class="form-control form-control-sm"
                   [class.is-invalid]="createFieldInvalid('title')"
                   data-testid="resume-create-title"
                   [appResumeTextLimit]="validationLimits.shortText"
@@ -166,7 +154,7 @@
                 <ds-site-select
                   inputId="resume-create-language"
                   [options]="languageSelectOptions()"
-                  controlSize="default"
+                  controlSize="small"
                   appearance="default"
                   [required]="true"
                   [invalid]="createFieldInvalid('language')"
@@ -185,7 +173,7 @@
                 </label>
                 <input
                   id="resume-create-full-name"
-                  class="form-control"
+                  class="form-control form-control-sm"
                   [class.is-invalid]="createFieldInvalid('fullName')"
                   data-testid="resume-create-full-name"
                   [appResumeTextLimit]="validationLimits.shortText"
@@ -202,7 +190,7 @@
                 </label>
                 <input
                   id="resume-create-role"
-                  class="form-control"
+                  class="form-control form-control-sm"
                   [class.is-invalid]="createFieldInvalid('role')"
                   data-testid="resume-create-role"
                   [appResumeTextLimit]="validationLimits.shortText"
@@ -219,7 +207,7 @@
                 </label>
                 <textarea
                   id="resume-create-summary"
-                  class="form-control"
+                  class="form-control form-control-sm"
                   [class.is-invalid]="createFieldInvalid('summary')"
                   data-testid="resume-create-summary"
                   [appResumeTextLimit]="validationLimits.summary"

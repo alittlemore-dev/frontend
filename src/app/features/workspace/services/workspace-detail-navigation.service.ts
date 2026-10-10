@@ -1,17 +1,38 @@
-import { DestroyRef, Injectable, inject } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
+import { DestroyRef, Injectable, Injector, afterNextRender, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { NavigationEnd, Router } from '@angular/router';
+import { NavigationEnd, NavigationStart, Router } from '@angular/router';
 
 @Injectable({ providedIn: 'root' })
 export class WorkspaceDetailNavigationService {
   private readonly router = inject(Router);
+  private readonly document = inject(DOCUMENT);
+  private readonly injector = inject(Injector);
+  private readonly positions = new Map<string, number>();
   private history: string[] = [];
 
   constructor() {
     this.record(this.router.url);
     this.router.events.pipe(takeUntilDestroyed(inject(DestroyRef))).subscribe((event) => {
+      if (event instanceof NavigationStart && this.router.url.startsWith('/personal-workspace')) {
+        this.positions.set(this.router.url, this.document.defaultView?.scrollY ?? 0);
+        if (this.positions.size > 40) this.positions.delete(this.positions.keys().next().value!);
+      }
       if (event instanceof NavigationEnd) this.record(event.urlAfterRedirects);
     });
+  }
+
+  restorePosition(): void {
+    const url = this.router.url;
+    const position = this.positions.get(url);
+    if (position === undefined) return;
+    afterNextRender(
+      () => {
+        if (this.router.url === url)
+          this.document.defaultView?.scrollTo({ top: position, behavior: 'instant' });
+      },
+      { injector: this.injector },
+    );
   }
 
   back(listRoute: string): void {

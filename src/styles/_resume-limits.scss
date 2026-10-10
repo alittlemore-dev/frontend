@@ -28,7 +28,10 @@
     z-index: 1;
   }
 
-  .resume-limited-input:focus + .resume-text-limit-counter,
+  .resume-limited-input:focus + .resume-text-limit-counter {
+    opacity: 0.65;
+  }
+
   .resume-text-limit-counter.resume-limit-near,
   .resume-text-limit-counter.resume-limit-exceeded {
     opacity: 1;

@@ -2,20 +2,23 @@
   background-color: var(--bs-tertiary-bg);
 }
 
-.vault-statistics-totals,
-.vault-statistics-activity {
+.vault-statistics-totals {
   display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
   gap: 0.75rem;
 }
-
-@media (min-width: 576px) {
-  .vault-statistics-totals {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
+.vault-statistics-kinds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.5rem;
 }
 
-@media (min-width: 768px) {
-  .vault-statistics-activity {
+.vault-recent {
+  display: grid;
+  column-gap: 1.5rem;
+}
+@media (min-width: 1200px) {
+  .vault-recent {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
