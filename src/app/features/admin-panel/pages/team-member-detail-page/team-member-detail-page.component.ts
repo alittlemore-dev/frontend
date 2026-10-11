@@ -112,6 +112,16 @@ export class TeamMemberDetailPageComponent implements OnInit {
   readonly passwordFormSubmitted = signal(false);
   readonly passwordError = signal<ApiError | null>(null);
   readonly sessions = signal<ManagedAccountSession[]>([]);
+  readonly orderedSessions = computed(() =>
+    [...this.sessions()].sort(
+      (left, right) =>
+        Number(right.isCurrent) - Number(left.isCurrent) ||
+        Date.parse(right.lastUsedAt) - Date.parse(left.lastUsedAt),
+    ),
+  );
+  readonly otherSessionCount = computed(
+    () => this.sessions().filter((session) => !session.isCurrent).length,
+  );
   readonly sessionsLoading = signal(false);
   readonly sessionsError = signal<ApiError | null>(null);
   readonly sessionActionSubmitting = signal<string | null>(null);

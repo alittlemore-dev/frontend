@@ -8,7 +8,7 @@
         @if (article(); as currentArticle) {
           {{ currentArticle.title }}
         } @else {
-          {{ 'articles.modal.edit' | t }}
+          {{ (creating ? 'articles.modal.create' : 'articles.modal.edit') | t }}
         }
       </h1>
       @if (article(); as currentArticle) {
@@ -41,7 +41,7 @@
       [retryLabel]="'shared.retry' | t"
       (retry)="retryLoadArticle()"
     />
-  } @else if (article(); as currentArticle) {
+  } @else if (creating || article()) {
     @if (saveError()) {
       <ds-error-message
         [error]="saveError()!"
@@ -51,7 +51,8 @@
     }
     <app-admin-article-form
       #articleForm
-      [article]="currentArticle"
+      [submitting]="submitting()"
+      [article]="article()"
       [unsavedChangesScope]="unsavedChangesScope"
       (articleSave)="saveArticle($event)"
       (formCancel)="goBack()"

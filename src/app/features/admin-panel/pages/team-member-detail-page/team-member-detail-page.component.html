@@ -9,7 +9,7 @@
       >
         {{ 'shared.back' | t }}
       </button>
-      <h1 class="h4 mb-0">{{ 'adminTeamWorkspace.detailTitle' | t }}</h1>
+      <h1 class="h4 mb-0">{{ account()?.username ?? ('adminTeamWorkspace.detailTitle' | t) }}</h1>
     </div>
     @if (account(); as accountValue) {
       <app-admin-actions-dropdown
@@ -63,28 +63,31 @@
     <section class="border-top pt-3 mt-3" data-testid="team-sessions-section">
       <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
         <h2 class="h5 mb-0">{{ 'adminTeamWorkspace.sessions.title' | t }}</h2>
-        <div class="d-flex flex-wrap gap-2">
-          @if (canRevokeOtherSessions()) {
+        <details class="admin-editor-inline-create">
+          <summary>{{ 'adminEditor.sessionActions' | t }}</summary>
+          <div class="d-flex flex-wrap gap-2">
+            @if (canRevokeOtherSessions()) {
+              <button
+                type="button"
+                class="btn btn-outline-danger btn-sm"
+                data-testid="team-sessions-revoke-others"
+                [disabled]="sessionActionSubmitting() !== null"
+                (click)="revokeOtherSessions()"
+              >
+                {{ 'adminTeamWorkspace.sessions.revokeOthers' | t }} ({{ otherSessionCount() }})
+              </button>
+            }
             <button
               type="button"
               class="btn btn-outline-danger btn-sm"
-              data-testid="team-sessions-revoke-others"
-              [disabled]="sessionActionSubmitting() !== null"
-              (click)="revokeOtherSessions()"
+              data-testid="team-sessions-revoke-all"
+              [disabled]="sessionActionSubmitting() !== null || sessions().length === 0"
+              (click)="revokeAllSessions()"
             >
-              {{ 'adminTeamWorkspace.sessions.revokeOthers' | t }}
+              {{ 'adminTeamWorkspace.sessions.revokeAll' | t }} ({{ sessions().length }})
             </button>
-          }
-          <button
-            type="button"
-            class="btn btn-outline-danger btn-sm"
-            data-testid="team-sessions-revoke-all"
-            [disabled]="sessionActionSubmitting() !== null || sessions().length === 0"
-            (click)="revokeAllSessions()"
-          >
-            {{ 'adminTeamWorkspace.sessions.revokeAll' | t }}
-          </button>
-        </div>
+          </div>
+        </details>
       </div>
 
       @if (sessionsLoading()) {
@@ -113,7 +116,7 @@
               </tr>
             </thead>
             <tbody>
-              @for (session of sessions(); track session.id) {
+              @for (session of orderedSessions(); track session.id) {
                 <tr>
                   <td [attr.data-label]="'adminTeamWorkspace.sessions.device' | t">
                     <div class="fw-medium">{{ session.userAgentDisplay }}</div>

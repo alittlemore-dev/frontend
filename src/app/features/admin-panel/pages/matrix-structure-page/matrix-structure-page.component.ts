@@ -1,3 +1,4 @@
+import { AdminRemoveButtonComponent } from '../../components/admin-remove-button/admin-remove-button.component';
 import { CdkDrag, CdkDragDrop, CdkDropList, moveItemInArray } from '@angular/cdk/drag-drop';
 import { DOCUMENT } from '@angular/common';
 import {
@@ -5,6 +6,8 @@ import {
   Component,
   DestroyRef,
   OnInit,
+  Injector,
+  afterNextRender,
   computed,
   inject,
   signal,
@@ -69,6 +72,7 @@ interface MatrixStructureCreateFormValue {
   selector: 'app-matrix-structure-page',
   standalone: true,
   imports: [
+    AdminRemoveButtonComponent,
     CdkDrag,
     CdkDropList,
     ReactiveFormsModule,
@@ -92,12 +96,14 @@ export class MatrixStructurePageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly document = inject(DOCUMENT);
+  private readonly injector = inject(Injector);
   readonly unsavedChangesScope = inject(AdminUnsavedChangesService).createScope(this.destroyRef);
   private currentQueryParams: ParamMap | null = null;
   private structureLoaded = false;
 
   readonly structure = signal<AdminMatrixStructure>({ sheets: [] });
   readonly selectedSheetId = signal<string | null>(null);
+  readonly collapsedSections = signal<ReadonlySet<string>>(new Set());
   readonly loading = signal(false);
   readonly saving = signal(false);
   readonly deleting = signal(false);
@@ -271,6 +277,42 @@ export class MatrixStructurePageComponent implements OnInit {
     return validationMessage(this.nameCreateForm.controls[field], this.i18n);
   }
 
+  toggleSection(id: string): void {
+    this.collapsedSections.update((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  moveSheet(id: string, direction: -1 | 1): void {
+    const index = this.structure().sheets.findIndex((sheet) => sheet.id === id);
+    this.reorderSheets(index, index + direction);
+    afterNextRender(
+      () => this.document.getElementById('structure-row-' + id)?.focus({ preventScroll: true }),
+      { injector: this.injector },
+    );
+  }
+
+  moveSection(sheet: AdminMatrixStructureSheet, id: string, direction: -1 | 1): void {
+    const index = sheet.sections.findIndex((section) => section.id === id);
+    this.reorderSections(sheet.id, index, index + direction);
+    afterNextRender(
+      () => this.document.getElementById('structure-row-' + id)?.focus({ preventScroll: true }),
+      { injector: this.injector },
+    );
+  }
+
+  moveSubsection(section: AdminMatrixStructureSection, id: string, direction: -1 | 1): void {
+    const index = section.subsections.findIndex((subsection) => subsection.id === id);
+    this.reorderSubsections(section.id, index, index + direction);
+    afterNextRender(
+      () => this.document.getElementById('structure-row-' + id)?.focus({ preventScroll: true }),
+      { injector: this.injector },
+    );
+  }
+
   dropSheets(event: CdkDragDrop<AdminMatrixStructureSheet[]>): void {
     this.reorderSheets(event.previousIndex, event.currentIndex);
   }
@@ -297,7 +339,8 @@ export class MatrixStructurePageComponent implements OnInit {
     moveItemInArray(next.sheets, previousIndex, currentIndex);
     renumberPriorities(next.sheets);
     this.structure.set(next);
-    this.selectedSheetId.set(next.sheets[currentIndex]?.id ?? this.selectedSheetId());
+    const movedSheet = next.sheets[currentIndex];
+    if (movedSheet) this.selectSheet(movedSheet.id);
     this.saveReorder(
       snapshot,
       this.workspaceService.updateSheetPriorities(next.sheets.map((sheet) => sheet.id)),

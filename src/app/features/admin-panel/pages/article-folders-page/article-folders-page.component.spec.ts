@@ -13,6 +13,7 @@ describe('ArticleFoldersPageComponent', () => {
     getFolders: jest.Mock;
     createFolder: jest.Mock;
     updateFolderPriorities: jest.Mock;
+    deleteFolder: jest.Mock;
   };
   let notifications: {
     success: jest.Mock;
@@ -24,6 +25,7 @@ describe('ArticleFoldersPageComponent', () => {
       getFolders: jest.fn().mockReturnValue(of([folder('folder-1', 'Engineering', 1)])),
       createFolder: jest.fn().mockReturnValue(of(folder('folder-2', 'Architecture', 2))),
       updateFolderPriorities: jest.fn().mockReturnValue(of(undefined)),
+      deleteFolder: jest.fn().mockReturnValue(of(undefined)),
     };
     notifications = {
       success: jest.fn(),
@@ -83,6 +85,45 @@ describe('ArticleFoldersPageComponent', () => {
     ]);
     expect(notifications.error).toHaveBeenCalledWith('Не удалось сохранить порядок папок.');
     expect(articlesService.getFolders).toHaveBeenCalledTimes(3);
+  });
+
+  it('deletes a confirmed folder and removes it from the list', () => {
+    jest.spyOn(window, 'confirm').mockReturnValueOnce(true);
+    click('[data-testid="article-folder-delete-folder-1"]');
+    expect(articlesService.deleteFolder).toHaveBeenCalledWith('folder-1');
+    expect(fixture.componentInstance.folders()).toEqual([]);
+    expect(notifications.success).toHaveBeenCalledWith('Папка удалена.');
+  });
+
+  it('keeps an occupied folder and explains how to resolve the conflict', () => {
+    jest.spyOn(window, 'confirm').mockReturnValueOnce(true);
+    articlesService.deleteFolder.mockReturnValue(throwError(() => ({ status: 409 })));
+    click('[data-testid="article-folder-delete-folder-1"]');
+    expect(fixture.componentInstance.folders()).toHaveLength(1);
+    expect(notifications.error).toHaveBeenCalledWith(
+      'В папке есть статьи. Сначала перенесите их в другую папку.',
+    );
+  });
+
+  it('does not delete when confirmation is cancelled', () => {
+    jest.spyOn(window, 'confirm').mockReturnValueOnce(false);
+    click('[data-testid="article-folder-delete-folder-1"]');
+    expect(articlesService.deleteFolder).not.toHaveBeenCalled();
+  });
+
+  it('reorders the focused row with Alt+ArrowDown', () => {
+    articlesService.getFolders.mockReturnValue(
+      of([folder('folder-1', 'Engineering', 1), folder('folder-2', 'Architecture', 2)]),
+    );
+    fixture.componentInstance.loadFolders();
+    fixture.detectChanges();
+    const row = fixture.nativeElement.querySelector(
+      '[data-testid="article-folder-row"]',
+    ) as HTMLElement;
+    row.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'ArrowDown', altKey: true, bubbles: true }),
+    );
+    expect(articlesService.updateFolderPriorities).toHaveBeenCalledWith(['folder-2', 'folder-1']);
   });
 
   it('creates a folder from the modal and reloads the list', () => {

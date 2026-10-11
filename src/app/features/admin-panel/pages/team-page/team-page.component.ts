@@ -1,3 +1,4 @@
+import { AdminCollectionPositionService } from '../../services/admin-collection-position.service';
 import { DOCUMENT } from '@angular/common';
 import {
   ChangeDetectionStrategy,
@@ -99,6 +100,7 @@ export class TeamPageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly formBuilder = inject(NonNullableFormBuilder);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly position = inject(AdminCollectionPositionService);
   private readonly document = inject(DOCUMENT);
   private readonly auth = inject(AuthService);
   private readonly unsavedChangesScope = inject(AdminUnsavedChangesService).createScope(
@@ -238,6 +240,7 @@ export class TeamPageComponent implements OnInit {
             return;
           }
           this.accounts.set(accounts);
+          this.position.restore();
           this.loading.set(false);
         },
         error: (err: ApiError) => {

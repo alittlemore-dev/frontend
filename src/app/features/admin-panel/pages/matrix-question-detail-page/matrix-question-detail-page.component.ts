@@ -59,12 +59,14 @@ export class MatrixQuestionDetailPageComponent implements OnInit {
   private readonly questionForm = viewChild(MatrixQuestionFormComponent);
 
   readonly question = signal<AdminMatrixQuestionDetailDto | null>(null);
+  readonly creating = this.route.snapshot.data['adminCreate'] === true;
   readonly loading = signal(false);
   readonly error = signal<ApiError | null>(null);
   readonly saveError = signal<ApiError | null>(null);
   readonly submitting = signal(false);
 
   ngOnInit(): void {
+    if (this.creating) return;
     this.route.paramMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
       this.loadQuestion(questionIdFromParams(params), false);
     });
@@ -95,25 +97,30 @@ export class MatrixQuestionDetailPageComponent implements OnInit {
 
   saveQuestion(payload: AdminMatrixQuestionPayload): void {
     const question = this.question();
-    if (question === null) return;
+    if (this.submitting() || (!this.creating && question === null)) return;
     this.submitting.set(true);
     this.saveError.set(null);
-    this.workspaceService
-      .updateQuestion(question.id, payload, this.currentLanguage())
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (updated) => {
-          this.questionForm()?.acceptSavedQuestion(updated);
-          this.question.set(updated);
-          this.submitting.set(false);
-          this.notifications.success(this.i18n.translate('adminMatrixWorkspace.saved'));
-        },
-        error: (err: ApiError) => {
-          this.saveError.set(err);
-          this.submitting.set(false);
-          this.notifications.error(this.i18n.translate('adminMatrixWorkspace.saveError'));
-        },
-      });
+    const request = this.creating
+      ? this.workspaceService.createQuestion(payload, this.currentLanguage())
+      : this.workspaceService.updateQuestion(question!.id, payload, this.currentLanguage());
+    request.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (updated) => {
+        this.questionForm()?.acceptSavedQuestion(updated);
+        this.question.set(updated);
+        this.submitting.set(false);
+        this.notifications.success(this.i18n.translate('adminMatrixWorkspace.saved'));
+        if (this.creating)
+          void this.router.navigate(['/admin-panel/matrix-questions', updated.id], {
+            queryParamsHandling: 'preserve',
+            replaceUrl: true,
+          });
+      },
+      error: (err: ApiError) => {
+        this.saveError.set(err);
+        this.submitting.set(false);
+        this.notifications.error(this.i18n.translate('adminMatrixWorkspace.saveError'));
+      },
+    });
   }
 
   retryLoadQuestion(): void {

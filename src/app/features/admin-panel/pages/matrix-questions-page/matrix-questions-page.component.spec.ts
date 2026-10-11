@@ -1,5 +1,4 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { By } from '@angular/platform-browser';
 import { Router, provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { I18nService } from '../../../../core/i18n/i18n.service';
@@ -10,7 +9,6 @@ import {
   siteSelectTrigger,
 } from '@alittlemore.dev/design-system/testing';
 import { NotificationService } from '@alittlemore.dev/design-system';
-import { MatrixQuestionFormComponent } from '../../components/matrix-question-form/matrix-question-form.component';
 import {
   AdminMatrixQuestionDetailDto,
   AdminMatrixQuestionWorkspace,
@@ -446,90 +444,6 @@ describe('MatrixQuestionsPageComponent', () => {
     expect(siteSelectOptionLabels(fixture, '#matrix-workspace-section')).not.toContain('Core');
   });
 
-  it('marks required fields and clears red border after a required value is entered', () => {
-    fixture.componentInstance.openCreate();
-    fixture.detectChanges();
-
-    const slug = fixture.nativeElement.querySelector('#matrix-form-slug') as HTMLInputElement;
-
-    expect(fixture.nativeElement.textContent).toContain('Slug *');
-    saveButton().click();
-    fixture.detectChanges();
-    expect(slug.classList).toContain('is-invalid');
-
-    slug.value = 'draft-question';
-    slug.dispatchEvent(new Event('input'));
-    fixture.detectChanges();
-
-    expect(slug.classList).not.toContain('is-invalid');
-  });
-
-  it('scrolls the create form when the wheel is used over modal chrome', () => {
-    fixture.componentInstance.openCreate();
-    fixture.detectChanges();
-    const modal = fixture.nativeElement.querySelector<HTMLElement>('.modal')!;
-    const modalBody = modal.querySelector<HTMLElement>('.modal-body')!;
-    makeElementScrollable(modalBody, 1200, 400);
-    const event = new WheelEvent('wheel', { bubbles: true, cancelable: true, deltaY: 120 });
-
-    modal.querySelector<HTMLElement>('.modal-header')!.dispatchEvent(event);
-
-    expect(modalBody.scrollTop).toBe(120);
-    expect(event.defaultPrevented).toBe(true);
-  });
-
-  it('keeps a changed create modal open when discarding is cancelled', () => {
-    const confirm = jest.spyOn(window, 'confirm').mockReturnValue(false);
-    fixture.componentInstance.openCreate();
-    fixture.detectChanges();
-    setInput('#matrix-form-question-ru', 'Черновик');
-
-    fixture.componentInstance.closeForm();
-    fixture.detectChanges();
-
-    expect(confirm).toHaveBeenCalledTimes(1);
-    expect(fixture.componentInstance.formMode()).toBe('create');
-    expect(
-      (fixture.nativeElement.querySelector('#matrix-form-question-ru') as HTMLInputElement).value,
-    ).toBe('Черновик');
-  });
-
-  it('saves an incomplete draft with only the minimum required fields', () => {
-    fixture.componentInstance.openCreate();
-    fixture.detectChanges();
-    showBothLocalizedFields();
-    setInput('#matrix-form-slug', 'draft-question');
-    selectQuestionSubsection(SUBSECTION_ID);
-    setInput('#matrix-form-question-ru', 'Неполный вопрос?');
-    setInput('#matrix-form-question-en', 'Incomplete question?');
-
-    saveButton().click();
-
-    const payload = service.createQuestion.mock.calls[0][0];
-    expect(payload.subsectionId).toBe(SUBSECTION_ID);
-    expect('sheetKey' in payload).toBe(false);
-    expect(payload.grade).toBeNull();
-    expect(payload.interviewFrequency).toBeNull();
-    expect(payload.publishStatus).toBe('Draft');
-    expect(payload.translations.ru.answer).toBe('');
-    expect(payload.resources).toEqual([]);
-  });
-
-  it('saves the selected interview frequency from the admin form', () => {
-    fixture.componentInstance.openCreate();
-    fixture.detectChanges();
-    showBothLocalizedFields();
-    setInput('#matrix-form-slug', 'frequent-question');
-    selectQuestionSubsection(SUBSECTION_ID);
-    setInput('#matrix-form-question-ru', 'Частый вопрос?');
-    setInput('#matrix-form-question-en', 'Frequent question?');
-    chooseSiteSelectOption(fixture, '#matrix-form-interview-frequency', 'often');
-
-    saveButton().click();
-
-    expect(service.createQuestion.mock.calls[0][0].interviewFrequency).toBe('often');
-  });
-
   it('warns and skips the publish API for incomplete workspace rows', () => {
     openRowActions(QUESTION_ID);
     fixture.nativeElement
@@ -553,84 +467,6 @@ describe('MatrixQuestionsPageComponent', () => {
       queryParamsHandling: 'preserve',
     });
     expect(service.getQuestion).not.toHaveBeenCalled();
-  });
-
-  it('adds, searches, edits context, and removes resources in the admin form', () => {
-    fixture.componentInstance.openCreate();
-    fixture.detectChanges();
-    showBothLocalizedFields();
-
-    setInput('[data-testid="matrix-resource-search"]', 'python');
-    fixture.detectChanges();
-
-    expect(service.searchResources).toHaveBeenCalledWith('python', 10, 'ru');
-    fixture.nativeElement
-      .querySelector<HTMLButtonElement>(`[data-testid="matrix-resource-attach-${RESOURCE_ID}"]`)
-      ?.click();
-    fixture.detectChanges();
-    setTextarea('#matrixResourceContextRu0', 'Читать');
-    setTextarea('#matrixResourceContextEn0', 'Read');
-
-    setInput('[data-testid="matrix-resource-new-name-ru"]', 'Новый ресурс');
-    setInput('[data-testid="matrix-resource-new-name-en"]', 'New resource');
-    setInput('[data-testid="matrix-resource-new-url"]', 'https://example.com');
-    fixture.nativeElement
-      .querySelector<HTMLButtonElement>('[data-testid="matrix-resource-add-new"]')
-      ?.click();
-    fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).toContain('Новый ресурс');
-
-    fixture.nativeElement
-      .querySelector<HTMLButtonElement>('[data-testid="matrix-resource-detach-1"]')
-      ?.click();
-    fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).not.toContain('Новый ресурс');
-
-    setInput('#matrix-form-slug', 'draft-question');
-    selectQuestionSubsection(SUBSECTION_ID);
-    setInput('#matrix-form-question-ru', 'Вопрос?');
-    setInput('#matrix-form-question-en', 'Question?');
-    saveButton().click();
-
-    expect(service.createQuestion.mock.calls[0][0].resources).toEqual([
-      {
-        resourceId: RESOURCE_ID,
-        translations: { ru: { context: 'Читать' }, en: { context: 'Read' } },
-      },
-    ]);
-  });
-
-  it('renders structure picker instead of manual taxonomy text fields', () => {
-    fixture.componentInstance.openCreate();
-    fixture.detectChanges();
-
-    expect(fixture.nativeElement.querySelector('app-matrix-structure-picker')).toBeTruthy();
-    expect(fixture.nativeElement.querySelector('#matrix-form-sheet-key')).toBeNull();
-    expect(fixture.nativeElement.querySelector('#matrix-form-sheet-ru')).toBeNull();
-    expect(fixture.nativeElement.querySelector('#matrix-form-section-ru')).toBeNull();
-    expect(fixture.nativeElement.querySelector('#matrix-form-subsection-ru')).toBeNull();
-  });
-
-  it('generates slug only from the explicit button action', () => {
-    fixture.componentInstance.openCreate();
-    fixture.detectChanges();
-    showBothLocalizedFields();
-    const slug = fixture.nativeElement.querySelector('#matrix-form-slug') as HTMLInputElement;
-    const generateButton = Array.from(fixture.nativeElement.querySelectorAll('button')).find(
-      (button): button is HTMLButtonElement =>
-        (button as HTMLButtonElement).textContent?.includes('Сгенерировать') ?? false,
-    );
-
-    expect(generateButton?.disabled).toBe(true);
-    setInput('#matrix-form-question-en', 'What is dependency injection?');
-    fixture.detectChanges();
-
-    expect(slug.value).toBe('');
-    expect(generateButton?.disabled).toBe(false);
-    generateButton?.click();
-    fixture.detectChanges();
-
-    expect(slug.value).toBe('what-is-dependency-injection');
   });
 
   it('confirms deletes before calling the admin delete endpoint', () => {
@@ -690,46 +526,6 @@ describe('MatrixQuestionsPageComponent', () => {
     }
     return button;
   }
-
-  function selectQuestionSubsection(subsectionId: string): void {
-    const form = fixture.debugElement.query(By.directive(MatrixQuestionFormComponent))
-      .componentInstance as MatrixQuestionFormComponent;
-    form.selectQuestionSubsection(subsectionId);
-    fixture.detectChanges();
-  }
-
-  function showBothLocalizedFields(): void {
-    const button = fixture.nativeElement.querySelector<HTMLButtonElement>(
-      '[data-testid="matrix-form-display-mode-ru-en"]',
-    );
-    if (button === null) {
-      throw new Error('No RU+EN display mode button');
-    }
-    button.click();
-    fixture.detectChanges();
-  }
-
-  function setInput(selector: string, value: string): void {
-    const input = fixture.nativeElement.querySelector(selector) as HTMLInputElement;
-    input.value = value;
-    input.dispatchEvent(new Event('input'));
-  }
-
-  function setTextarea(selector: string, value: string): void {
-    const textarea = fixture.nativeElement.querySelector(selector) as HTMLTextAreaElement;
-    textarea.value = value;
-    textarea.dispatchEvent(new Event('input'));
-  }
-
-  function saveButton(): HTMLButtonElement {
-    const button = fixture.nativeElement.querySelector(
-      '[data-testid="matrix-form-save"]',
-    ) as HTMLButtonElement | null;
-    if (button === null) {
-      throw new Error('No matrix form save button');
-    }
-    return button;
-  }
 });
 
 function previewQuestionList(
@@ -785,14 +581,4 @@ function previewQuestionList(
       [slug]: python ? QUESTION_ID : READY_QUESTION_ID,
     },
   };
-}
-
-function makeElementScrollable(
-  element: HTMLElement,
-  scrollHeight: number,
-  clientHeight: number,
-): void {
-  Object.defineProperty(element, 'scrollHeight', { configurable: true, value: scrollHeight });
-  Object.defineProperty(element, 'clientHeight', { configurable: true, value: clientHeight });
-  element.scrollTop = 0;
 }

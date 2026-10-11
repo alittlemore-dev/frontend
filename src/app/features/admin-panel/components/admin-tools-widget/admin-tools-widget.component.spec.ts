@@ -237,7 +237,9 @@ describe('AdminToolsWidgetComponent', () => {
     click('[data-testid="admin-tools-sessions-prune"]');
 
     expect(service.pruneAuthSessions).toHaveBeenCalledTimes(1);
-    expect(fixture.nativeElement.textContent).toContain('Протухшие: 0');
+    expect(
+      fixture.nativeElement.querySelector('.admin-maintenance-metrics strong')?.textContent,
+    ).toBe('0');
     expect(notifications.success).toHaveBeenCalledWith('Удалено протухших сессий: 12.');
   });
 

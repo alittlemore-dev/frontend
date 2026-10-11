@@ -50,6 +50,7 @@ describe('MatrixQuestionDetailPageComponent', () => {
           useValue: {
             paramMap: routeParams.asObservable(),
             snapshot: {
+              data: {},
               get paramMap() {
                 return routeParams.value;
               },
@@ -71,6 +72,23 @@ describe('MatrixQuestionDetailPageComponent', () => {
     jest.spyOn(router, 'navigate').mockResolvedValue(true);
     fixture = TestBed.createComponent(MatrixQuestionDetailPageComponent);
     fixture.detectChanges();
+  });
+
+  it('creates from the full editor without loading an existing object and preserves list context', () => {
+    fixture.destroy();
+    const route = TestBed.inject(ActivatedRoute);
+    route.snapshot.data = { adminCreate: true };
+    const create = jest.fn().mockReturnValue(of(readyQuestion('Draft')));
+    Object.assign(service, { createQuestion: create });
+    const fresh = TestBed.createComponent(MatrixQuestionDetailPageComponent);
+    fresh.detectChanges();
+    fresh.componentInstance.saveQuestion(questionPayload('ready-question', 'Draft'));
+    expect(create).toHaveBeenCalledWith(questionPayload('ready-question', 'Draft'), 'ru');
+    expect(router.navigate).toHaveBeenCalledWith(
+      ['/admin-panel/matrix-questions', READY_QUESTION_ID],
+      { queryParamsHandling: 'preserve', replaceUrl: true },
+    );
+    fresh.destroy();
   });
 
   it('loads matrix question detail and renders the duplicated actions dropdown', () => {

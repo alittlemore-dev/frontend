@@ -18,7 +18,12 @@
     >
     <span class="h6 mb-0">{{ 'matrix.readiness.title' | t }}</span>
     <span class="d-flex flex-wrap justify-content-end gap-1 ms-auto">
-      <span class="badge text-bg-danger" data-severity="draftBlocker">
+      <span
+        class="badge"
+        [class.text-bg-danger]="analysis().draftBlockerCount > 0"
+        [class.text-bg-secondary]="analysis().draftBlockerCount === 0"
+        data-severity="draftBlocker"
+      >
         {{ 'matrix.readiness.severity.draftBlocker' | t }}:
         {{ analysis().draftBlockerCount }}
       </span>
@@ -26,7 +31,12 @@
         {{ 'matrix.readiness.severity.publicationBlocker' | t }}:
         {{ analysis().publicationBlockerCount }}
       </span>
-      <span class="badge text-bg-warning" data-severity="warning">
+      <span
+        class="badge"
+        [class.text-bg-warning]="analysis().warningCount > 0"
+        [class.text-bg-secondary]="analysis().warningCount === 0"
+        data-severity="warning"
+      >
         {{ 'matrix.readiness.severity.warning' | t }}:
         {{ analysis().warningCount }}
       </span>

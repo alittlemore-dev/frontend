@@ -54,99 +54,6 @@
   />
 
   <div [hidden]="viewMode() !== 'edit'">
-    <details class="admin-editor-section" open>
-      <summary [class.text-danger]="fieldInvalid('slug') || fieldInvalid('subsectionId')">
-        {{ 'adminEditor.settings' | t }}
-      </summary>
-      <div class="row g-3">
-        <div class="col-md-6">
-          <label class="form-label" for="matrix-form-slug">
-            {{ 'matrix.form.slug' | t }}
-            <span class="required-marker" aria-hidden="true">*</span>
-          </label>
-          <div class="input-group">
-            <input
-              id="matrix-form-slug"
-              class="form-control form-control-sm"
-              [class.is-invalid]="fieldInvalid('slug')"
-              [attr.aria-invalid]="fieldInvalid('slug') ? 'true' : null"
-              [attr.maxlength]="validationLimits.shortText"
-              formControlName="slug"
-            />
-            <button
-              type="button"
-              class="btn btn-outline-secondary btn-sm"
-              [disabled]="!canGenerateSlug() || submitting"
-              (click)="generateSlug()"
-            >
-              {{ 'adminMatrixWorkspace.generateSlug' | t }}
-            </button>
-          </div>
-          @if (fieldInvalid('slug') && fieldMessage('slug'); as message) {
-            <div class="invalid-feedback d-block">{{ message }}</div>
-          }
-        </div>
-        <div class="col-12">
-          <app-matrix-structure-picker
-            [unsavedChangesScope]="unsavedChangesScope"
-            [language]="currentLanguage()"
-            [selectedSubsectionId]="questionForm.controls.subsectionId.value"
-            [preferredSheetKey]="preferredSheetKey"
-            [disabled]="submitting"
-            [invalid]="fieldInvalid('subsectionId')"
-            (selectedSubsectionIdChange)="selectQuestionSubsection($event)"
-          />
-          @if (fieldInvalid('subsectionId')) {
-            <div class="invalid-feedback d-block">
-              {{ 'matrix.form.subsectionRequired' | t }}
-            </div>
-          }
-        </div>
-        <div class="col-12 col-md-4">
-          <label class="form-label" for="matrix-form-grade">{{ 'matrix.form.grade' | t }}</label>
-          <ds-site-select
-            inputId="matrix-form-grade"
-            [options]="gradeSelectOptions()"
-            controlSize="small"
-            appearance="default"
-            [required]="false"
-            [invalid]="false"
-            [controlDisabled]="false"
-            formControlName="grade"
-          />
-        </div>
-        <div class="col-12 col-md-4">
-          <label class="form-label" for="matrix-form-interview-frequency">
-            {{ 'matrix.form.interviewFrequency' | t }}
-          </label>
-          <ds-site-select
-            inputId="matrix-form-interview-frequency"
-            [options]="interviewFrequencySelectOptions()"
-            controlSize="small"
-            appearance="default"
-            [required]="false"
-            [invalid]="false"
-            [controlDisabled]="false"
-            formControlName="interviewFrequency"
-          />
-        </div>
-        <div class="col-12 col-md-4">
-          <label class="form-label" for="matrix-form-status">
-            {{ 'adminMatrixWorkspace.status' | t }}
-          </label>
-          <ds-site-select
-            inputId="matrix-form-status"
-            [options]="publishStatusSelectOptions()"
-            controlSize="small"
-            appearance="default"
-            [required]="true"
-            [invalid]="false"
-            [controlDisabled]="false"
-            formControlName="publishStatus"
-          />
-        </div>
-      </div>
-    </details>
     <section class="admin-editor-section">
       <h3 class="h6">{{ 'adminEditor.content' | t }}</h3>
       <div class="row g-3">
@@ -289,6 +196,100 @@
         }
       </div>
     </section>
+    <details class="admin-editor-section" [open]="mode === 'create'">
+      <summary [class.text-danger]="fieldInvalid('slug') || fieldInvalid('subsectionId')">
+        {{ 'adminEditor.settings' | t }}
+        <span class="small text-body-secondary ms-2">{{ settingsSummary() }}</span>
+      </summary>
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label" for="matrix-form-slug">
+            {{ 'matrix.form.slug' | t }}
+            <span class="required-marker" aria-hidden="true">*</span>
+          </label>
+          <div class="input-group">
+            <input
+              id="matrix-form-slug"
+              class="form-control form-control-sm"
+              [class.is-invalid]="fieldInvalid('slug')"
+              [attr.aria-invalid]="fieldInvalid('slug') ? 'true' : null"
+              [attr.maxlength]="validationLimits.shortText"
+              formControlName="slug"
+            />
+            <button
+              type="button"
+              class="btn btn-outline-secondary btn-sm"
+              [disabled]="!canGenerateSlug() || submitting"
+              (click)="generateSlug()"
+            >
+              {{ 'adminMatrixWorkspace.generateSlug' | t }}
+            </button>
+          </div>
+          @if (fieldInvalid('slug') && fieldMessage('slug'); as message) {
+            <div class="invalid-feedback d-block">{{ message }}</div>
+          }
+        </div>
+        <div class="col-12">
+          <app-matrix-structure-picker
+            [unsavedChangesScope]="unsavedChangesScope"
+            [language]="currentLanguage()"
+            [selectedSubsectionId]="questionForm.controls.subsectionId.value"
+            [preferredSheetKey]="preferredSheetKey"
+            [disabled]="submitting"
+            [invalid]="fieldInvalid('subsectionId')"
+            (selectedSubsectionIdChange)="selectQuestionSubsection($event)"
+          />
+          @if (fieldInvalid('subsectionId')) {
+            <div class="invalid-feedback d-block">
+              {{ 'matrix.form.subsectionRequired' | t }}
+            </div>
+          }
+        </div>
+        <div class="col-12 col-md-4">
+          <label class="form-label" for="matrix-form-grade">{{ 'matrix.form.grade' | t }}</label>
+          <ds-site-select
+            inputId="matrix-form-grade"
+            [options]="gradeSelectOptions()"
+            controlSize="small"
+            appearance="default"
+            [required]="false"
+            [invalid]="false"
+            [controlDisabled]="false"
+            formControlName="grade"
+          />
+        </div>
+        <div class="col-12 col-md-4">
+          <label class="form-label" for="matrix-form-interview-frequency">
+            {{ 'matrix.form.interviewFrequency' | t }}
+          </label>
+          <ds-site-select
+            inputId="matrix-form-interview-frequency"
+            [options]="interviewFrequencySelectOptions()"
+            controlSize="small"
+            appearance="default"
+            [required]="false"
+            [invalid]="false"
+            [controlDisabled]="false"
+            formControlName="interviewFrequency"
+          />
+        </div>
+        <div class="col-12 col-md-4">
+          <label class="form-label" for="matrix-form-status">
+            {{ 'adminMatrixWorkspace.status' | t }}
+          </label>
+          <ds-site-select
+            inputId="matrix-form-status"
+            [options]="publishStatusSelectOptions()"
+            controlSize="small"
+            appearance="default"
+            [required]="true"
+            [invalid]="false"
+            [controlDisabled]="false"
+            formControlName="publishStatus"
+          />
+        </div>
+      </div>
+    </details>
     <details class="admin-editor-section" open>
       <summary
         [class.text-danger]="
@@ -379,96 +380,6 @@
         <span class="text-body-secondary ms-2">{{ resourceDrafts().length }}</span>
       </summary>
       <section class="col-12">
-        <div class="input-group input-group-sm mb-2">
-          <input
-            type="search"
-            class="form-control form-control-sm"
-            data-testid="matrix-resource-search"
-            [placeholder]="'matrix.resources.searchPlaceholder' | t"
-            (input)="searchResources($any($event.target).value)"
-          />
-        </div>
-        @if (resourceSearchResults().length > 0) {
-          <div class="list-group mb-3">
-            @for (resource of resourceSearchResults(); track resource.id) {
-              <button
-                type="button"
-                class="list-group-item list-group-item-action"
-                [attr.data-testid]="'matrix-resource-attach-' + resource.id"
-                (click)="attachResource(resource)"
-              >
-                <span class="d-block fw-semibold">{{ resource.name }}</span>
-                <span class="small text-muted">{{ resource.url }}</span>
-              </button>
-            }
-          </div>
-        }
-        <div class="row g-2 mb-3">
-          <div class="col-12 col-md-6 col-xl-3">
-            <input
-              type="text"
-              class="form-control form-control-sm"
-              [class.is-invalid]="newResourceFieldInvalid('nameRu')"
-              [attr.aria-invalid]="newResourceFieldInvalid('nameRu') ? 'true' : null"
-              data-testid="matrix-resource-new-name-ru"
-              [attr.maxlength]="validationLimits.shortText"
-              [placeholder]="'matrix.resources.newNameRuPlaceholder' | t"
-              [value]="newResourceNameRu()"
-              (input)="newResourceNameRu.set($any($event.target).value)"
-            />
-            @if (
-              newResourceFieldInvalid('nameRu') && newResourceFieldMessage('nameRu');
-              as message
-            ) {
-              <div class="invalid-feedback d-block">{{ message }}</div>
-            }
-          </div>
-          <div class="col-12 col-md-6 col-xl-3">
-            <input
-              type="text"
-              class="form-control form-control-sm"
-              [class.is-invalid]="newResourceFieldInvalid('nameEn')"
-              [attr.aria-invalid]="newResourceFieldInvalid('nameEn') ? 'true' : null"
-              data-testid="matrix-resource-new-name-en"
-              [attr.maxlength]="validationLimits.shortText"
-              [placeholder]="'matrix.resources.newNameEnPlaceholder' | t"
-              [value]="newResourceNameEn()"
-              (input)="newResourceNameEn.set($any($event.target).value)"
-            />
-            @if (
-              newResourceFieldInvalid('nameEn') && newResourceFieldMessage('nameEn');
-              as message
-            ) {
-              <div class="invalid-feedback d-block">{{ message }}</div>
-            }
-          </div>
-          <div class="col-12 col-md-8 col-xl-4">
-            <input
-              type="url"
-              class="form-control form-control-sm"
-              [class.is-invalid]="newResourceFieldInvalid('url')"
-              [attr.aria-invalid]="newResourceFieldInvalid('url') ? 'true' : null"
-              data-testid="matrix-resource-new-url"
-              [attr.maxlength]="validationLimits.url"
-              [placeholder]="'matrix.resources.urlPlaceholder' | t"
-              [value]="newResourceUrl()"
-              (input)="newResourceUrl.set($any($event.target).value)"
-            />
-            @if (newResourceFieldInvalid('url') && newResourceFieldMessage('url'); as message) {
-              <div class="invalid-feedback d-block">{{ message }}</div>
-            }
-          </div>
-          <div class="col-12 col-md-4 col-xl-2 d-grid">
-            <button
-              type="button"
-              class="btn btn-sm btn-success text-nowrap"
-              data-testid="matrix-resource-add-new"
-              (click)="addNewResource()"
-            >
-              {{ 'shared.add' | t }}
-            </button>
-          </div>
-        </div>
         @for (resource of resourceDrafts(); track resource.id; let index = $index) {
           <div class="admin-editor-resource py-3 border-top">
             <div class="d-flex justify-content-between gap-2">
@@ -486,7 +397,7 @@
               </button>
             </div>
             <div class="row g-2 mt-2">
-              <div class="col-12">
+              <div class="col-12 col-lg-6">
                 <label class="form-label small" [for]="'matrixResourceContextRu' + index">
                   {{ 'matrix.resources.contextRuLabel' | t }}
                 </label>
@@ -509,7 +420,7 @@
                   <div class="invalid-feedback d-block">{{ message }}</div>
                 }
               </div>
-              <div class="col-12">
+              <div class="col-12 col-lg-6">
                 <label class="form-label small" [for]="'matrixResourceContextEn' + index">
                   {{ 'matrix.resources.contextEnLabel' | t }}
                 </label>
@@ -535,6 +446,118 @@
             </div>
           </div>
         }
+        <div class="input-group input-group-sm mb-2">
+          <input
+            type="search"
+            class="form-control form-control-sm"
+            data-testid="matrix-resource-search"
+            [attr.aria-label]="'matrix.resources.searchPlaceholder' | t"
+            [placeholder]="'matrix.resources.searchPlaceholder' | t"
+            (input)="searchResources($any($event.target).value)"
+          />
+        </div>
+        @if (resourceSearchLoading()) {
+          <p class="small text-body-secondary" role="status">{{ 'shared.loading' | t }}</p>
+        }
+        @if (resourceSearchError()) {
+          <p class="small text-danger" role="alert">{{ resourceSearchError() }}</p>
+        }
+        @if (resourceSearchResults().length > 0) {
+          <div class="list-group mb-3">
+            @for (resource of resourceSearchResults(); track resource.id) {
+              <button
+                type="button"
+                class="list-group-item list-group-item-action"
+                [attr.data-testid]="'matrix-resource-attach-' + resource.id"
+                (click)="attachResource(resource)"
+              >
+                <span class="d-block fw-semibold">{{ resource.name }}</span>
+                <span class="small text-muted">{{ resource.url }}</span>
+              </button>
+            }
+          </div>
+        }
+        <details class="admin-editor-inline-create">
+          <summary>{{ 'adminEditor.newResource' | t }}</summary>
+          <div class="row g-2 mb-3">
+            <div class="col-12 col-md-6 col-xl-3">
+              <label class="form-label" for="matrix-resource-new-name-ru">{{
+                'matrix.resources.newNameRuPlaceholder' | t
+              }}</label
+              ><input
+                type="text"
+                class="form-control form-control-sm"
+                [class.is-invalid]="newResourceFieldInvalid('nameRu')"
+                [attr.aria-invalid]="newResourceFieldInvalid('nameRu') ? 'true' : null"
+                id="matrix-resource-new-name-ru"
+                data-testid="matrix-resource-new-name-ru"
+                [attr.maxlength]="validationLimits.shortText"
+                [placeholder]="'matrix.resources.newNameRuPlaceholder' | t"
+                [value]="newResourceNameRu()"
+                (input)="newResourceNameRu.set($any($event.target).value)"
+              />
+              @if (
+                newResourceFieldInvalid('nameRu') && newResourceFieldMessage('nameRu');
+                as message
+              ) {
+                <div class="invalid-feedback d-block">{{ message }}</div>
+              }
+            </div>
+            <div class="col-12 col-md-6 col-xl-3">
+              <label class="form-label" for="matrix-resource-new-name-en">{{
+                'matrix.resources.newNameEnPlaceholder' | t
+              }}</label
+              ><input
+                type="text"
+                class="form-control form-control-sm"
+                [class.is-invalid]="newResourceFieldInvalid('nameEn')"
+                [attr.aria-invalid]="newResourceFieldInvalid('nameEn') ? 'true' : null"
+                id="matrix-resource-new-name-en"
+                data-testid="matrix-resource-new-name-en"
+                [attr.maxlength]="validationLimits.shortText"
+                [placeholder]="'matrix.resources.newNameEnPlaceholder' | t"
+                [value]="newResourceNameEn()"
+                (input)="newResourceNameEn.set($any($event.target).value)"
+              />
+              @if (
+                newResourceFieldInvalid('nameEn') && newResourceFieldMessage('nameEn');
+                as message
+              ) {
+                <div class="invalid-feedback d-block">{{ message }}</div>
+              }
+            </div>
+            <div class="col-12 col-md-8 col-xl-4">
+              <label class="form-label" for="matrix-resource-new-url">{{
+                'matrix.resources.urlPlaceholder' | t
+              }}</label
+              ><input
+                type="url"
+                class="form-control form-control-sm"
+                [class.is-invalid]="newResourceFieldInvalid('url')"
+                [attr.aria-invalid]="newResourceFieldInvalid('url') ? 'true' : null"
+                id="matrix-resource-new-url"
+                data-testid="matrix-resource-new-url"
+                [attr.maxlength]="validationLimits.url"
+                [placeholder]="'matrix.resources.urlPlaceholder' | t"
+                [value]="newResourceUrl()"
+                (input)="newResourceUrl.set($any($event.target).value)"
+              />
+              @if (newResourceFieldInvalid('url') && newResourceFieldMessage('url'); as message) {
+                <div class="invalid-feedback d-block">{{ message }}</div>
+              }
+            </div>
+            <div class="col-12 col-md-4 col-xl-2 d-grid">
+              <button
+                type="button"
+                class="btn btn-sm btn-success text-nowrap"
+                data-testid="matrix-resource-add-new"
+                (click)="addNewResource()"
+              >
+                {{ 'shared.add' | t }}
+              </button>
+            </div>
+          </div>
+        </details>
       </section>
     </details>
   </div>
@@ -607,32 +630,42 @@
   </section>
 
   <div
-    class="admin-editor-actions matrix-question-form-action-footer d-flex flex-wrap align-items-center gap-2"
+    class="admin-editor-actions matrix-question-form-action-footer"
     data-testid="matrix-form-action-footer"
     [dsMarkdownEditorStickyBottomInset]="questionFormElement"
   >
-    <ng-content select="[matrixQuestionFormActions]" />
-    <div class="d-flex flex-wrap justify-content-end gap-2 ms-auto">
-      @if (showCancelAction) {
+    <span class="small text-body-secondary" role="status">{{
+      (submitting
+        ? 'adminEditor.saving'
+        : unsavedChangesScope.hasChanges()
+          ? 'adminEditor.unsaved'
+          : 'adminEditor.saved'
+      ) | t
+    }}</span>
+    <div class="matrix-question-form-action-groups">
+      <ng-content select="[matrixQuestionFormActions]" />
+      <div class="matrix-question-form-submit-actions">
+        @if (showCancelAction) {
+          <button
+            type="button"
+            class="btn btn-outline-secondary btn-sm"
+            data-testid="matrix-form-cancel"
+            [disabled]="submitting"
+            (click)="formCancel.emit()"
+          >
+            {{ 'shared.cancel' | t }}
+          </button>
+        }
+        <ng-content select="[matrixQuestionFormSubmitActions]" />
         <button
-          type="button"
-          class="btn btn-outline-secondary btn-sm"
-          data-testid="matrix-form-cancel"
+          type="submit"
+          class="btn btn-success btn-sm"
+          data-testid="matrix-form-save"
           [disabled]="submitting"
-          (click)="formCancel.emit()"
         >
-          {{ 'shared.cancel' | t }}
+          {{ submitLabelKey | t }}
         </button>
-      }
-      <ng-content select="[matrixQuestionFormSubmitActions]" />
-      <button
-        type="submit"
-        class="btn btn-success btn-sm"
-        data-testid="matrix-form-save"
-        [disabled]="submitting"
-      >
-        {{ submitLabelKey | t }}
-      </button>
+      </div>
     </div>
   </div>
 </form>

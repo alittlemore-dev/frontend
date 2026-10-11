@@ -66,6 +66,16 @@ export const adminPanelRoutes: Routes = [
           ),
       },
       {
+        path: 'articles/create/new',
+        data: { adminDetail: true, adminCreate: true },
+        title: 'articles.modal.create',
+        canDeactivate: [adminUnsavedChangesGuard],
+        loadComponent: () =>
+          import('./pages/article-detail-page/article-detail-page.component').then(
+            (m) => m.AdminArticleDetailPageComponent,
+          ),
+      },
+      {
         path: 'articles/:slug',
         data: { adminDetail: true },
         title: 'articles.modal.edit',
@@ -91,6 +101,16 @@ export const adminPanelRoutes: Routes = [
         loadComponent: () =>
           import('./pages/matrix-structure-page/matrix-structure-page.component').then(
             (m) => m.MatrixStructurePageComponent,
+          ),
+      },
+      {
+        path: 'matrix-questions/create/new',
+        data: { adminDetail: true, adminCreate: true },
+        title: 'matrix.modal.create',
+        canDeactivate: [adminUnsavedChangesGuard],
+        loadComponent: () =>
+          import('./pages/matrix-question-detail-page/matrix-question-detail-page.component').then(
+            (m) => m.MatrixQuestionDetailPageComponent,
           ),
       },
       {

@@ -243,6 +243,11 @@ export class ArticleTagsPageComponent implements OnInit {
     this.duplicateSlug.set(this.slugExists(value.slug.trim()));
     if (this.form.invalid || this.duplicateSlug()) {
       this.form.markAllAsTouched();
+      const invalidField = Object.keys(this.form.controls).find(
+        (key) => this.form.get(key)?.invalid,
+      );
+      if (invalidField)
+        this.document.querySelector<HTMLElement>(`[formControlName="${invalidField}"]`)?.focus();
       this.notifications.error(this.i18n.translate('articles.tags.validationError'));
       return;
     }

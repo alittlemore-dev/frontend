@@ -16,9 +16,9 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
       align-items: center;
       justify-content: center;
       padding: 0;
-      color: var(--bs-danger-text-emphasis);
-      background-color: var(--bs-danger-bg-subtle);
-      border: var(--bs-border-width) solid var(--bs-danger-border-subtle);
+      color: var(--bs-secondary-color);
+      background-color: transparent;
+      border: var(--bs-border-width) solid var(--bs-border-color);
       font-size: 1.15rem;
       font-weight: 700;
       line-height: 1;
@@ -34,7 +34,7 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
   template: `
     <button
       type="button"
-      class="btn btn-sm rounded-circle"
+      class="btn btn-sm rounded"
       [disabled]="disabled()"
       [attr.aria-label]="ariaLabel()"
       [attr.title]="ariaLabel()"

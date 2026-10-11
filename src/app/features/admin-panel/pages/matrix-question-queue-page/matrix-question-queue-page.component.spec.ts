@@ -212,7 +212,14 @@ describe('MatrixQuestionQueuePageComponent', () => {
         provideRouter([]),
         {
           provide: ActivatedRoute,
-          useValue: { queryParamMap: routeQueryParamMap.asObservable() },
+          useValue: {
+            queryParamMap: routeQueryParamMap.asObservable(),
+            snapshot: {
+              get queryParamMap() {
+                return routeQueryParamMap.value;
+              },
+            },
+          },
         },
       ],
     }).compileComponents();
@@ -268,16 +275,6 @@ describe('MatrixQuestionQueuePageComponent', () => {
     expect(metadata?.textContent).toContain('Создан:');
     expect(metadata?.textContent).toContain('Кто предложил: Анонимный');
     expect(metadata?.textContent).toContain('Структура: Junior / python / Core / Style');
-  });
-
-  it('exposes queue rejection as a contextual minus action', () => {
-    const reject = fixture.nativeElement.querySelector<HTMLButtonElement>(
-      `[data-testid="matrix-queue-reject-${QUESTION_ID}"]`,
-    );
-
-    expect(reject?.textContent?.trim()).toBe('−');
-    expect(reject?.getAttribute('aria-label')).toBe('Отклонить вопрос «What is PEP 8?»');
-    expect(reject?.getAttribute('title')).toBe('Отклонить вопрос «What is PEP 8?»');
   });
 
   it('filters the queue with AND semantics without reloading or changing FIFO order', () => {
@@ -712,7 +709,7 @@ describe('MatrixQuestionQueuePageComponent', () => {
     expect(component.selectedImportRowNumbers()).toEqual(new Set([1, 2]));
   });
 
-  it('closes import modal, reloads queue, and shows imported count after confirmation', () => {
+  it('keeps a visible import result and reloads the queue after confirmation', () => {
     const file = openImportPreview();
 
     fixture.nativeElement
@@ -835,13 +832,13 @@ describe('MatrixQuestionQueuePageComponent', () => {
     );
   });
 
-  it('opens a shared create modal from a full-width queued question card', () => {
+  it('opens a shared editor from the proposal list', () => {
     expect(fixture.nativeElement.querySelector('.col-xl-5')).toBeNull();
     expect(fixture.nativeElement.querySelector('.col-xl-7')).toBeNull();
 
     openCreateModalFromQueue();
 
-    expect(fixture.nativeElement.querySelector('.modal-xl')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('app-admin-matrix-question-form')).toBeTruthy();
     expect(inputValue('#matrix-form-slug')).toBe(`queued-question-${QUESTION_ID}`);
     expect(inputValue('#matrix-form-question-ru')).toBe('What is PEP 8?');
     expect(fixture.nativeElement.querySelector('#matrix-form-question-en')).toBeNull();
@@ -858,19 +855,6 @@ describe('MatrixQuestionQueuePageComponent', () => {
 
     expect(inputValue('#matrix-form-question-en')).toBe('What is PEP 8?');
     expect(select('[data-testid="matrix-structure-sheet"]').value).toBe(SHEET_ID);
-  });
-
-  it('scrolls the queued question form when the wheel is used over modal chrome', () => {
-    openCreateModalFromQueue();
-    const modal = fixture.nativeElement.querySelector<HTMLElement>('.modal')!;
-    const modalBody = modal.querySelector<HTMLElement>('.modal-body')!;
-    makeElementScrollable(modalBody, 1200, 400);
-    const event = new WheelEvent('wheel', { bubbles: true, cancelable: true, deltaY: 120 });
-
-    modal.querySelector<HTMLElement>('.modal-header')!.dispatchEvent(event);
-
-    expect(modalBody.scrollTop).toBe(120);
-    expect(event.defaultPrevented).toBe(true);
   });
 
   it('renders queue-only actions through the shared form footer', () => {
@@ -899,7 +883,7 @@ describe('MatrixQuestionQueuePageComponent', () => {
   it('highlights a missing queued sheet key in the shared create modal', () => {
     openCreateModalFromQueue(MISSING_SHEET_QUESTION_ID);
 
-    expect(fixture.nativeElement.querySelector('.modal-xl')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('app-admin-matrix-question-form')).toBeTruthy();
     expect(select('[data-testid="matrix-structure-sheet"]').value).toBe('');
     expect(fixture.nativeElement.textContent).toContain(
       'Лист с ключом sql не найден. Создайте лист и заполните названия RU/EN.',
@@ -990,7 +974,7 @@ describe('MatrixQuestionQueuePageComponent', () => {
     expect(router.navigate).toHaveBeenCalledWith(
       ['/admin-panel/matrix-questions', CREATED_QUESTION_ID],
       {
-        queryParams: { returnTo: 'queue' },
+        queryParams: { returnTo: 'queue', queueItem: MISSING_SHEET_QUESTION_ID },
         queryParamsHandling: 'merge',
       },
     );
@@ -1048,12 +1032,12 @@ describe('MatrixQuestionQueuePageComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('payload / slug: Failed');
   });
 
-  it('closes the create modal after creating the last visible queue entry', () => {
+  it('returns to earlier pending proposals after processing the last entry', () => {
     openCreateModalFromQueue(MISSING_SHEET_QUESTION_ID);
 
     component.createQuestion(minimumQuestionPayload());
 
-    expect(component.selectedQuestion()).toBeNull();
+    expect(component.selectedQuestion()?.id).toBe(QUESTION_ID);
     expect(component.questions().map((question) => question.id)).toEqual([QUESTION_ID]);
   });
 
@@ -1201,7 +1185,7 @@ describe('MatrixQuestionQueuePageComponent', () => {
     expect(inputValue('#matrix-form-question-ru')).toBe('Unsaved matrix question');
   });
 
-  it('closes the modal when the last visible queue entry is skipped', () => {
+  it('returns to earlier pending proposals after skipping the last entry', () => {
     openCreateModalFromQueue(MISSING_SHEET_QUESTION_ID);
 
     fixture.nativeElement
@@ -1209,7 +1193,7 @@ describe('MatrixQuestionQueuePageComponent', () => {
       .click();
     fixture.detectChanges();
 
-    expect(component.selectedQuestion()).toBeNull();
+    expect(component.selectedQuestion()?.id).toBe(QUESTION_ID);
     expect(component.questions()).toEqual([queuedQuestion, queuedQuestionWithMissingSheet]);
   });
 
@@ -1308,7 +1292,7 @@ describe('MatrixQuestionQueuePageComponent', () => {
     fixture.detectChanges();
 
     expect(notificationService.error).toHaveBeenCalledWith('Не удалось создать вопрос из очереди.');
-    expect(fixture.nativeElement.querySelector('.modal-xl')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('app-admin-matrix-question-form')).toBeTruthy();
     expect(fixture.nativeElement.textContent).toContain('payload / slug: Failed');
     expect(component.selectedQuestion()?.id).toBe(QUESTION_ID);
     expect(component.questions()).toEqual([queuedQuestion, queuedQuestionWithMissingSheet]);
@@ -1470,14 +1454,4 @@ function formatExpectedDateTime(value: string, locale: string): string {
     dateStyle: 'medium',
     timeStyle: 'short',
   }).format(new Date(value));
-}
-
-function makeElementScrollable(
-  element: HTMLElement,
-  scrollHeight: number,
-  clientHeight: number,
-): void {
-  Object.defineProperty(element, 'scrollHeight', { configurable: true, value: scrollHeight });
-  Object.defineProperty(element, 'clientHeight', { configurable: true, value: clientHeight });
-  element.scrollTop = 0;
 }

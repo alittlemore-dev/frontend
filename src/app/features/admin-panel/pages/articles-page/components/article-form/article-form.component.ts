@@ -148,6 +148,7 @@ export class ArticleFormComponent implements OnInit {
   private slugEdited = false;
 
   readonly article = input<ArticleDetail | null>(null);
+  readonly submitting = input(false);
   readonly unsavedChangesScope = input.required<AdminUnsavedChangesScope>();
   readonly articleSave = output<ArticlePayload>();
   readonly formCancel = output<void>();
@@ -160,7 +161,7 @@ export class ArticleFormComponent implements OnInit {
   readonly activeTagSuggestionIndex = signal(-1);
   readonly availableWikiLinkTargets = signal<WikiLinkTargetLookup | null>(null);
   readonly selectedFolder = signal<ArticleFolder | null>(null);
-  readonly activeLanguageTab = signal<LanguageCode>('ru');
+  readonly activeLanguageTab = signal<LanguageCode>(this.currentLanguage());
   readonly viewMode = signal<ArticleFormViewMode>('edit');
   readonly previewLanguage = signal<LanguageCode>(this.currentLanguage());
   readonly previewLanguageLoading = signal(false);
@@ -333,10 +334,12 @@ export class ArticleFormComponent implements OnInit {
   }
 
   setActiveLanguageTab(language: LanguageCode): void {
+    if (this.viewMode() === 'preview') this.setPreviewLanguage(language);
     this.activeLanguageTab.set(language);
   }
 
   showPreview(): void {
+    this.setPreviewLanguage(this.activeLanguageTab());
     this.previewLanguageError.set(null);
     this.previewBundleVersion.update((version) => version + 1);
     this.viewMode.set('preview');
@@ -503,6 +506,7 @@ export class ArticleFormComponent implements OnInit {
   }
 
   submit(): void {
+    if (this.submitting() || this.coverImageUploading()) return;
     this.formSubmitted.set(true);
     if (this.form.invalid) {
       this.form.markAllAsTouched();
@@ -547,6 +551,26 @@ export class ArticleFormComponent implements OnInit {
         },
       },
     });
+  }
+
+  invalidFields(): readonly ArticleField[] {
+    return this.formSubmitted()
+      ? (Object.keys(this.form.controls) as ArticleField[]).filter(
+          (field) => this.form.controls[field].invalid,
+        )
+      : [];
+  }
+
+  fieldLabelKey(field: ArticleField): string {
+    return `articles.form.${field === 'folderId' ? 'folder' : field}`;
+  }
+
+  goToField(field: ArticleField): void {
+    this.viewMode.set('edit');
+    if (field.endsWith('Ru')) this.activeLanguageTab.set('ru');
+    if (field.endsWith('En')) this.activeLanguageTab.set('en');
+    if (this.isBrowser)
+      afterNextRender({ write: () => this.focusInvalidField(field) }, { injector: this.injector });
   }
 
   private focusInvalidField(field: ArticleField): void {
@@ -685,7 +709,7 @@ export class ArticleFormComponent implements OnInit {
         });
     }
     this.formSnapshot.set(this.form.getRawValue());
-    this.selectedFolder.set(null);
+    this.selectedFolder.update((folder) => (folder?.id === article.folderId ? folder : null));
     this.selectedTags.set(article.tags);
     this.clearTagSearch();
     untracked(() => this.mainUnsavedSource?.commit());

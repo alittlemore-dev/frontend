@@ -46,6 +46,7 @@ describe('AdminArticleDetailPageComponent', () => {
           provide: ActivatedRoute,
           useValue: {
             paramMap: routeParams.asObservable(),
+            snapshot: { data: {} },
           },
         },
       ],
@@ -61,6 +62,23 @@ describe('AdminArticleDetailPageComponent', () => {
     jest.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
     fixture = TestBed.createComponent(AdminArticleDetailPageComponent);
     fixture.detectChanges();
+  });
+
+  it('creates from the full editor without loading an existing object and preserves list context', () => {
+    fixture.destroy();
+    const route = TestBed.inject(ActivatedRoute);
+    route.snapshot.data = { adminCreate: true };
+    const create = jest.fn().mockReturnValue(of(articleDetail('new-article', 'Draft')));
+    Object.assign(service, { createArticle: create });
+    const fresh = TestBed.createComponent(AdminArticleDetailPageComponent);
+    fresh.detectChanges();
+    fresh.componentInstance.saveArticle(articlePayload('new-article'));
+    expect(create).toHaveBeenCalledWith(articlePayload('new-article'), 'ru');
+    expect(router.navigate).toHaveBeenCalledWith(['/admin-panel/articles', 'new-article'], {
+      queryParamsHandling: 'preserve',
+      replaceUrl: true,
+    });
+    fresh.destroy();
   });
 
   it('loads the article detail and renders the duplicated actions dropdown', () => {
@@ -135,6 +153,7 @@ describe('AdminArticleDetailPageComponent', () => {
 })
 class ArticleFormStubComponent {
   readonly article = input<AdminArticleDetail | null>(null);
+  readonly submitting = input(false);
   readonly unsavedChangesScope = input.required<AdminUnsavedChangesScope>();
   readonly articleSave = output<AdminArticlePayload>();
   readonly formCancel = output<void>();

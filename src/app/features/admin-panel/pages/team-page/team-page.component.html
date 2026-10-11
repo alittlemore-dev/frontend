@@ -27,58 +27,48 @@
   } @else if ((accounts()?.accounts?.length ?? 0) === 0) {
     <ds-empty-state [message]="'adminTeamWorkspace.empty' | t" />
   } @else if (accounts()) {
-    <div class="table-responsive">
-      <table class="table table-sm align-middle">
-        <thead>
-          <tr>
-            <th>{{ 'adminTeamWorkspace.field.username' | t }}</th>
-            <th>{{ 'adminTeamWorkspace.field.role' | t }}</th>
-            <th>{{ 'adminTeamWorkspace.field.status' | t }}</th>
-            <th class="text-end">{{ 'shared.actions' | t }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (account of accounts()!.accounts; track account.username) {
-            <tr>
-              <td>
-                <a
-                  class="fw-semibold"
-                  [routerLink]="['/admin-panel/workspace/team', account.username]"
-                  queryParamsHandling="preserve"
-                >
-                  {{ account.username }}
-                </a>
-                @if (isSelfAccount(account)) {
-                  <span class="badge text-bg-info ms-2">
-                    {{ 'adminTeamWorkspace.currentUser' | t }}
-                  </span>
-                }
-              </td>
-              <td>{{ roleLabelKey(account.role) | t }}</td>
-              <td>
-                <span
-                  class="badge"
-                  [class.text-bg-success]="account.isActive"
-                  [class.text-bg-secondary]="!account.isActive"
-                >
-                  {{ statusLabelKey(account) | t }}
-                </span>
-              </td>
-              <td class="text-end">
-                <app-admin-actions-dropdown
-                  [actions]="accountActions(account)"
-                  [buttonLabel]="'shared.actions' | t"
-                  [ariaLabel]="'shared.actions' | t"
-                  [destructiveActionLabel]="'shared.destructiveAction' | t"
-                  [testId]="'team-actions-' + account.username"
-                  (actionSelected)="handleAccountAction($event, account)"
-                />
-              </td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    </div>
+    <ul
+      class="list-unstyled collection-list admin-collection-list mb-3"
+      [attr.aria-label]="'adminTeamWorkspace.title' | t"
+    >
+      @for (account of accounts()!.accounts; track account.username) {
+        <li class="collection-row admin-team-row">
+          <div class="min-w-0">
+            <a
+              class="fw-semibold"
+              [routerLink]="['/admin-panel/workspace/team', account.username]"
+              queryParamsHandling="preserve"
+              >{{ account.username }}</a
+            >
+            @if (isSelfAccount(account)) {
+              <span class="small text-body-secondary ms-2">{{
+                'adminTeamWorkspace.currentUser' | t
+              }}</span>
+            }
+          </div>
+          <div class="small text-body-secondary row-metadata">
+            {{ roleLabelKey(account.role) | t }}
+          </div>
+          <div
+            class="small row-metadata"
+            [class.text-success]="account.isActive"
+            [class.text-body-secondary]="!account.isActive"
+          >
+            {{ statusLabelKey(account) | t }}
+          </div>
+          <div class="row-actions">
+            <app-admin-actions-dropdown
+              [actions]="accountActions(account)"
+              [buttonLabel]="'shared.actions' | t"
+              [ariaLabel]="('shared.actions' | t) + ': ' + account.username"
+              [destructiveActionLabel]="'shared.destructiveAction' | t"
+              [testId]="'team-actions-' + account.username"
+              (actionSelected)="handleAccountAction($event, account)"
+            />
+          </div>
+        </li>
+      }
+    </ul>
 
     <div class="d-flex justify-content-between align-items-center gap-3">
       <span class="small text-body-secondary">

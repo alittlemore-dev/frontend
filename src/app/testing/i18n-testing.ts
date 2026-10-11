@@ -322,6 +322,8 @@ const I18N_TEST_MESSAGES: Record<string, string> = {
   'adminTools.sessions.title': 'Протухшие сессии',
   'adminTools.sessions.description':
     'Оценка истёкших и скоро истекающих сессий перед ручной очисткой.',
+  'adminTools.sessions.expiredLabel': 'Протухшие',
+  'adminTools.sessions.expiringSoonLabel': 'Истекут за {days} дней',
   'adminTools.sessions.expiredMetric': 'Протухшие: {count}',
   'adminTools.sessions.expiringSoonMetric': 'Истекут в ближайшие {days} дней: {count}',
   'adminTools.sessions.scheduledPruneInterval': 'Интервал плановой очистки: {seconds} секунд.',
@@ -739,6 +741,8 @@ const I18N_TEST_MESSAGES: Record<string, string> = {
   'articles.folders.createTitle': 'Новая папка',
   'articles.folders.createSubmit': 'Создать',
   'articles.folders.created': 'Папка создана.',
+  'articles.folders.deleted': 'Папка удалена.',
+  'articles.folders.inUse': 'В папке есть статьи. Сначала перенесите их в другую папку.',
   'articles.folders.empty': 'Папки статей пока не созданы.',
   'articles.folders.priority': 'Приоритет',
   'articles.folders.saving': 'Сохранение',

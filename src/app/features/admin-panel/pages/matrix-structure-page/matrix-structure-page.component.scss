@@ -81,3 +81,22 @@
 .cdk-drop-list-dragging .cdk-drag {
   transition: transform 160ms ease;
 }
+
+.matrix-structure-sheet-item,
+.matrix-structure-section,
+.matrix-structure-subsection {
+  overflow-wrap: anywhere;
+}
+.matrix-structure-subsection > .flex-grow-1 {
+  min-width: 0;
+}
+.matrix-structure-section-header > div:first-of-type {
+  flex: 1 1 10rem;
+  min-width: 0;
+}
+.matrix-structure-sheet-item:focus-visible,
+.matrix-structure-section:focus-visible,
+.matrix-structure-subsection:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
+}

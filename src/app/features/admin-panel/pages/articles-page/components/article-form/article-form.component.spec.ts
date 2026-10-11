@@ -157,6 +157,20 @@ describe('ArticleFormComponent', () => {
     expect(unsavedChangesScope.hasChanges()).toBe(false);
   });
 
+  it('keeps the resolved folder context when the saved article is accepted', () => {
+    fixture.componentRef.setInput('article', articleDetail('typed-article', 'Typed article'));
+    fixture.detectChanges();
+    fixture.detectChanges();
+    const summary = (): string =>
+      fixture.nativeElement.querySelector('details summary').textContent;
+    expect(summary()).toContain('Инженерия');
+
+    fixture.componentRef.setInput('article', articleDetail('typed-article', 'Saved article'));
+    fixture.detectChanges();
+    expect(summary()).toContain('Инженерия');
+    expect(unsavedChangesScope.hasChanges()).toBe(false);
+  });
+
   it('starts in edit mode and does not treat view or preview-language changes as authored data', () => {
     expect(viewModeButton('edit').getAttribute('aria-pressed')).toBe('true');
     expect(viewModeButton('preview').getAttribute('aria-pressed')).toBe('false');
@@ -175,8 +189,8 @@ describe('ArticleFormComponent', () => {
     fixture.detectChanges();
     clickViewMode('edit');
 
-    expect(previewLanguageButton('en').textContent?.trim()).toBe('EN');
-    expect(editLanguageButton('ru').classList).toContain('active');
+    expect(previewLanguageButton('en').getAttribute('aria-pressed')).toBe('true');
+    expect(editLanguageButton('en').classList).toContain('active');
     expect(unsavedChangesScope.hasChanges()).toBe(false);
   });
 
@@ -470,7 +484,7 @@ describe('ArticleFormComponent', () => {
     ).toBeNull();
   });
 
-  it('localizes selected tag chips and preview with their independent language controls', () => {
+  it('localizes tag chips and preview through one language control', () => {
     fixture.componentInstance.selectTag(
       tag({ id: PYTHON_TAG_ID, nameRu: 'Питон', nameEn: 'Python', slug: 'python' }),
     );
@@ -490,8 +504,8 @@ describe('ArticleFormComponent', () => {
     previewLanguageButton('en').click();
     fixture.detectChanges();
 
-    expect(picker.textContent).toContain('Питон');
-    expect(picker.textContent).not.toContain('Python');
+    expect(picker.textContent).toContain('Python');
+    expect(picker.textContent).not.toContain('Питон');
     expect(preview.textContent).toContain('Python');
     expect(preview.textContent).not.toContain('Питон');
   });
@@ -504,7 +518,7 @@ describe('ArticleFormComponent', () => {
     fixture.componentInstance.selectTag(
       tag({ id: PYTHON_TAG_ID, nameRu: 'Питон', nameEn: 'Python', slug: 'python' }),
     );
-    fixture.componentInstance.setActiveLanguageTab('en');
+    fixture.componentInstance.setActiveLanguageTab('ru');
     fixture.detectChanges();
 
     clickViewMode('preview');
@@ -1260,7 +1274,7 @@ describe('ArticleFormComponent', () => {
 
   function previewLanguageButton(language: 'ru' | 'en'): HTMLButtonElement {
     const button = fixture.nativeElement.querySelector(
-      `[data-testid="article-preview-language-${language}"]`,
+      `[data-testid="article-form-language-${language}"]`,
     ) as HTMLButtonElement | null;
     if (button === null) {
       throw new Error(`Article preview language button not found: ${language}`);

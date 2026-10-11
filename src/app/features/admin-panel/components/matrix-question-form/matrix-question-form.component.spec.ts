@@ -974,8 +974,10 @@ describe('MatrixQuestionFormComponent', () => {
   });
 
   it('adds, searches, edits context, and removes resources in the form payload', () => {
+    jest.useFakeTimers();
     clickDisplayMode('ru-en');
     setInput('[data-testid="matrix-resource-search"]', 'python');
+    jest.advanceTimersByTime(200);
     fixture.detectChanges();
     expect(service.searchResources).toHaveBeenCalledWith('python', 10, 'ru');
 
@@ -998,6 +1000,7 @@ describe('MatrixQuestionFormComponent', () => {
         translations: { ru: { context: 'Читать' }, en: { context: 'Read' } },
       },
     ]);
+    jest.useRealTimers();
   });
 
   it('previews unsaved localized Markdown and attached resources as public content', () => {

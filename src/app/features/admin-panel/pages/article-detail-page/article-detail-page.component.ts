@@ -56,11 +56,14 @@ export class AdminArticleDetailPageComponent implements OnInit {
   readonly unsavedChangesScope = this.unsavedChanges.createScope(this.destroyRef);
 
   readonly article = signal<AdminArticleDetail | null>(null);
+  readonly creating = this.route.snapshot.data['adminCreate'] === true;
   readonly loading = signal(false);
   readonly error = signal<ApiError | null>(null);
   readonly saveError = signal<ApiError | null>(null);
+  readonly submitting = signal(false);
 
   ngOnInit(): void {
+    if (this.creating) return;
     this.route.paramMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
       this.loadArticle(articleSlugFromParams(params));
     });
@@ -96,28 +99,31 @@ export class AdminArticleDetailPageComponent implements OnInit {
 
   saveArticle(payload: AdminArticlePayload): void {
     const current = this.article();
-    if (current === null) return;
+    if (this.submitting() || (!this.creating && current === null)) return;
+    this.submitting.set(true);
     this.saveError.set(null);
-    this.articleWorkspace
-      .updateArticle(current.slug, payload, this.currentLanguage())
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (article) => {
-          this.articleForm?.acceptSavedArticle(article);
-          this.article.set(article);
-          this.notifications.success(this.i18n.translate('articles.notify.saved'));
-          if (article.slug !== current.slug) {
-            void this.router.navigate(['/admin-panel/articles', article.slug], {
-              queryParamsHandling: 'preserve',
-              replaceUrl: true,
-            });
-          }
-        },
-        error: (err: ApiError) => {
-          this.saveError.set(err);
-          this.notifications.error(this.i18n.translate('articles.notify.saveError'));
-        },
-      });
+    const request = this.creating
+      ? this.articleWorkspace.createArticle(payload, this.currentLanguage())
+      : this.articleWorkspace.updateArticle(current!.slug, payload, this.currentLanguage());
+    request.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (article) => {
+        this.submitting.set(false);
+        this.articleForm?.acceptSavedArticle(article);
+        this.article.set(article);
+        this.notifications.success(this.i18n.translate('articles.notify.saved'));
+        if (this.creating || article.slug !== current?.slug) {
+          void this.router.navigate(['/admin-panel/articles', article.slug], {
+            queryParamsHandling: 'preserve',
+            replaceUrl: true,
+          });
+        }
+      },
+      error: (err: ApiError) => {
+        this.submitting.set(false);
+        this.saveError.set(err);
+        this.notifications.error(this.i18n.translate('articles.notify.saveError'));
+      },
+    });
   }
 
   detailActions(article: AdminArticleDetail): AdminAction[] {

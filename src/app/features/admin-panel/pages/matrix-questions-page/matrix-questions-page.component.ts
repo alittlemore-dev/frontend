@@ -1,9 +1,16 @@
+import {
+  AdminActiveFilter,
+  AdminActiveFiltersComponent,
+} from '../../components/admin-active-filters/admin-active-filters.component';
+import { AdminCollectionPositionService } from '../../services/admin-collection-position.service';
 import { DOCUMENT } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
   OnInit,
+  ElementRef,
+  viewChild,
   computed,
   inject,
   signal,
@@ -11,13 +18,12 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, ParamMap, Router, RouterLink } from '@angular/router';
-import { Observable, map, of, switchMap } from 'rxjs';
+import { Observable, Subscription, map, of, switchMap } from 'rxjs';
 import { LanguageCode } from '../../../../core/i18n/i18n.model';
 import { ApiError } from '../../../../core/models/api-error.model';
 import { I18nService } from '../../../../core/i18n/i18n.service';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
 import {
-  ModalScrollDirective,
   NotificationService,
   EmptyStateComponent,
   ErrorMessageComponent,
@@ -35,13 +41,11 @@ import {
   AdminAction,
   AdminActionsDropdownComponent,
 } from '../../components/admin-actions-dropdown/admin-actions-dropdown.component';
-import { MatrixQuestionFormComponent } from '../../components/matrix-question-form/matrix-question-form.component';
 import {
   AdminMatrixGrade,
   AdminMatrixInterviewFrequency,
   AdminMatrixMissingField,
   AdminMatrixPublishStatus,
-  AdminMatrixQuestionPayload,
   AdminMatrixQuestionWorkspace,
   AdminMatrixQuestionWorkspaceFilters,
   AdminMatrixWorkspaceFilterOptions,
@@ -138,6 +142,7 @@ interface MatrixWorkspaceQueryState {
   selector: 'app-matrix-questions-page',
   standalone: true,
   imports: [
+    AdminActiveFiltersComponent,
     ReactiveFormsModule,
     TranslatePipe,
     RouterLink,
@@ -148,8 +153,6 @@ interface MatrixWorkspaceQueryState {
     MatrixSheetTabsComponent,
     MatrixGroupedGridComponent,
     AdminActionsDropdownComponent,
-    MatrixQuestionFormComponent,
-    ModalScrollDirective,
     SiteSelectComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -162,6 +165,8 @@ export class MatrixQuestionsPageComponent implements OnInit {
   private readonly i18n = inject(I18nService);
   private readonly formBuilder = inject(NonNullableFormBuilder);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly position = inject(AdminCollectionPositionService);
+  private workspaceRequest: Subscription | null = null;
   private readonly document = inject(DOCUMENT);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
@@ -186,7 +191,9 @@ export class MatrixQuestionsPageComponent implements OnInit {
   });
   readonly loading = signal(false);
   readonly error = signal<ApiError | null>(null);
+  private readonly advancedFilters = viewChild<ElementRef<HTMLDetailsElement>>('advancedFilters');
   readonly page = signal(1);
+  readonly activeFilters = signal<readonly AdminActiveFilter[]>([]);
   readonly selectedFilterSheetKey = signal('');
   readonly selectedFilterSectionId = signal('');
 
@@ -198,10 +205,6 @@ export class MatrixQuestionsPageComponent implements OnInit {
   readonly previewLanguage = signal<LanguageCode>(this.currentLanguage());
   readonly previewLanguageLoading = signal(false);
   readonly previewLanguageError = signal<string | null>(null);
-
-  readonly formMode = signal<'create' | null>(null);
-  readonly formSubmitting = signal(false);
-  readonly formError = signal<ApiError | null>(null);
 
   readonly filtersForm = this.formBuilder.group({
     searchQuery: [''],
@@ -260,7 +263,7 @@ export class MatrixQuestionsPageComponent implements OnInit {
   readonly sheetSelectOptions = computed<readonly SiteSelectOption[]>(() => {
     this.i18n.language();
     return [
-      { value: '', label: this.i18n.translate('shared.notSet') },
+      { value: '', label: this.i18n.translate('adminMatrixQueue.filters.all') },
       ...this.filterOptions().sheets.map((sheet) => ({
         value: sheet.key,
         label: sheet.label,
@@ -270,7 +273,7 @@ export class MatrixQuestionsPageComponent implements OnInit {
   readonly gradeSelectOptions = computed<readonly SiteSelectOption[]>(() => {
     this.i18n.language();
     return [
-      { value: '', label: this.gradeLabel(null) },
+      { value: '', label: this.i18n.translate('adminMatrixQueue.filters.all') },
       ...this.filterOptions().grades.map((grade) => ({
         value: grade,
         label: this.gradeLabel(grade),
@@ -280,7 +283,7 @@ export class MatrixQuestionsPageComponent implements OnInit {
   readonly interviewFrequencySelectOptions = computed<readonly SiteSelectOption[]>(() => {
     this.i18n.language();
     return [
-      { value: '', label: this.interviewFrequencyLabel(null) },
+      { value: '', label: this.i18n.translate('adminMatrixQueue.filters.all') },
       ...this.filterOptions().interviewFrequencies.map((frequency) => ({
         value: frequency,
         label: this.interviewFrequencyLabel(frequency),
@@ -290,7 +293,7 @@ export class MatrixQuestionsPageComponent implements OnInit {
   readonly sectionSelectOptions = computed<readonly SiteSelectOption[]>(() => {
     this.i18n.language();
     return [
-      { value: '', label: this.i18n.translate('shared.notSet') },
+      { value: '', label: this.i18n.translate('adminMatrixQueue.filters.all') },
       ...this.sectionOptions().map((section) => ({
         value: section.id,
         label: section.label,
@@ -300,7 +303,7 @@ export class MatrixQuestionsPageComponent implements OnInit {
   readonly subsectionSelectOptions = computed<readonly SiteSelectOption[]>(() => {
     this.i18n.language();
     return [
-      { value: '', label: this.i18n.translate('shared.notSet') },
+      { value: '', label: this.i18n.translate('adminMatrixQueue.filters.all') },
       ...this.subsectionOptions().map((subsection) => ({
         value: subsection.id,
         label: subsection.label,
@@ -310,7 +313,7 @@ export class MatrixQuestionsPageComponent implements OnInit {
   readonly publishStatusSelectOptions = computed<readonly SiteSelectOption[]>(() => {
     this.i18n.language();
     return [
-      { value: '', label: this.i18n.translate('shared.notSet') },
+      { value: '', label: this.i18n.translate('adminMatrixQueue.filters.all') },
       ...this.filterOptions().publishStatuses.map((status) => ({
         value: status,
         label: this.publishStatusLabel(status),
@@ -320,7 +323,7 @@ export class MatrixQuestionsPageComponent implements OnInit {
   readonly missingFieldsSelectOptions = computed<readonly SiteSelectOption[]>(() => {
     this.i18n.language();
     return [
-      { value: '', label: this.i18n.translate('shared.notSet') },
+      { value: '', label: this.i18n.translate('adminMatrixQueue.filters.all') },
       { value: 'true', label: this.i18n.translate('adminMatrixWorkspace.hasMissingFields') },
       { value: 'false', label: this.i18n.translate('adminMatrixWorkspace.noMissingFields') },
     ];
@@ -386,7 +389,7 @@ export class MatrixQuestionsPageComponent implements OnInit {
           : state.previewLanguage,
       previewSheet:
         tab === 'preview'
-          ? (state.previewSheet ?? this.filterOptions().sheets[0]?.key ?? null)
+          ? (state.previewSheet ?? state.sheetKey ?? this.filterOptions().sheets[0]?.key ?? null)
           : state.previewSheet,
     });
   }
@@ -425,9 +428,10 @@ export class MatrixQuestionsPageComponent implements OnInit {
   loadWorkspace(): void {
     const state = this.appliedQueryState;
     if (state === null) return;
+    this.workspaceRequest?.unsubscribe();
     this.loading.set(true);
     this.error.set(null);
-    this.workspaceService
+    this.workspaceRequest = this.workspaceService
       .listWorkspaceItems(this.buildWorkspaceFilters(state))
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
@@ -438,6 +442,7 @@ export class MatrixQuestionsPageComponent implements OnInit {
             return;
           }
           this.workspace.set(workspace);
+          this.position.restore();
           this.loading.set(false);
         },
         error: (err: ApiError) => {
@@ -451,6 +456,11 @@ export class MatrixQuestionsPageComponent implements OnInit {
   applyFilters(): void {
     if (this.filtersForm.invalid || !this.publishedFromValid() || !this.publishedToValid()) {
       this.filtersForm.markAllAsTouched();
+      const details = this.advancedFilters()?.nativeElement;
+      if (details) {
+        details.open = true;
+        details.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
+      }
       return;
     }
     const state = this.requireAppliedQueryState();
@@ -585,39 +595,9 @@ export class MatrixQuestionsPageComponent implements OnInit {
   }
 
   openCreate(): void {
-    this.formMode.set('create');
-    this.formError.set(null);
-    this.formSubmitting.set(false);
-  }
-
-  closeForm(): void {
-    if (this.formSubmitting()) return;
-    if (!this.unsavedChangesScope.confirmDiscard()) return;
-    this.formMode.set(null);
-    this.formError.set(null);
-  }
-
-  saveQuestion(payload: AdminMatrixQuestionPayload): void {
-    this.formSubmitting.set(true);
-    this.formError.set(null);
-    this.workspaceService
-      .createQuestion(payload, this.currentLanguage())
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: () => {
-          this.formSubmitting.set(false);
-          this.unsavedChangesScope.commit();
-          this.closeForm();
-          this.notifications.success(this.i18n.translate('adminMatrixWorkspace.saved'));
-          this.loadFilterOptions();
-          this.loadWorkspace();
-        },
-        error: (err: ApiError) => {
-          this.formError.set(err);
-          this.formSubmitting.set(false);
-          this.notifications.error(this.i18n.translate('adminMatrixWorkspace.saveError'));
-        },
-      });
+    void this.router.navigate(['/admin-panel/matrix-questions/create/new'], {
+      queryParamsHandling: 'preserve',
+    });
   }
 
   publish(item: AdminMatrixWorkspaceItem): void {
@@ -909,6 +889,111 @@ export class MatrixQuestionsPageComponent implements OnInit {
     return values.includes(requested) ? requested : null;
   }
 
+  removeFilter(key: string): void {
+    const state = { ...this.requireAppliedQueryState(), [key]: null, page: 1 };
+    if (key === 'sheetKey') {
+      state.sectionId = null;
+      state.subsectionId = null;
+    }
+    if (key === 'sectionId') state.subsectionId = null;
+    this.commitQueryState(state);
+  }
+
+  selectSummary(
+    publishStatus: AdminMatrixPublishStatus | null,
+    hasMissingFields: boolean | null,
+  ): void {
+    this.commitQueryState({
+      ...this.requireAppliedQueryState(),
+      publishStatus,
+      hasMissingFields,
+      page: 1,
+    });
+  }
+
+  private updateActiveFilters(state: MatrixWorkspaceQueryState): void {
+    const filters: AdminActiveFilter[] = [];
+    if (state.searchQuery !== null)
+      filters.push({
+        key: 'searchQuery',
+        label: this.i18n.translate('articles.filters.search'),
+        value: String(state.searchQuery),
+      });
+    if (state.sheetKey !== null)
+      filters.push({
+        key: 'sheetKey',
+        label: this.i18n.translate('matrix.form.sheet'),
+        value:
+          this.sheetSelectOptions().find((option) => option.value === String(state.sheetKey))
+            ?.label ?? String(state.sheetKey),
+      });
+    if (state.grade !== null)
+      filters.push({
+        key: 'grade',
+        label: this.i18n.translate('matrix.form.grade'),
+        value:
+          this.gradeSelectOptions().find((option) => option.value === String(state.grade))?.label ??
+          String(state.grade),
+      });
+    if (state.interviewFrequency !== null)
+      filters.push({
+        key: 'interviewFrequency',
+        label: this.i18n.translate('matrix.form.interviewFrequency'),
+        value:
+          this.interviewFrequencySelectOptions().find(
+            (option) => option.value === String(state.interviewFrequency),
+          )?.label ?? String(state.interviewFrequency),
+      });
+    if (state.sectionId !== null)
+      filters.push({
+        key: 'sectionId',
+        label: this.i18n.translate('matrix.form.section'),
+        value:
+          this.sectionSelectOptions().find((option) => option.value === String(state.sectionId))
+            ?.label ?? String(state.sectionId),
+      });
+    if (state.subsectionId !== null)
+      filters.push({
+        key: 'subsectionId',
+        label: this.i18n.translate('matrix.form.subsection'),
+        value:
+          this.subsectionSelectOptions().find(
+            (option) => option.value === String(state.subsectionId),
+          )?.label ?? String(state.subsectionId),
+      });
+    if (state.publishStatus !== null)
+      filters.push({
+        key: 'publishStatus',
+        label: this.i18n.translate('adminMatrixWorkspace.status'),
+        value:
+          this.publishStatusSelectOptions().find(
+            (option) => option.value === String(state.publishStatus),
+          )?.label ?? String(state.publishStatus),
+      });
+    if (state.hasMissingFields !== null)
+      filters.push({
+        key: 'hasMissingFields',
+        label: this.i18n.translate('adminMatrixWorkspace.missingFields'),
+        value:
+          this.missingFieldsSelectOptions().find(
+            (option) => option.value === String(state.hasMissingFields),
+          )?.label ?? String(state.hasMissingFields),
+      });
+    if (state.publishedFrom !== null)
+      filters.push({
+        key: 'publishedFrom',
+        label: this.i18n.translate('articles.filters.from'),
+        value: String(state.publishedFrom),
+      });
+    if (state.publishedTo !== null)
+      filters.push({
+        key: 'publishedTo',
+        label: this.i18n.translate('articles.filters.to'),
+        value: String(state.publishedTo),
+      });
+    this.activeFilters.set(filters);
+  }
+
   private applyQueryState(state: MatrixWorkspaceQueryState): void {
     this.appliedQueryState = state;
     this.activeTab.set(state.tab);
@@ -933,6 +1018,7 @@ export class MatrixQuestionsPageComponent implements OnInit {
       { emitEvent: false },
     );
     this.refreshDependentFilterControls();
+    this.updateActiveFilters(state);
   }
 
   private stateFromForm(state: MatrixWorkspaceQueryState): MatrixWorkspaceQueryState {

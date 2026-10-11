@@ -1,9 +1,13 @@
+import { AdminRemoveButtonComponent } from '../../components/admin-remove-button/admin-remove-button.component';
+import { DOCUMENT } from '@angular/common';
 import { CdkDrag, CdkDragDrop, CdkDropList, moveItemInArray } from '@angular/cdk/drag-drop';
 import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
   OnInit,
+  Injector,
+  afterNextRender,
   computed,
   inject,
   signal,
@@ -43,6 +47,7 @@ type ArticleFolderCreateField = 'key' | 'nameRu' | 'nameEn';
   selector: 'app-article-folders-page',
   standalone: true,
   imports: [
+    AdminRemoveButtonComponent,
     CdkDrag,
     CdkDropList,
     ReactiveFormsModule,
@@ -63,6 +68,8 @@ export class ArticleFoldersPageComponent implements OnInit {
   private readonly i18n = inject(I18nService);
   private readonly formBuilder = inject(NonNullableFormBuilder);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly document = inject(DOCUMENT);
+  private readonly injector = inject(Injector);
   private readonly unsavedChanges = inject(AdminUnsavedChangesService);
 
   readonly unsavedChangesScope = this.unsavedChanges.createScope(this.destroyRef);
@@ -70,6 +77,7 @@ export class ArticleFoldersPageComponent implements OnInit {
   readonly folders = signal<ArticleFolder[]>([]);
   readonly loading = signal(false);
   readonly saving = signal(false);
+  readonly deleting = signal(false);
   readonly error = signal<ApiError | null>(null);
   readonly createDialogOpen = signal(false);
   readonly createSubmitting = signal(false);
@@ -125,8 +133,46 @@ export class ArticleFoldersPageComponent implements OnInit {
       });
   }
 
+  moveFolder(id: string, direction: -1 | 1): void {
+    const index = this.folders().findIndex((folder) => folder.id === id);
+    this.reorderFolders(index, index + direction);
+    afterNextRender(
+      () => this.document.getElementById('folder-row-' + id)?.focus({ preventScroll: true }),
+      { injector: this.injector },
+    );
+  }
+
   dropFolders(event: CdkDragDrop<ArticleFolder[]>): void {
     this.reorderFolders(event.previousIndex, event.currentIndex);
+  }
+
+  deleteFolder(folder: ArticleFolder): void {
+    if (this.loading() || this.saving() || this.deleting() || this.createSubmitting()) return;
+    if (
+      this.document.defaultView?.confirm(
+        this.i18n.translate('articles.folders.confirmDelete', { name: folder.name }),
+      ) !== true
+    )
+      return;
+    this.deleting.set(true);
+    this.articlesService
+      .deleteFolder(folder.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.folders.update((folders) => folders.filter((item) => item.id !== folder.id));
+          this.deleting.set(false);
+          this.notifications.success(this.i18n.translate('articles.folders.deleted'));
+        },
+        error: (error: ApiError) => {
+          this.deleting.set(false);
+          this.notifications.error(
+            this.i18n.translate(
+              error.status === 409 ? 'articles.folders.inUse' : 'articles.folders.deleteError',
+            ),
+          );
+        },
+      });
   }
 
   openCreateDialog(): void {
@@ -149,6 +195,11 @@ export class ArticleFoldersPageComponent implements OnInit {
     this.createFormSubmitted.set(true);
     if (this.createForm.invalid) {
       this.createForm.markAllAsTouched();
+      const invalidField = Object.keys(this.createForm.controls).find(
+        (key) => this.createForm.get(key)?.invalid,
+      );
+      if (invalidField)
+        this.document.querySelector<HTMLElement>(`[formControlName="${invalidField}"]`)?.focus();
       this.notifications.error(this.i18n.translate('articles.folders.validationError'));
       return;
     }
@@ -234,6 +285,7 @@ export class ArticleFoldersPageComponent implements OnInit {
   private shouldSkipReorder(previousIndex: number, currentIndex: number, length: number): boolean {
     return (
       this.saving() ||
+      this.deleting() ||
       previousIndex === currentIndex ||
       previousIndex < 0 ||
       currentIndex < 0 ||

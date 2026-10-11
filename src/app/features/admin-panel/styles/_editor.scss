@@ -173,3 +173,42 @@
     font-size: 1rem;
   }
 }
+
+.matrix-question-form-action-footer {
+  container: matrix-question-actions / inline-size;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.matrix-question-form-action-groups {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.matrix-question-form-submit-actions {
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+  margin-inline-start: auto;
+}
+
+@container matrix-question-actions (max-width: 42rem) {
+  .matrix-question-form-submit-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .matrix-question-form-submit-actions .btn {
+    min-width: 0;
+    white-space: normal;
+    min-height: 2.75rem;
+  }
+
+  .matrix-question-form-submit-actions .btn:only-child {
+    grid-column: 1 / -1;
+  }
+}

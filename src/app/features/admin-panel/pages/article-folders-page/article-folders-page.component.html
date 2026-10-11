@@ -8,18 +8,20 @@
   <div class="d-flex flex-wrap gap-2">
     <button
       type="button"
-      class="btn btn-success btn-sm"
+      class="btn btn-outline-success admin-icon-button"
       data-testid="article-folders-open-create"
-      [disabled]="loading() || saving() || createSubmitting()"
+      [attr.aria-label]="'articles.folders.add' | t"
+      [attr.title]="'articles.folders.add' | t"
+      [disabled]="loading() || saving() || deleting() || createSubmitting()"
       (click)="openCreateDialog()"
     >
-      {{ 'articles.folders.add' | t }}
+      <span aria-hidden="true">+</span>
     </button>
     <button
       type="button"
       class="btn btn-outline-secondary btn-sm"
       data-testid="article-folders-reload"
-      [disabled]="loading() || saving() || createSubmitting()"
+      [disabled]="loading() || saving() || deleting() || createSubmitting()"
       (click)="loadFolders()"
     >
       {{ 'shared.update' | t }}
@@ -35,27 +37,49 @@
   <ds-empty-state [message]="'articles.folders.empty' | t" />
 } @else {
   <div
-    class="article-folder-list list-group"
+    class="article-folder-list"
     cdkDropList
     [cdkDropListData]="folders()"
-    [cdkDropListDisabled]="saving()"
+    [cdkDropListDisabled]="saving() || deleting()"
     (cdkDropListDropped)="dropFolders($event)"
     data-testid="article-folder-list"
   >
-    @for (folder of folders(); track folder.id) {
+    @for (folder of folders(); track folder.id; let index = $index) {
       <div
-        class="list-group-item article-folder-item"
+        class="article-folder-item"
         cdkDrag
-        [cdkDragDisabled]="saving()"
+        [cdkDragDisabled]="saving() || deleting()"
+        [id]="'folder-row-' + folder.id"
         data-testid="article-folder-row"
+        tabindex="0"
+        aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"
+        [attr.title]="'adminCollection.reorderHint' | t"
+        (keydown.alt.arrowup)="
+          moveFolder(folder.id, -1); $event.preventDefault(); $event.stopPropagation()
+        "
+        (keydown.alt.arrowdown)="
+          moveFolder(folder.id, 1); $event.preventDefault(); $event.stopPropagation()
+        "
       >
-        <div class="min-w-0">
-          <div class="fw-semibold text-truncate">{{ folder.name }}</div>
-          <div class="small text-body-secondary text-truncate">{{ folder.key }}</div>
+        <div class="flex-grow-1 min-w-0">
+          <div class="article-folder-translations">
+            <span lang="ru"
+              ><span class="small text-body-secondary">RU</span>
+              {{ folder.translations.ru.name }}</span
+            ><span lang="en"
+              ><span class="small text-body-secondary">EN</span>
+              {{ folder.translations.en.name }}</span
+            >
+          </div>
+          <div class="small text-body-secondary">{{ folder.key }}</div>
         </div>
-        <span class="small text-body-secondary">
-          {{ 'articles.folders.priority' | t }} {{ folder.priority }}
-        </span>
+        <span class="small text-body-secondary">{{ index + 1 }}</span>
+        <app-admin-remove-button
+          [ariaLabel]="('articles.folders.delete' | t) + ': ' + folder.name"
+          [testId]="'article-folder-delete-' + folder.id"
+          [disabled]="saving() || deleting() || createSubmitting()"
+          (remove)="deleteFolder(folder)"
+        />
       </div>
     }
   </div>

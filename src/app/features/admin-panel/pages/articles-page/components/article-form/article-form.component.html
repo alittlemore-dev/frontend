@@ -1,5 +1,59 @@
 <div #articleEditorContainer class="admin-editor-form">
-  <div class="d-flex justify-content-end mb-3">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <ul
+      class="list-unstyled d-flex flex-wrap gap-1 mb-0"
+      role="group"
+      [attr.aria-label]="'articles.preview.language' | t"
+    >
+      <li class="nav-item">
+        <button
+          type="button"
+          class="btn btn-outline-secondary btn-sm"
+          data-testid="article-form-language-ru"
+          [class.active]="
+            (viewMode() === 'preview' ? previewLanguage() : activeLanguageTab()) === 'ru'
+          "
+          [attr.aria-pressed]="
+            (viewMode() === 'preview' ? previewLanguage() : activeLanguageTab()) === 'ru'
+          "
+          [disabled]="previewLanguageLoading()"
+          [class.text-danger]="languageTabInvalid('ru')"
+          [attr.aria-invalid]="languageTabInvalid('ru') ? 'true' : null"
+          [attr.title]="languageTabInvalid('ru') ? ('validation.invalid' | t) : null"
+          (click)="setActiveLanguageTab('ru')"
+        >
+          {{ 'articles.form.languageRu' | t }}
+          @if (languageTabInvalid('ru')) {
+            <span class="badge text-bg-danger ms-1" aria-hidden="true">!</span>
+            <span class="visually-hidden">{{ 'validation.invalid' | t }}</span>
+          }
+        </button>
+      </li>
+      <li class="nav-item">
+        <button
+          type="button"
+          class="btn btn-outline-secondary btn-sm"
+          data-testid="article-form-language-en"
+          [class.active]="
+            (viewMode() === 'preview' ? previewLanguage() : activeLanguageTab()) === 'en'
+          "
+          [attr.aria-pressed]="
+            (viewMode() === 'preview' ? previewLanguage() : activeLanguageTab()) === 'en'
+          "
+          [disabled]="previewLanguageLoading()"
+          [class.text-danger]="languageTabInvalid('en')"
+          [attr.aria-invalid]="languageTabInvalid('en') ? 'true' : null"
+          [attr.title]="languageTabInvalid('en') ? ('validation.invalid' | t) : null"
+          (click)="setActiveLanguageTab('en')"
+        >
+          {{ 'articles.form.languageEn' | t }}
+          @if (languageTabInvalid('en')) {
+            <span class="badge text-bg-danger ms-1" aria-hidden="true">!</span>
+            <span class="visually-hidden">{{ 'validation.invalid' | t }}</span>
+          }
+        </button>
+      </li>
+    </ul>
     <div
       class="btn-group btn-group-sm"
       role="group"
@@ -30,6 +84,24 @@
     </div>
   </div>
 
+  @if (invalidFields().length > 0) {
+    <div class="alert alert-danger py-2" role="alert">
+      <span>{{ 'validation.invalid' | t }}</span>
+      <ul class="mb-0 ps-3">
+        @for (field of invalidFields(); track field) {
+          <li>
+            <button
+              type="button"
+              class="btn btn-link btn-sm text-danger p-0"
+              (click)="goToField(field)"
+            >
+              {{ fieldLabelKey(field) | t }} — {{ articleFieldMessage(field) }}
+            </button>
+          </li>
+        }
+      </ul>
+    </div>
+  }
   <form
     id="article-authoring-edit-form"
     data-testid="article-form-edit"
@@ -40,44 +112,6 @@
   >
     <div class="admin-authoring-layout">
       <div class="admin-authoring-content">
-        <ul class="nav nav-tabs mb-3" role="tablist">
-          <li class="nav-item" role="presentation">
-            <button
-              type="button"
-              class="nav-link"
-              data-testid="article-form-language-ru"
-              [class.active]="activeLanguageTab() === 'ru'"
-              [class.text-danger]="languageTabInvalid('ru')"
-              [attr.aria-invalid]="languageTabInvalid('ru') ? 'true' : null"
-              [attr.title]="languageTabInvalid('ru') ? ('validation.invalid' | t) : null"
-              (click)="setActiveLanguageTab('ru')"
-            >
-              {{ 'articles.form.languageRu' | t }}
-              @if (languageTabInvalid('ru')) {
-                <span class="badge text-bg-danger ms-1" aria-hidden="true">!</span>
-                <span class="visually-hidden">{{ 'validation.invalid' | t }}</span>
-              }
-            </button>
-          </li>
-          <li class="nav-item" role="presentation">
-            <button
-              type="button"
-              class="nav-link"
-              data-testid="article-form-language-en"
-              [class.active]="activeLanguageTab() === 'en'"
-              [class.text-danger]="languageTabInvalid('en')"
-              [attr.aria-invalid]="languageTabInvalid('en') ? 'true' : null"
-              [attr.title]="languageTabInvalid('en') ? ('validation.invalid' | t) : null"
-              (click)="setActiveLanguageTab('en')"
-            >
-              {{ 'articles.form.languageEn' | t }}
-              @if (languageTabInvalid('en')) {
-                <span class="badge text-bg-danger ms-1" aria-hidden="true">!</span>
-                <span class="visually-hidden">{{ 'validation.invalid' | t }}</span>
-              }
-            </button>
-          </li>
-        </ul>
         <div [class.d-none]="activeLanguageTab() !== 'ru'">
           <div class="row g-3">
             <div class="col-12">
@@ -194,6 +228,10 @@
         <details class="admin-editor-section" open>
           <summary [class.text-danger]="sectionInvalid('settings')">
             {{ 'adminEditor.settings' | t }}
+            <span class="small text-body-secondary ms-2"
+              >{{ selectedFolder()?.name }} ·
+              {{ 'enum.publishStatus.' + form.controls.publishStatus.value | t }}</span
+            >
             @if (sectionInvalid('settings')) {
               <span class="badge text-bg-danger ms-1" aria-hidden="true">!</span
               ><span class="visually-hidden">{{ 'validation.invalid' | t }}</span>
@@ -351,6 +389,9 @@
         <details class="admin-editor-section">
           <summary [class.text-danger]="sectionInvalid('cover')">
             {{ 'articles.seoAnalysis.check.coverImage' | t }}
+            @if (hasCoverImage()) {
+              <span aria-hidden="true" class="text-success ms-2">✓</span>
+            }
             @if (sectionInvalid('cover')) {
               <span class="badge text-bg-danger ms-1" aria-hidden="true">!</span
               ><span class="visually-hidden">{{ 'validation.invalid' | t }}</span>
@@ -597,43 +638,12 @@
     [hidden]="viewMode() !== 'preview'"
     [attr.aria-label]="'articles.preview.aria' | t"
   >
-    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
-      <h3 class="h5 mb-0">{{ 'articles.preview.aria' | t }}</h3>
-      <div class="d-flex flex-wrap align-items-center gap-2">
-        <span class="small text-body-secondary" id="article-preview-language-label">
-          {{ 'articles.preview.language' | t }}
-        </span>
-        <div
-          class="btn-group btn-group-sm"
-          role="group"
-          aria-labelledby="article-preview-language-label"
-        >
-          <button
-            type="button"
-            class="btn btn-outline-secondary btn-sm"
-            data-testid="article-preview-language-ru"
-            [disabled]="previewLanguageLoading()"
-            [class.active]="previewLanguageSelected('ru')"
-            [attr.aria-pressed]="previewLanguageSelected('ru')"
-            (click)="setPreviewLanguage('ru')"
-          >
-            {{ 'articles.preview.languageRu' | t }}
-          </button>
-          <button
-            type="button"
-            class="btn btn-outline-secondary btn-sm"
-            data-testid="article-preview-language-en"
-            [disabled]="previewLanguageLoading()"
-            [class.active]="previewLanguageSelected('en')"
-            [attr.aria-pressed]="previewLanguageSelected('en')"
-            (click)="setPreviewLanguage('en')"
-          >
-            {{ 'articles.preview.languageEn' | t }}
-          </button>
-        </div>
-      </div>
-    </div>
-
+    <h3 class="h5 mb-3">
+      {{ 'articles.preview.aria' | t }} ·
+      {{
+        (previewLanguage() === 'ru' ? 'articles.form.languageRu' : 'articles.form.languageEn') | t
+      }}
+    </h3>
     @if (previewLanguageError()) {
       <div class="alert alert-danger" role="alert">{{ previewLanguageError() }}</div>
     }
@@ -652,18 +662,26 @@
   </section>
 
   <div
-    class="admin-editor-actions d-flex justify-content-end gap-2"
+    class="admin-editor-actions d-flex flex-wrap align-items-center justify-content-end gap-2"
     [dsMarkdownEditorStickyBottomInset]="articleEditorContainer"
   >
+    <span class="small text-body-secondary me-auto" role="status">{{
+      (submitting()
+        ? 'adminEditor.saving'
+        : unsavedChangesScope().hasChanges()
+          ? 'adminEditor.unsaved'
+          : 'adminEditor.saved'
+      ) | t
+    }}</span>
     <button type="button" class="btn btn-outline-secondary btn-sm" (click)="formCancel.emit()">
       {{ 'shared.cancel' | t }}
     </button>
     <button
       type="submit"
+      [disabled]="submitting() || coverImageUploading()"
       class="btn btn-success btn-sm"
       data-testid="article-form-save"
       form="article-authoring-edit-form"
-      [disabled]="coverImageUploading()"
     >
       {{ 'shared.save' | t }}
     </button>

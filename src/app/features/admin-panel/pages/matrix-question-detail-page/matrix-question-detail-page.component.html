@@ -8,7 +8,7 @@
         @if (question(); as currentQuestion) {
           {{ currentQuestion.question }}
         } @else {
-          {{ 'matrix.modal.edit' | t }}
+          {{ (creating ? 'matrix.modal.create' : 'matrix.modal.edit') | t }}
         }
       </h1>
       @if (question(); as currentQuestion) {
@@ -41,7 +41,7 @@
       [retryLabel]="'shared.retry' | t"
       (retry)="retryLoadQuestion()"
     />
-  } @else if (question(); as currentQuestion) {
+  } @else if (creating || question()) {
     @if (saveError()) {
       <ds-error-message
         [error]="saveError()!"
@@ -51,8 +51,8 @@
     }
     <app-admin-matrix-question-form
       [unsavedChangesScope]="unsavedChangesScope"
-      mode="edit"
-      [question]="currentQuestion"
+      [mode]="creating ? 'create' : 'edit'"
+      [question]="question()"
       [createInitialValue]="null"
       [submitting]="submitting()"
       submitLabelKey="adminMatrixWorkspace.save"

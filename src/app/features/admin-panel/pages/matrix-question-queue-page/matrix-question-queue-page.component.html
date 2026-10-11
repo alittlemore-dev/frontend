@@ -15,237 +15,230 @@
   </div>
 </div>
 
-@if (loading()) {
-  <ds-loading-spinner [ariaLabel]="'shared.loading' | t" />
-} @else if (error()) {
-  <ds-error-message [error]="error()!" [retryLabel]="'shared.retry' | t" (retry)="loadQueue()" />
-} @else {
-  <div class="row g-2 mb-3" role="status" aria-live="polite">
-    <div class="col-6 col-xl-3">
-      <div class="border rounded p-2 h-100">
-        <span class="d-block small text-body-secondary">
-          {{ 'adminMatrixQueue.stats.total' | t }}
-        </span>
-        <strong data-testid="matrix-queue-stat-total">{{ totalQuestionCount() }}</strong>
+<div
+  class="matrix-queue-workspace"
+  [class.matrix-queue-workspace--selected]="selectedQuestion() !== null"
+>
+  <section class="matrix-queue-list" [attr.aria-label]="'adminMatrixQueue.title' | t">
+    @if (loading()) {
+      <ds-loading-spinner [ariaLabel]="'shared.loading' | t" />
+    } @else if (error()) {
+      <ds-error-message
+        [error]="error()!"
+        [retryLabel]="'shared.retry' | t"
+        (retry)="loadQueue()"
+      />
+    } @else {
+      <div class="d-flex flex-wrap gap-3 small text-body-secondary mb-2" role="status">
+        <span
+          >{{ 'adminMatrixQueue.stats.total' | t }}:
+          <strong data-testid="matrix-queue-stat-total">{{ totalQuestionCount() }}</strong></span
+        >
+        <span
+          >{{ 'adminMatrixQueue.stats.shown' | t }}:
+          <strong data-testid="matrix-queue-stat-shown">{{ shownQuestionCount() }}</strong></span
+        >
       </div>
-    </div>
-    <div class="col-6 col-xl-3">
-      <div class="border rounded p-2 h-100">
-        <span class="d-block small text-body-secondary">
-          {{ 'adminMatrixQueue.stats.shown' | t }}
-        </span>
-        <strong data-testid="matrix-queue-stat-shown">{{ shownQuestionCount() }}</strong>
-      </div>
-    </div>
-  </div>
 
-  @if (hasQuestions()) {
-    <form class="row g-2 align-items-end mb-3" [formGroup]="filtersForm">
-      <div class="col-12 col-md-6 col-xl-4">
-        <label class="form-label" for="matrix-queue-filter-search">
-          {{ 'adminMatrixQueue.filters.search' | t }}
-        </label>
-        <input
-          id="matrix-queue-filter-search"
-          type="search"
-          class="form-control form-control-sm"
-          data-testid="matrix-queue-filter-search"
-          formControlName="searchQuery"
-          [placeholder]="'adminMatrixQueue.filters.searchPlaceholder' | t"
+      @if (hasQuestions()) {
+        <form
+          class="admin-collection-filters row g-2 align-items-end mb-3"
+          [formGroup]="filtersForm"
+        >
+          <div class="col-12 col-md-6 col-xl-4">
+            <label class="form-label" for="matrix-queue-filter-search">
+              {{ 'adminMatrixQueue.filters.search' | t }}
+            </label>
+            <input
+              id="matrix-queue-filter-search"
+              type="search"
+              class="form-control form-control-sm"
+              data-testid="matrix-queue-filter-search"
+              formControlName="searchQuery"
+              [placeholder]="'adminMatrixQueue.filters.searchPlaceholder' | t"
+            />
+          </div>
+          <div class="col-6 col-md-3 col-xl">
+            <label class="form-label" for="matrix-queue-filter-sheet">
+              {{ 'adminMatrixQueue.filters.sheet' | t }}
+            </label>
+            <ds-site-select
+              inputId="matrix-queue-filter-sheet"
+              [options]="sheetSelectOptions()"
+              controlSize="small"
+              appearance="default"
+              [required]="false"
+              [invalid]="false"
+              [controlDisabled]="false"
+              testId="matrix-queue-filter-sheet"
+              formControlName="sheet"
+            />
+          </div>
+          <div class="col-6 col-md-3 col-xl">
+            <label class="form-label" for="matrix-queue-filter-grade">
+              {{ 'adminMatrixQueue.filters.grade' | t }}
+            </label>
+            <ds-site-select
+              inputId="matrix-queue-filter-grade"
+              [options]="gradeSelectOptions()"
+              controlSize="small"
+              appearance="default"
+              [required]="false"
+              [invalid]="false"
+              [controlDisabled]="false"
+              testId="matrix-queue-filter-grade"
+              formControlName="grade"
+            />
+          </div>
+          <div class="col-6 col-md-8 col-xl-auto">
+            <button
+              type="button"
+              class="btn btn-outline-secondary btn-sm"
+              data-testid="matrix-queue-filter-reset"
+              (click)="resetFilters()"
+            >
+              {{ 'adminMatrixQueue.filters.reset' | t }}
+            </button>
+          </div>
+        </form>
+        <app-admin-active-filters
+          [filters]="activeFilters()"
+          (filterRemoved)="removeFilter($event)"
         />
-      </div>
-      <div class="col-6 col-md-3 col-xl">
-        <label class="form-label" for="matrix-queue-filter-sheet">
-          {{ 'adminMatrixQueue.filters.sheet' | t }}
-        </label>
-        <ds-site-select
-          inputId="matrix-queue-filter-sheet"
-          [options]="sheetSelectOptions()"
-          controlSize="small"
-          appearance="default"
-          [required]="false"
-          [invalid]="false"
-          [controlDisabled]="false"
-          testId="matrix-queue-filter-sheet"
-          formControlName="sheet"
-        />
-      </div>
-      <div class="col-6 col-md-3 col-xl">
-        <label class="form-label" for="matrix-queue-filter-grade">
-          {{ 'adminMatrixQueue.filters.grade' | t }}
-        </label>
-        <ds-site-select
-          inputId="matrix-queue-filter-grade"
-          [options]="gradeSelectOptions()"
-          controlSize="small"
-          appearance="default"
-          [required]="false"
-          [invalid]="false"
-          [controlDisabled]="false"
-          testId="matrix-queue-filter-grade"
-          formControlName="grade"
-        />
-      </div>
-      <div class="col-6 col-md-8 col-xl-auto">
+      }
+
+      @if (!hasQuestions()) {
+        <ds-empty-state [message]="'adminMatrixQueue.empty' | t" />
+      } @else if (!hasFilteredQuestions()) {
+        <ds-empty-state [message]="'adminMatrixQueue.filteredEmpty' | t" />
+        <div class="text-center mb-4">
+          <button
+            type="button"
+            class="btn btn-outline-secondary btn-sm"
+            data-testid="matrix-queue-filter-reset-empty"
+            (click)="resetFilters()"
+          >
+            {{ 'adminMatrixQueue.filters.reset' | t }}
+          </button>
+        </div>
+      } @else {
+        <div class="list-group">
+          @for (question of filteredQuestions(); track question.id) {
+            <div class="matrix-queue-card list-group-item position-relative p-0">
+              <button
+                type="button"
+                class="list-group-item list-group-item-action border-0 rounded-0 w-100 text-start"
+                [class.list-group-item-success]="selectedQuestion()?.id === question.id"
+                [attr.aria-current]="selectedQuestion()?.id === question.id ? 'true' : null"
+                [attr.data-testid]="'matrix-queue-question-' + question.id"
+                (click)="selectQuestion(question)"
+              >
+                <span class="d-block fw-semibold">{{ question.question }}</span>
+                <span
+                  class="matrix-queue-metadata d-flex flex-wrap align-items-center small text-body-secondary mt-1"
+                  [attr.data-testid]="'matrix-queue-metadata-' + question.id"
+                >
+                  <span class="matrix-queue-metadata-item">
+                    {{ 'adminMatrixQueue.createdAt' | t }}:
+                    <time
+                      [attr.datetime]="question.createdAt"
+                      data-testid="matrix-queue-created-at"
+                      >{{ formatCreatedAt(question.createdAt) }}</time
+                    >
+                  </span>
+                  <span class="matrix-queue-metadata-item">
+                    {{ 'adminMatrixQueue.suggestedBy' | t }}:
+                    {{ suggestedByLabel(question) }}
+                  </span>
+                  @if (questionStructure(question)) {
+                    <span class="matrix-queue-metadata-item matrix-queue-metadata-structure">
+                      {{ 'adminMatrixQueue.structure' | t }}: {{ questionStructure(question) }}
+                    </span>
+                  }
+                </span>
+              </button>
+            </div>
+          }
+        </div>
+      }
+    }
+  </section>
+  <section class="matrix-queue-review" [attr.aria-label]="'adminMatrixQueue.review' | t">
+    @if (selectedQuestion(); as proposal) {
+      <div class="d-flex flex-wrap align-items-start justify-content-between gap-2 mb-3">
+        <div>
+          <h3 class="h5 mb-1" id="queue-review-heading" tabindex="-1">
+            {{ 'adminMatrixQueue.review' | t }}
+          </h3>
+          <p class="small text-body-secondary mb-0">
+            {{ proposal.question }} · {{ suggestedByLabel(proposal) }}
+          </p>
+        </div>
         <button
           type="button"
           class="btn btn-outline-secondary btn-sm"
-          data-testid="matrix-queue-filter-reset"
-          (click)="resetFilters()"
+          [disabled]="selectedQuestionProcessing()"
+          (click)="closeCreateModal()"
         >
-          {{ 'adminMatrixQueue.filters.reset' | t }}
+          {{ 'shared.back' | t }}
         </button>
       </div>
-    </form>
-  }
-
-  @if (!hasQuestions()) {
-    <ds-empty-state [message]="'adminMatrixQueue.empty' | t" />
-  } @else if (!hasFilteredQuestions()) {
-    <ds-empty-state [message]="'adminMatrixQueue.filteredEmpty' | t" />
-    <div class="text-center mb-4">
-      <button
-        type="button"
-        class="btn btn-outline-secondary btn-sm"
-        data-testid="matrix-queue-filter-reset-empty"
-        (click)="resetFilters()"
-      >
-        {{ 'adminMatrixQueue.filters.reset' | t }}
-      </button>
-    </div>
-  } @else {
-    <div class="list-group">
-      @for (question of filteredQuestions(); track question.id) {
-        <div class="matrix-queue-card list-group-item position-relative p-0 mb-3">
-          <button
-            type="button"
-            class="list-group-item list-group-item-action border-0 rounded-0 w-100 text-start pe-5"
-            [class.list-group-item-success]="selectedQuestion()?.id === question.id"
-            [attr.aria-current]="selectedQuestion()?.id === question.id ? 'true' : null"
-            [attr.data-testid]="'matrix-queue-question-' + question.id"
-            (click)="selectQuestion(question)"
-          >
-            <span class="d-block fw-semibold">{{ question.question }}</span>
-            <span
-              class="matrix-queue-metadata d-flex flex-wrap align-items-center small text-body-secondary mt-1"
-              [attr.data-testid]="'matrix-queue-metadata-' + question.id"
-            >
-              <span class="matrix-queue-metadata-item">
-                {{ 'adminMatrixQueue.createdAt' | t }}:
-                <time [attr.datetime]="question.createdAt" data-testid="matrix-queue-created-at">{{
-                  formatCreatedAt(question.createdAt)
-                }}</time>
-              </span>
-              <span class="matrix-queue-metadata-item">
-                {{ 'adminMatrixQueue.suggestedBy' | t }}:
-                {{ suggestedByLabel(question) }}
-              </span>
-              @if (questionStructure(question)) {
-                <span class="matrix-queue-metadata-item matrix-queue-metadata-structure">
-                  {{ 'adminMatrixQueue.structure' | t }}: {{ questionStructure(question) }}
-                </span>
-              }
-            </span>
-          </button>
-          <app-admin-remove-button
-            class="matrix-queue-reject"
-            [testId]="'matrix-queue-reject-' + question.id"
-            [ariaLabel]="'adminMatrixQueue.rejectQuestion' | t: { question: question.question }"
-            [disabled]="rejectingQuestionId() !== null"
-            (remove)="rejectQuestion(question)"
-          />
+      @if (formError()) {
+        <div class="alert alert-danger" role="alert">
+          <ul class="mb-0 ps-3">
+            @for (message of formErrorMessages(); track $index) {
+              <li>{{ message }}</li>
+            }
+          </ul>
         </div>
       }
-    </div>
-  }
-}
-
-@if (selectedQuestion()) {
-  <div
-    class="modal d-block bg-dark bg-opacity-50"
-    [dsModalScroll]="queueQuestionScrollArea"
-    role="dialog"
-    aria-modal="true"
-    [attr.aria-label]="'matrix.modal.create' | t"
-    (click)="closeCreateModal()"
-    (keyup.escape)="closeCreateModal()"
-    tabindex="0"
-  >
-    <div
-      class="modal-dialog modal-dialog-scrollable modal-xl"
-      role="document"
-      tabindex="-1"
-      (click)="$event.stopPropagation()"
-      (keydown)="$event.stopPropagation()"
-    >
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">{{ 'matrix.modal.create' | t }}</h5>
+      <app-admin-matrix-question-form
+        mode="create"
+        [question]="null"
+        [createInitialValue]="selectedQuestionInitialValue()"
+        [submitting]="selectedQuestionProcessing()"
+        submitLabelKey="adminMatrixQueue.createAndNext"
+        [showCancelAction]="false"
+        [unsavedChangesScope]="unsavedChangesScope"
+        (questionSave)="createQuestion($event)"
+        (formCancel)="closeCreateModal()"
+      >
+        <div matrixQuestionFormActions class="matrix-queue-review-actions">
           <button
             type="button"
-            class="btn-close"
+            class="btn btn-outline-danger btn-sm"
+            data-testid="matrix-queue-reject-and-next"
             [disabled]="selectedQuestionProcessing()"
-            [attr.aria-label]="'shared.close' | t"
-            (click)="closeCreateModal()"
-          ></button>
-        </div>
-        <div #queueQuestionScrollArea class="modal-body">
-          @if (formError()) {
-            <div class="alert alert-danger" role="alert">
-              <ul class="mb-0 ps-3">
-                @for (message of formErrorMessages(); track $index) {
-                  <li>{{ message }}</li>
-                }
-              </ul>
-            </div>
-          }
-          <app-admin-matrix-question-form
-            mode="create"
-            [question]="null"
-            [createInitialValue]="selectedQuestionInitialValue()"
-            [submitting]="selectedQuestionProcessing()"
-            submitLabelKey="adminMatrixQueue.createAndNext"
-            [showCancelAction]="false"
-            [unsavedChangesScope]="unsavedChangesScope"
-            (questionSave)="createQuestion($event)"
-            (formCancel)="closeCreateModal()"
+            (click)="rejectSelectedQuestionAndAdvance()"
           >
-            <div matrixQuestionFormActions class="d-flex flex-wrap gap-2">
-              <button
-                type="button"
-                class="btn btn-outline-danger"
-                data-testid="matrix-queue-reject-and-next"
-                [disabled]="selectedQuestionProcessing()"
-                (click)="rejectSelectedQuestionAndAdvance()"
-              >
-                {{ 'adminMatrixQueue.rejectAndNext' | t }}
-              </button>
-              <button
-                type="button"
-                class="btn btn-outline-secondary"
-                data-testid="matrix-queue-skip"
-                [disabled]="selectedQuestionProcessing()"
-                (click)="skipSelectedQuestion()"
-              >
-                {{ 'adminMatrixQueue.skip' | t }}
-              </button>
-            </div>
-            <button
-              matrixQuestionFormSubmitActions
-              type="button"
-              class="btn btn-outline-success"
-              data-testid="matrix-queue-create-and-edit"
-              [disabled]="selectedQuestionProcessing()"
-              (click)="createQuestionAndEdit()"
-            >
-              {{ 'adminMatrixQueue.createAndEdit' | t }}
-            </button>
-          </app-admin-matrix-question-form>
+            {{ 'adminMatrixQueue.rejectAndNext' | t }}
+          </button>
+          <button
+            type="button"
+            class="btn btn-outline-secondary btn-sm"
+            data-testid="matrix-queue-skip"
+            [disabled]="selectedQuestionProcessing()"
+            (click)="skipSelectedQuestion()"
+          >
+            {{ 'adminMatrixQueue.skip' | t }}
+          </button>
         </div>
-      </div>
-    </div>
-  </div>
-}
+        <button
+          matrixQuestionFormSubmitActions
+          type="button"
+          class="btn btn-outline-success btn-sm"
+          data-testid="matrix-queue-create-and-edit"
+          [disabled]="selectedQuestionProcessing()"
+          (click)="createQuestionAndEdit()"
+        >
+          {{ 'adminMatrixQueue.createAndEdit' | t }}
+        </button>
+      </app-admin-matrix-question-form>
+    } @else {
+      <p class="text-body-secondary py-4">{{ 'adminMatrixQueue.chooseProposal' | t }}</p>
+    }
+  </section>
+</div>
 
 @if (manualAddVisible()) {
   <div
@@ -327,11 +320,24 @@
             @if (manualAddErrorMessage(); as message) {
               <div class="invalid-feedback d-block">{{ message }}</div>
             }
+          } @else if (importResult() !== null) {
+            <div class="alert alert-success" role="status">
+              {{ 'adminMatrixQueue.importAdded' | t: { count: importResult()! } }}
+            </div>
           } @else {
+            <p class="small text-body-secondary">
+              {{
+                (importPreview() === null
+                  ? 'adminMatrixQueue.importStepFile'
+                  : 'adminMatrixQueue.importStepReview'
+                ) | t
+              }}
+            </p>
             <input
               type="file"
               id="matrix-queue-import-file"
-              class="visually-hidden"
+              class="form-control form-control-sm mb-2"
+              [attr.aria-label]="'adminMatrixQueue.importChooseFile' | t"
               data-testid="matrix-queue-import-file-input"
               [accept]="importFileAccept"
               [disabled]="importBusy()"
@@ -372,7 +378,7 @@
                 </label>
               </div>
               <table
-                class="table table-sm align-middle matrix-import-preview-table"
+                class="admin-collection-table table table-sm align-middle matrix-import-preview-table"
                 data-testid="matrix-queue-import-preview-table"
               >
                 <colgroup>
@@ -419,8 +425,12 @@
                       >
                         {{ row.question || ('shared.notSet' | t) }}
                       </td>
-                      <td>{{ row.sheet || ('shared.notSet' | t) }}</td>
-                      <td>{{ row.grade || ('shared.notSet' | t) }}</td>
+                      <td [attr.data-label]="'adminMatrixQueue.importSheet' | t">
+                        {{ row.sheet || ('shared.notSet' | t) }}
+                      </td>
+                      <td [attr.data-label]="'adminMatrixQueue.importGrade' | t">
+                        {{ row.grade || ('shared.notSet' | t) }}
+                      </td>
                       <td>
                         @if (row.issues.length === 0) {
                           <span class="text-success">{{ 'adminMatrixQueue.importReady' | t }}</span>
@@ -484,6 +494,10 @@
               } @else {
                 {{ 'adminMatrixQueue.addToQueue' | t }}
               }
+            </button>
+          } @else if (importResult() !== null) {
+            <button type="button" class="btn btn-success" (click)="closeManualAdd()">
+              {{ 'shared.close' | t }}
             </button>
           } @else if (importPreview() === null) {
             <button

@@ -1,8 +1,15 @@
+import {
+  AdminActiveFilter,
+  AdminActiveFiltersComponent,
+} from '../../components/admin-active-filters/admin-active-filters.component';
+import { AdminCollectionPositionService } from '../../services/admin-collection-position.service';
 import { DOCUMENT } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
+  Injector,
+  afterNextRender,
   OnInit,
   computed,
   inject,
@@ -29,7 +36,6 @@ import {
 } from '@alittlemore.dev/design-system';
 
 import { MatrixQuestionFormComponent } from '../../components/matrix-question-form/matrix-question-form.component';
-import { AdminRemoveButtonComponent } from '../../components/admin-remove-button/admin-remove-button.component';
 import {
   QueuedMatrixImportIssue,
   QueuedMatrixImportIssueCode,
@@ -86,6 +92,7 @@ const IMPORT_ISSUE_KEY: Record<QueuedMatrixImportIssueCode, string> = {
   selector: 'app-matrix-question-queue-page',
   standalone: true,
   imports: [
+    AdminActiveFiltersComponent,
     ReactiveFormsModule,
     TranslatePipe,
     LoadingSpinnerComponent,
@@ -94,7 +101,6 @@ const IMPORT_ISSUE_KEY: Record<QueuedMatrixImportIssueCode, string> = {
     MatrixQuestionFormComponent,
     ModalScrollDirective,
     SiteSelectComponent,
-    AdminRemoveButtonComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './matrix-question-queue-page.component.html',
@@ -109,6 +115,8 @@ export class MatrixQuestionQueuePageComponent implements OnInit {
   readonly i18n = inject(I18nService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly document = inject(DOCUMENT);
+  private readonly injector = inject(Injector);
+  private readonly position = inject(AdminCollectionPositionService);
   private readonly unsavedChanges = inject(AdminUnsavedChangesService);
 
   readonly unsavedChangesScope = this.unsavedChanges.createScope(this.destroyRef);
@@ -126,6 +134,34 @@ export class MatrixQuestionQueuePageComponent implements OnInit {
     sheet: '',
     grade: '',
   });
+  readonly activeFilters = computed<readonly AdminActiveFilter[]>(() => {
+    this.i18n.language();
+    const filters = this.filters();
+    const active: AdminActiveFilter[] = [];
+    if (filters.searchQuery.trim())
+      active.push({
+        key: 'searchQuery',
+        label: this.i18n.translate('adminMatrixQueue.filters.search'),
+        value: filters.searchQuery,
+      });
+    if (filters.sheet)
+      active.push({
+        key: 'sheet',
+        label: this.i18n.translate('adminMatrixQueue.filters.sheet'),
+        value:
+          this.sheetSelectOptions().find((item) => item.value === filters.sheet)?.label ??
+          filters.sheet,
+      });
+    if (filters.grade)
+      active.push({
+        key: 'grade',
+        label: this.i18n.translate('adminMatrixQueue.filters.grade'),
+        value:
+          this.gradeSelectOptions().find((item) => item.value === filters.grade)?.label ??
+          filters.grade,
+      });
+    return active;
+  });
   readonly loading = signal(false);
   readonly error = signal<ApiError | null>(null);
   readonly selectedQuestion = signal<QueuedMatrixQuestion | null>(null);
@@ -140,6 +176,7 @@ export class MatrixQuestionQueuePageComponent implements OnInit {
   readonly importFileAccept = IMPORT_FILE_ACCEPT;
   readonly selectedImportFile = signal<File | null>(null);
   readonly importPreview = signal<QueuedMatrixImportPreview | null>(null);
+  readonly importResult = signal<number | null>(null);
   readonly selectedImportRowNumbers = signal<ReadonlySet<number>>(new Set<number>());
   readonly importPreviewSubmitting = signal(false);
   readonly importSubmitting = signal(false);
@@ -298,6 +335,12 @@ export class MatrixQuestionQueuePageComponent implements OnInit {
     this.loadQueue();
   }
 
+  removeFilter(key: string): void {
+    if (key !== 'searchQuery' && key !== 'sheet' && key !== 'grade') return;
+    this.filtersForm.controls[key].setValue('');
+    this.syncFiltersToUrl(this.filtersForm.getRawValue());
+  }
+
   resetFilters(): void {
     const filters: QueueFilters = {
       searchQuery: '',
@@ -314,6 +357,8 @@ export class MatrixQuestionQueuePageComponent implements OnInit {
   }
 
   loadQueue(): void {
+    if (this.selectedQuestionProcessing()) return;
+    if (this.selectedQuestion() !== null && !this.unsavedChangesScope.confirmDiscard()) return;
     this.loading.set(true);
     this.error.set(null);
     this.queueService
@@ -323,6 +368,9 @@ export class MatrixQuestionQueuePageComponent implements OnInit {
         next: (questions) => {
           this.questions.set(questions);
           this.loading.set(false);
+          const selectedId = this.route.snapshot.queryParamMap.get('queueItem');
+          this.selectedQuestion.set(questions.find((item) => item.id === selectedId) ?? null);
+          this.position.restore();
         },
         error: (err: ApiError) => {
           this.error.set(err);
@@ -337,7 +385,10 @@ export class MatrixQuestionQueuePageComponent implements OnInit {
   }
 
   selectQuestion(question: QueuedMatrixQuestion): void {
-    this.selectedQuestion.set(question);
+    if (this.selectedQuestion()?.id === question.id || this.selectedQuestionProcessing()) return;
+    if (!this.unsavedChangesScope.confirmDiscard()) return;
+    this.questionForm()?.discardAuxiliaryDrafts();
+    this.setSelectedQuestion(question);
     this.formError.set(null);
     this.submitting.set(false);
   }
@@ -345,7 +396,7 @@ export class MatrixQuestionQueuePageComponent implements OnInit {
   closeCreateModal(): void {
     if (this.selectedQuestionProcessing()) return;
     if (!this.unsavedChangesScope.confirmDiscard()) return;
-    this.selectedQuestion.set(null);
+    this.setSelectedQuestion(null);
     this.formError.set(null);
   }
 
@@ -462,6 +513,7 @@ export class MatrixQuestionQueuePageComponent implements OnInit {
   }
 
   previewQueuedQuestions(): void {
+    if (this.importBusy()) return;
     const file = this.selectedImportFile();
     if (file === null) {
       this.importFileSelectionErrorKey.set('adminMatrixQueue.importOneFileOnly');
@@ -494,7 +546,11 @@ export class MatrixQuestionQueuePageComponent implements OnInit {
   confirmQueuedQuestionsImport(): void {
     const file = this.selectedImportFile();
     const preview = this.importPreview();
-    if (file === null || preview === null || this.importSelectedCount() === 0) return;
+    if (this.importBusy()) return;
+    if (file === null || preview === null || this.importSelectedCount() === 0) {
+      this.notifications.error(this.i18n.translate('adminMatrixQueue.importSelectAtLeastOne'));
+      return;
+    }
     if (this.manualAddUnsavedSource.hasChanges() && !this.unsavedChangesScope.confirmDiscard()) {
       return;
     }
@@ -509,11 +565,10 @@ export class MatrixQuestionQueuePageComponent implements OnInit {
       .subscribe({
         next: (questions) => {
           this.importSubmitting.set(false);
-          this.manualAddVisible.set(false);
           this.manualAddQuestion.set('');
           this.manualAddSubmitted.set(false);
-          this.addMode.set('manual');
           this.resetImportState();
+          this.importResult.set(questions.length);
           this.manualAddUnsavedSource.commit();
           this.importUnsavedSource.commit();
           this.notifications.success(
@@ -566,7 +621,7 @@ export class MatrixQuestionQueuePageComponent implements OnInit {
     if (question === null) return;
     if (!this.unsavedChangesScope.confirmDiscard()) return;
     this.questionForm()?.discardAuxiliaryDrafts();
-    this.selectedQuestion.set(this.nextQuestionAfter(question.id));
+    this.setSelectedQuestion(this.nextQuestionAfter(question.id));
     this.formError.set(null);
   }
 
@@ -598,7 +653,7 @@ export class MatrixQuestionQueuePageComponent implements OnInit {
             this.questionForm()?.discardAuxiliaryDrafts();
           }
           if (advance) {
-            this.selectedQuestion.set(nextQuestion);
+            this.setSelectedQuestion(nextQuestion);
             this.formError.set(null);
           } else if (this.selectedQuestion()?.id === question.id) {
             this.selectedQuestion.set(null);
@@ -614,6 +669,7 @@ export class MatrixQuestionQueuePageComponent implements OnInit {
   }
 
   createQuestion(payload: AdminMatrixQuestionPayload): void {
+    if (this.selectedQuestionProcessing()) return;
     const destination = this.createDestination;
     this.createDestination = 'next';
     const question = this.selectedQuestion();
@@ -637,15 +693,15 @@ export class MatrixQuestionQueuePageComponent implements OnInit {
           this.formError.set(null);
           this.notifications.success(this.i18n.translate('adminMatrixQueue.created'));
           if (destination === 'edit') {
-            this.selectedQuestion.set(null);
+            this.setSelectedQuestion(null);
             this.unsavedChangesScope.commit();
             void this.router.navigate(['/admin-panel/matrix-questions', createdQuestion.id], {
-              queryParams: { returnTo: 'queue' },
+              queryParams: { returnTo: 'queue', queueItem: nextQuestion?.id ?? null },
               queryParamsHandling: 'merge',
             });
             return;
           }
-          this.selectedQuestion.set(nextQuestion);
+          this.setSelectedQuestion(nextQuestion);
         },
         error: (err: ApiError) => {
           this.submitting.set(false);
@@ -688,15 +744,47 @@ export class MatrixQuestionQueuePageComponent implements OnInit {
     return language;
   }
 
+  private setSelectedQuestion(question: QueuedMatrixQuestion | null): void {
+    const previous = this.selectedQuestion()?.id;
+    this.selectedQuestion.set(question);
+    afterNextRender(
+      () => {
+        const target =
+          question === null
+            ? this.document.querySelector<HTMLElement>(
+                `[data-testid="matrix-queue-question-${previous}"]`,
+              )
+            : this.document.getElementById('queue-review-heading');
+        target?.focus({ preventScroll: true });
+      },
+      { injector: this.injector },
+    );
+    void replaceAdminQueryParams(this.router, this.route, { queueItem: question?.id ?? null });
+  }
+
   private nextQuestionAfter(questionId: string): QueuedMatrixQuestion | null {
     const questions = this.filteredQuestions();
     const questionIndex = questions.findIndex((question) => question.id === questionId);
     if (questionIndex < 0) return null;
-    return questions[questionIndex + 1] ?? null;
+    return questions[questionIndex + 1] ?? questions.find((item) => item.id !== questionId) ?? null;
   }
 
   private setupFilters(): void {
     this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+      const selectedId = params.get('queueItem');
+      if (
+        this.questions().length > 0 &&
+        this.selectedQuestion()?.id !== (selectedId ?? undefined)
+      ) {
+        if (!this.unsavedChangesScope.confirmDiscard()) {
+          void replaceAdminQueryParams(this.router, this.route, {
+            queueItem: this.selectedQuestion()?.id ?? null,
+          });
+          return;
+        }
+        this.questionForm()?.discardAuxiliaryDrafts();
+        this.selectedQuestion.set(this.questions().find((item) => item.id === selectedId) ?? null);
+      }
       const result = this.filtersFromQueryParams(params);
       this.filtersForm.setValue(result, { emitEvent: false });
       this.filters.set(result);
@@ -765,6 +853,7 @@ export class MatrixQuestionQueuePageComponent implements OnInit {
   }
 
   private resetImportState(): void {
+    this.importResult.set(null);
     this.selectedImportFile.set(null);
     this.clearImportPreview();
     this.importPreviewSubmitting.set(false);

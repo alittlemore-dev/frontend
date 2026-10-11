@@ -117,6 +117,19 @@ describe('MatrixStructurePageComponent', () => {
     expect(fixture.nativeElement.querySelector('[title="Переместить ниже"]')).toBeNull();
   });
 
+  it('reorders a sheet with Alt+ArrowDown and uses the priority API', () => {
+    createComponent();
+    const row = fixture.nativeElement.querySelector('.matrix-structure-sheet-item') as HTMLElement;
+    row.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'ArrowDown', altKey: true, bubbles: true }),
+    );
+    fixture.detectChanges();
+    expect(service.updateSheetPriorities).toHaveBeenCalledWith([
+      matrixStructure().sheets[1].id,
+      matrixStructure().sheets[0].id,
+    ]);
+  });
+
   it('autosaves sheet drag-drop reorder optimistically', () => {
     createComponent();
 
@@ -126,7 +139,10 @@ describe('MatrixStructurePageComponent', () => {
     expect(service.updateSheetPriorities).toHaveBeenCalledWith([SQL_SHEET_ID, PYTHON_SHEET_ID]);
     expect(notifications.success).toHaveBeenCalledWith('Порядок структуры сохранён.');
     const tabs = sheetTabs();
-    expect(tabs.map((tab) => tab.textContent?.trim())).toEqual(['SQL', 'Питон']);
+    expect(tabs.map((tab) => tab.textContent?.replace(/\s*\(\d+\)\s*$/u, '').trim())).toEqual([
+      'SQL',
+      'Питон',
+    ]);
   });
 
   it('keeps optimistic reorder dirty only while its save request is pending', () => {
@@ -172,7 +188,9 @@ describe('MatrixStructurePageComponent', () => {
 
     expect(notifications.error).toHaveBeenCalledWith('Не удалось сохранить порядок структуры.');
     expect(service.getStructure).toHaveBeenCalledTimes(2);
-    expect(sheetTabs().map((tab) => tab.textContent?.trim())).toEqual(['Питон', 'SQL']);
+    expect(
+      sheetTabs().map((tab) => tab.textContent?.replace(/\s*\(\d+\)\s*$/u, '').trim()),
+    ).toEqual(['Питон', 'SQL']);
   });
 
   it('autosaves nested section and subsection reorders', () => {
@@ -331,11 +349,13 @@ describe('MatrixStructurePageComponent', () => {
       .mockReturnValueOnce(of({ sheets: [matrixStructure().sheets[1]] }));
     createComponent();
 
-    click('[data-testid="matrix-structure-delete-sheet"]');
+    deleteNode('sheet');
 
     expect(service.deleteSheet).toHaveBeenCalledWith(PYTHON_SHEET_ID, false);
     expect(confirm).not.toHaveBeenCalled();
-    expect(sheetTabs().map((tab) => tab.textContent?.trim())).toEqual(['SQL']);
+    expect(
+      sheetTabs().map((tab) => tab.textContent?.replace(/\s*\(\d+\)\s*$/u, '').trim()),
+    ).toEqual(['SQL']);
     expect(fixture.componentInstance.selectedSheetId()).toBe(SQL_SHEET_ID);
     expect(router.navigate).toHaveBeenCalledWith(
       [],
@@ -350,7 +370,7 @@ describe('MatrixStructurePageComponent', () => {
     const confirm = jest.spyOn(window, 'confirm').mockReturnValue(false);
     createComponent();
 
-    click('[data-testid="matrix-structure-delete-section"]');
+    deleteNode('section');
 
     expect(confirm).toHaveBeenCalledWith(
       'Вы точно уверены, что хотите удалить раздел вместе с вопросами?',
@@ -373,7 +393,7 @@ describe('MatrixStructurePageComponent', () => {
       .mockReturnValueOnce(of(refreshed));
     createComponent();
 
-    click('[data-testid="matrix-structure-delete-subsection"]');
+    deleteNode('subsection');
 
     expect(service.deleteSubsection).toHaveBeenNthCalledWith(1, STYLE_SUBSECTION_ID, false);
     expect(service.deleteSubsection).toHaveBeenNthCalledWith(2, STYLE_SUBSECTION_ID, true);
@@ -388,7 +408,7 @@ describe('MatrixStructurePageComponent', () => {
     service.deleteSheet.mockReturnValue(throwError(() => ({ status: 500 })));
     createComponent();
 
-    click('[data-testid="matrix-structure-delete-sheet"]');
+    deleteNode('sheet');
 
     expect(sheetTabs()).toHaveLength(2);
     expect(fixture.componentInstance.deleting()).toBe(false);
@@ -402,15 +422,15 @@ describe('MatrixStructurePageComponent', () => {
     service.deleteSheet.mockReturnValue(request.asObservable());
     createComponent();
 
-    click('[data-testid="matrix-structure-delete-sheet"]');
+    deleteNode('sheet');
 
     const deleteButton = fixture.nativeElement.querySelector(
-      '[data-testid="matrix-structure-delete-sheet"]',
+      '[data-testid="matrix-structure-delete-sheet-toggle"]',
     ) as HTMLButtonElement | null;
     const addSectionButton = fixture.nativeElement.querySelector(
       '[data-testid="matrix-structure-open-section-create"]',
     ) as HTMLButtonElement | null;
-    expect(deleteButton?.disabled).toBe(true);
+    expect(deleteButton).toBeNull();
     expect(addSectionButton?.disabled).toBe(true);
     expect(
       fixture.nativeElement.querySelector('.matrix-structure-section.cdk-drag-disabled'),
@@ -431,6 +451,10 @@ describe('MatrixStructurePageComponent', () => {
     return Array.from(
       fixture.nativeElement.querySelectorAll('[data-testid="matrix-structure-sheet-tab"]'),
     );
+  }
+
+  function deleteNode(kind: 'sheet' | 'section' | 'subsection'): void {
+    click(`[data-testid="matrix-structure-delete-${kind}"]`);
   }
 
   function click(selector: string): void {

@@ -12,8 +12,22 @@
     </button>
   </div>
 
+  <div class="admin-collection-summary" role="group" [attr.aria-label]="'adminEditor.content' | t">
+    <a class="btn btn-outline-secondary btn-sm" routerLink="/admin-panel/articles">{{
+      'articles.title' | t
+    }}</a>
+    <a
+      class="btn btn-outline-secondary btn-sm"
+      routerLink="/admin-panel/matrix-questions"
+      [queryParams]="{ publishStatus: 'Draft', hasMissingFields: true }"
+      >{{ 'adminMatrixWorkspace.missingDraft' | t }}</a
+    >
+    <a class="btn btn-outline-secondary btn-sm" routerLink="/admin-panel/matrix-question-queue">{{
+      'adminMatrixQueue.title' | t
+    }}</a>
+  </div>
   <ul
-    class="nav nav-tabs flex-wrap gap-1 mb-3"
+    class="nav nav-tabs admin-workspace-tabs flex-wrap gap-1 mb-3"
     role="tablist"
     [attr.aria-label]="'dashboard.title' | t"
     data-testid="dashboard-tabs"
@@ -61,8 +75,9 @@
         <h3 id="dashboard-tools-heading" class="h5 mb-1">{{ 'dashboard.tools.title' | t }}</h3>
         <p class="text-body-secondary mb-0">{{ 'dashboard.tools.summary' | t }}</p>
       </div>
-      <app-admin-tools-widget />
-      <app-workspace-cache-widget class="mt-4" />
+      <div class="admin-maintenance-grid">
+        <app-admin-tools-widget /><app-workspace-cache-widget />
+      </div>
     </section>
   } @else {
     <div data-testid="dashboard-moderator-view">

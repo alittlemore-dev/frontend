@@ -122,6 +122,10 @@ export class ArticleWorkspaceService {
       .pipe(map(mapArticleFolderDto));
   }
 
+  deleteFolder(id: string): Observable<void> {
+    return this.api.delete<void>(`/api/admin/articles/folders/${id}`);
+  }
+
   updateFolderPriorities(orderedIds: readonly string[]): Observable<void> {
     return this.api.put<void>('/api/admin/articles/folders/priorities', { orderedIds });
   }

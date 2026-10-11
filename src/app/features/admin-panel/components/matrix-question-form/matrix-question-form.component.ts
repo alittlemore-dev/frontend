@@ -28,7 +28,7 @@ import {
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
-import { EMPTY, catchError, map } from 'rxjs';
+import { EMPTY, Subscription, catchError, finalize, map, switchMap, timer } from 'rxjs';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { MarkdownEditorComponent } from '../../../../core/editor/markdown-editor.component';
 import { MarkdownEditorStickyBottomInsetDirective } from '@alittlemore.dev/design-system/markdown-editor';
@@ -221,6 +221,9 @@ export class MatrixQuestionFormComponent implements OnChanges, OnInit {
   readonly publishError = signal<string | null>(null);
   readonly resourceDrafts = signal<AdminMatrixResourceDraft[]>([]);
   readonly resourceSearchResults = signal<AdminMatrixResource[]>([]);
+  readonly resourceSearchLoading = signal(false);
+  readonly resourceSearchError = signal<string | null>(null);
+  private resourceSearchRequest: Subscription | null = null;
   readonly newResourceNameRu = signal('');
   readonly newResourceNameEn = signal('');
   readonly newResourceUrl = signal('');
@@ -691,25 +694,65 @@ export class MatrixQuestionFormComponent implements OnChanges, OnInit {
     this.updateMarkdownContent(this.questionForm.controls.interviewAnswerExplanationEn, value);
   }
 
+  settingsSummary(): string {
+    const raw = this.questionForm.getRawValue();
+    const sheets = this.structurePicker()?.structure().sheets ?? [];
+    const sheet = sheets.find((item) =>
+      item.sections.some((section) =>
+        section.subsections.some((subsection) => subsection.id === raw.subsectionId),
+      ),
+    );
+    const section = sheet?.sections.find((item) =>
+      item.subsections.some((subsection) => subsection.id === raw.subsectionId),
+    );
+    const subsection = section?.subsections.find((item) => item.id === raw.subsectionId);
+    return [
+      sheet?.name,
+      section?.name,
+      subsection?.name,
+      raw.grade,
+      this.i18n.translate(`enum.publishStatus.${raw.publishStatus}`),
+    ]
+      .filter(Boolean)
+      .join(' / ');
+  }
+
   searchResources(value: string): void {
+    this.resourceSearchRequest?.unsubscribe();
+    this.resourceSearchError.set(null);
     const searchName = value.trim();
+    this.resourceSearchResults.set([]);
     if (searchName.length < 2) {
-      this.resourceSearchResults.set([]);
+      this.resourceSearchLoading.set(false);
       return;
     }
-    this.workspaceService
-      .searchResources(searchName, RESOURCE_SEARCH_LIMIT, this.currentLanguage())
-      .pipe(takeUntilDestroyed(this.destroyRef))
+    this.resourceSearchLoading.set(true);
+    this.resourceSearchRequest = timer(200)
+      .pipe(
+        switchMap(() =>
+          this.workspaceService.searchResources(
+            searchName,
+            RESOURCE_SEARCH_LIMIT,
+            this.currentLanguage(),
+          ),
+        ),
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.resourceSearchLoading.set(false)),
+      )
       .subscribe({
-        next: (resources) => this.resourceSearchResults.set(resources),
-        error: () => {
-          this.resourceSearchResults.set([]);
-          this.publishError.set(this.i18n.translate('matrix.notify.resourcesError'));
-        },
+        next: (resources) =>
+          this.resourceSearchResults.set(
+            resources.filter(
+              (resource) => !this.resourceDrafts().some((draft) => draft.id === resource.id),
+            ),
+          ),
+        error: () =>
+          this.resourceSearchError.set(this.i18n.translate('matrix.notify.resourcesError')),
       });
   }
 
   attachResource(resource: AdminMatrixResource): void {
+    this.resourceSearchResults.update((items) => items.filter((item) => item.id !== resource.id));
     if (this.resourceDrafts().some((draft) => !draft.isNew && draft.id === resource.id)) return;
     this.resourceDrafts.update((drafts) => [
       ...drafts,
@@ -735,6 +778,16 @@ export class MatrixQuestionFormComponent implements OnChanges, OnInit {
       !isRequiredShortText(nameEn) ||
       !this.newResourceUrlValid()
     ) {
+      const field = !isRequiredShortText(nameRu)
+        ? 'name-ru'
+        : !isRequiredShortText(nameEn)
+          ? 'name-en'
+          : 'url';
+      this.afterNextRender(() =>
+        this.scrollAndFocus(
+          this.host.nativeElement.querySelector<HTMLElement>(`#matrix-resource-new-${field}`),
+        ),
+      );
       return;
     }
     this.resourceDrafts.update((drafts) => [

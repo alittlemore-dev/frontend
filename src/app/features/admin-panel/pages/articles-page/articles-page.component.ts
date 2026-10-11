@@ -1,9 +1,17 @@
+import { Subscription } from 'rxjs';
+import {
+  AdminActiveFilter,
+  AdminActiveFiltersComponent,
+} from '../../components/admin-active-filters/admin-active-filters.component';
+import { AdminCollectionPositionService } from '../../services/admin-collection-position.service';
 import { DOCUMENT } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
   OnInit,
+  ElementRef,
+  viewChild,
   computed,
   inject,
   signal,
@@ -14,7 +22,6 @@ import { ApiError } from '../../../../core/models/api-error.model';
 import { I18nService } from '../../../../core/i18n/i18n.service';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
 import {
-  ModalScrollDirective,
   NotificationService,
   EmptyStateComponent,
   ErrorMessageComponent,
@@ -27,7 +34,6 @@ import {
 
 import {
   AdminArticleList,
-  AdminArticlePayload,
   AdminArticlePublishStatus,
   AdminArticleTag,
   AdminArticleTree,
@@ -38,7 +44,6 @@ import {
   AdminAction,
   AdminActionsDropdownComponent,
 } from '../../components/admin-actions-dropdown/admin-actions-dropdown.component';
-import { ArticleFormComponent } from './components/article-form/article-form.component';
 import {
   canonicalQueryMatches,
   queryNumber,
@@ -73,6 +78,7 @@ interface ArticleQueryState {
   selector: 'app-admin-articles-page',
   standalone: true,
   imports: [
+    AdminActiveFiltersComponent,
     RouterLink,
     TranslatePipe,
     LoadingSpinnerComponent,
@@ -80,8 +86,6 @@ interface ArticleQueryState {
     EmptyStateComponent,
     LocalizedDatePickerComponent,
     AdminActionsDropdownComponent,
-    ArticleFormComponent,
-    ModalScrollDirective,
     SiteSelectComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -92,6 +96,8 @@ export class AdminArticlesPageComponent implements OnInit {
   private readonly notifications = inject(NotificationService);
   private readonly i18n = inject(I18nService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly position = inject(AdminCollectionPositionService);
+  private workspaceRequest: Subscription | null = null;
   private readonly document = inject(DOCUMENT);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
@@ -102,7 +108,9 @@ export class AdminArticlesPageComponent implements OnInit {
 
   readonly unsavedChangesScope = this.unsavedChanges.createScope(this.destroyRef);
 
+  private readonly advancedFilters = viewChild<ElementRef<HTMLDetailsElement>>('advancedFilters');
   readonly page = signal(1);
+  readonly activeFilters = signal<readonly AdminActiveFilter[]>([]);
   readonly searchQuery = signal('');
   readonly tagSlug = signal<string | null>(null);
   readonly publishedFrom = signal('');
@@ -113,22 +121,20 @@ export class AdminArticlesPageComponent implements OnInit {
   readonly tree = signal<AdminArticleTree>({ folders: [] });
   readonly loading = signal(false);
   readonly error = signal<ApiError | null>(null);
-  readonly formVisible = signal(false);
-  readonly formError = signal<ApiError | null>(null);
   readonly filterApplyAttempted = signal(false);
   readonly publishedFromValid = signal(true);
   readonly publishedToValid = signal(true);
   readonly tagSelectOptions = computed<readonly SiteSelectOption[]>(() => {
     this.i18n.language();
     return [
-      { value: '', label: this.i18n.translate('shared.notSet') },
+      { value: '', label: this.i18n.translate('adminMatrixQueue.filters.all') },
       ...this.tags().map((tag) => ({ value: tag.slug, label: tag.name })),
     ];
   });
   readonly publishStatusSelectOptions = computed<readonly SiteSelectOption[]>(() => {
     this.i18n.language();
     return [
-      { value: '', label: this.i18n.translate('shared.notSet') },
+      { value: '', label: this.i18n.translate('adminMatrixQueue.filters.all') },
       ...ARTICLE_PUBLISH_STATUSES.map((status) => ({
         value: status,
         label: this.i18n.translate(`enum.publishStatus.${status}`),
@@ -164,9 +170,10 @@ export class AdminArticlesPageComponent implements OnInit {
   }
 
   loadWorkspace(): void {
+    this.workspaceRequest?.unsubscribe();
     this.loading.set(true);
     this.error.set(null);
-    this.articleWorkspace
+    this.workspaceRequest = this.articleWorkspace
       .listArticles({
         page: this.appliedState.page,
         pageSize: PAGE_SIZE,
@@ -186,6 +193,7 @@ export class AdminArticlesPageComponent implements OnInit {
             return;
           }
           this.articles.set(articles);
+          this.position.restore();
           this.loading.set(false);
         },
         error: (err: ApiError) => {
@@ -198,7 +206,14 @@ export class AdminArticlesPageComponent implements OnInit {
 
   applyFilters(): void {
     this.filterApplyAttempted.set(true);
-    if (!this.publishedFromValid() || !this.publishedToValid()) return;
+    if (!this.publishedFromValid() || !this.publishedToValid()) {
+      const details = this.advancedFilters()?.nativeElement;
+      if (details) {
+        details.open = true;
+        details.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
+      }
+      return;
+    }
     this.commitQueryState({
       searchQuery: this.normalizedSearchQuery(),
       tagSlug: this.tagSlug(),
@@ -232,34 +247,9 @@ export class AdminArticlesPageComponent implements OnInit {
   }
 
   openCreate(): void {
-    this.formError.set(null);
-    this.formVisible.set(true);
-  }
-
-  closeForm(): void {
-    if (!this.unsavedChangesScope.confirmDiscard()) return;
-    this.formVisible.set(false);
-    this.formError.set(null);
-  }
-
-  saveArticle(payload: AdminArticlePayload): void {
-    this.articleWorkspace
-      .createArticle(payload, this.currentLanguage())
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: () => {
-          this.unsavedChangesScope.commit();
-          this.notifications.success(this.i18n.translate('articles.notify.saved'));
-          this.closeForm();
-          this.loadWorkspace();
-          this.loadTags();
-          this.loadTree();
-        },
-        error: (err: ApiError) => {
-          this.formError.set(err);
-          this.notifications.error(this.i18n.translate('articles.notify.saveError'));
-        },
-      });
+    void this.router.navigate(['/admin-panel/articles/create/new'], {
+      queryParamsHandling: 'preserve',
+    });
   }
 
   publishArticle(slug: string): void {
@@ -466,6 +456,50 @@ export class AdminArticlesPageComponent implements OnInit {
     };
   }
 
+  removeFilter(key: string): void {
+    this.commitQueryState({ ...this.appliedState, [key]: null, page: 1 });
+  }
+
+  private updateActiveFilters(state: ArticleQueryState): void {
+    const filters: AdminActiveFilter[] = [];
+    if (state.searchQuery !== null)
+      filters.push({
+        key: 'searchQuery',
+        label: this.i18n.translate('articles.filters.search'),
+        value: String(state.searchQuery),
+      });
+    if (state.tagSlug !== null)
+      filters.push({
+        key: 'tagSlug',
+        label: this.i18n.translate('articles.form.tags'),
+        value:
+          this.tagSelectOptions().find((option) => option.value === String(state.tagSlug))?.label ??
+          String(state.tagSlug),
+      });
+    if (state.publishedFrom !== null)
+      filters.push({
+        key: 'publishedFrom',
+        label: this.i18n.translate('articles.filters.from'),
+        value: String(state.publishedFrom),
+      });
+    if (state.publishedTo !== null)
+      filters.push({
+        key: 'publishedTo',
+        label: this.i18n.translate('articles.filters.to'),
+        value: String(state.publishedTo),
+      });
+    if (state.publishStatus !== null)
+      filters.push({
+        key: 'publishStatus',
+        label: this.i18n.translate('adminMatrixWorkspace.status'),
+        value:
+          this.publishStatusSelectOptions().find(
+            (option) => option.value === String(state.publishStatus),
+          )?.label ?? String(state.publishStatus),
+      });
+    this.activeFilters.set(filters);
+  }
+
   private applyQueryState(state: ArticleQueryState): void {
     this.appliedState = state;
     this.page.set(state.page);
@@ -474,6 +508,7 @@ export class AdminArticlesPageComponent implements OnInit {
     this.publishedFrom.set(state.publishedFrom ?? '');
     this.publishedTo.set(state.publishedTo ?? '');
     this.publishStatus.set(state.publishStatus);
+    this.updateActiveFilters(state);
   }
 
   private commitQueryState(state: ArticleQueryState): void {

@@ -3,12 +3,14 @@
   <div class="d-flex flex-wrap gap-2">
     <button
       type="button"
-      class="btn btn-success btn-sm"
+      class="btn btn-outline-success admin-icon-button"
       data-testid="matrix-structure-open-sheet-create"
+      [attr.aria-label]="'adminMatrixStructure.addSheet' | t"
+      [attr.title]="'adminMatrixStructure.addSheet' | t"
       [disabled]="loading() || busy()"
       (click)="openSheetCreateDialog()"
     >
-      {{ 'adminMatrixStructure.addSheet' | t }}
+      <span aria-hidden="true">+</span>
     </button>
     <button
       type="button"
@@ -43,7 +45,21 @@
     data-testid="matrix-structure-sheet-list"
   >
     @for (sheet of structure().sheets; track sheet.id) {
-      <div class="matrix-structure-sheet-item" cdkDrag [cdkDragDisabled]="busy()">
+      <div
+        class="matrix-structure-sheet-item"
+        cdkDrag
+        [cdkDragDisabled]="busy()"
+        [id]="'structure-row-' + sheet.id"
+        tabindex="0"
+        aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"
+        [attr.title]="'adminCollection.reorderHint' | t"
+        (keydown.alt.arrowup)="
+          moveSheet(sheet.id, -1); $event.preventDefault(); $event.stopPropagation()
+        "
+        (keydown.alt.arrowdown)="
+          moveSheet(sheet.id, 1); $event.preventDefault(); $event.stopPropagation()
+        "
+      >
         <button
           type="button"
           class="btn btn-sm"
@@ -51,9 +67,10 @@
           [class.btn-primary]="selectedSheetId() === sheet.id"
           [class.btn-outline-secondary]="selectedSheetId() !== sheet.id"
           [disabled]="busy()"
+          [attr.aria-pressed]="selectedSheetId() === sheet.id"
           (click)="selectSheet(sheet.id)"
         >
-          {{ sheet.name }}
+          {{ sheet.name }} <span class="small">({{ sheet.sections.length }})</span>
         </button>
       </div>
     }
@@ -71,22 +88,21 @@
         }
         <button
           type="button"
-          class="btn btn-outline-success btn-sm ms-auto"
+          class="btn btn-outline-success admin-icon-button ms-auto"
           data-testid="matrix-structure-open-section-create"
+          [attr.aria-label]="'adminMatrixStructure.addSection' | t"
+          [attr.title]="'adminMatrixStructure.addSection' | t"
           [disabled]="busy()"
           (click)="openSectionCreateDialog()"
         >
-          {{ 'adminMatrixStructure.addSection' | t }}
+          <span aria-hidden="true">+</span>
         </button>
-        <button
-          type="button"
-          class="btn btn-outline-danger btn-sm"
-          data-testid="matrix-structure-delete-sheet"
+        <app-admin-remove-button
+          [ariaLabel]="('adminMatrixStructure.deleteSheet' | t) + ': ' + sheet.name"
           [disabled]="busy()"
-          (click)="deleteSheet(sheet.id)"
-        >
-          {{ 'adminMatrixStructure.deleteSheet' | t }}
-        </button>
+          testId="matrix-structure-delete-sheet"
+          (remove)="deleteSheet(sheet.id)"
+        />
       </div>
 
       <div
@@ -100,40 +116,60 @@
         @for (section of sheet.sections; track section.id) {
           <section
             class="matrix-structure-section border rounded mb-3"
+            [id]="'structure-row-' + section.id"
+            tabindex="0"
+            aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"
+            [attr.title]="'adminCollection.reorderHint' | t"
+            (keydown.alt.arrowup)="
+              moveSection(sheet, section.id, -1); $event.preventDefault(); $event.stopPropagation()
+            "
+            (keydown.alt.arrowdown)="
+              moveSection(sheet, section.id, 1); $event.preventDefault(); $event.stopPropagation()
+            "
             cdkDrag
             [cdkDragDisabled]="busy()"
           >
             <header class="matrix-structure-section-header">
               <div>
-                <h4 class="h6 mb-0">{{ section.name }}</h4>
-                <span class="small text-body-secondary">
-                  {{ 'adminMatrixStructure.priority' | t }} {{ section.priority }}
-                </span>
+                <button
+                  type="button"
+                  class="btn btn-link text-body text-start p-0"
+                  [attr.aria-expanded]="!collapsedSections().has(section.id)"
+                  [attr.aria-controls]="'structure-children-' + section.id"
+                  (click)="toggleSection(section.id)"
+                >
+                  <span aria-hidden="true">{{
+                    collapsedSections().has(section.id) ? '▸' : '▾'
+                  }}</span>
+                  {{ section.name }}
+                  <span class="small text-body-secondary">({{ section.subsections.length }})</span>
+                </button>
               </div>
               <div class="d-flex flex-wrap gap-2 ms-auto">
                 <button
                   type="button"
-                  class="btn btn-outline-success btn-sm"
+                  class="btn btn-outline-success admin-icon-button"
                   data-testid="matrix-structure-open-subsection-create"
+                  [attr.aria-label]="'adminMatrixStructure.addSubsection' | t"
+                  [attr.title]="'adminMatrixStructure.addSubsection' | t"
                   [disabled]="busy()"
                   (click)="openSubsectionCreateDialog(section)"
                 >
-                  {{ 'adminMatrixStructure.addSubsection' | t }}
+                  <span aria-hidden="true">+</span>
                 </button>
-                <button
-                  type="button"
-                  class="btn btn-outline-danger btn-sm"
-                  data-testid="matrix-structure-delete-section"
+                <app-admin-remove-button
+                  [ariaLabel]="('adminMatrixStructure.deleteSection' | t) + ': ' + section.name"
                   [disabled]="busy()"
-                  (click)="deleteSection(section.id)"
-                >
-                  {{ 'adminMatrixStructure.deleteSection' | t }}
-                </button>
+                  testId="matrix-structure-delete-section"
+                  (remove)="deleteSection(section.id)"
+                />
               </div>
             </header>
 
             <div
               class="list-group list-group-flush"
+              [id]="'structure-children-' + section.id"
+              [hidden]="collapsedSections().has(section.id)"
               cdkDropList
               [cdkDropListData]="section.subsections"
               [cdkDropListDisabled]="busy()"
@@ -143,22 +179,33 @@
               @for (subsection of section.subsections; track subsection.id) {
                 <div
                   class="list-group-item matrix-structure-subsection"
+                  [id]="'structure-row-' + subsection.id"
+                  tabindex="0"
+                  aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"
+                  [attr.title]="'adminCollection.reorderHint' | t"
+                  (keydown.alt.arrowup)="
+                    moveSubsection(section, subsection.id, -1);
+                    $event.preventDefault();
+                    $event.stopPropagation()
+                  "
+                  (keydown.alt.arrowdown)="
+                    moveSubsection(section, subsection.id, 1);
+                    $event.preventDefault();
+                    $event.stopPropagation()
+                  "
                   cdkDrag
                   [cdkDragDisabled]="busy()"
                 >
                   <span class="flex-grow-1">{{ subsection.name }}</span>
-                  <span class="small text-body-secondary">
-                    {{ 'adminMatrixStructure.priority' | t }} {{ subsection.priority }}
-                  </span>
-                  <button
-                    type="button"
-                    class="btn btn-outline-danger btn-sm"
-                    data-testid="matrix-structure-delete-subsection"
+
+                  <app-admin-remove-button
+                    [ariaLabel]="
+                      ('adminMatrixStructure.deleteSubsection' | t) + ': ' + subsection.name
+                    "
                     [disabled]="busy()"
-                    (click)="deleteSubsection(subsection.id)"
-                  >
-                    {{ 'adminMatrixStructure.deleteSubsection' | t }}
-                  </button>
+                    testId="matrix-structure-delete-subsection"
+                    (remove)="deleteSubsection(subsection.id)"
+                  />
                 </div>
               } @empty {
                 <div class="list-group-item text-body-secondary">

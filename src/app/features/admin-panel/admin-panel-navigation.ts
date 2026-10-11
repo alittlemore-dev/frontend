@@ -63,15 +63,6 @@ export const ADMIN_PANEL_NAVIGATION_SECTIONS: readonly AdminPanelNavigationSecti
     labelKey: 'shell.nav.matrix',
     pages: [
       {
-        key: 'matrix-statistics',
-        icon: 'dashboard',
-        labelKey: 'articles.stats.button',
-        route: '/admin-panel/matrix-statistics',
-        badgeTextKey: null,
-        adminOnly: false,
-        ownerOnly: false,
-      },
-      {
         key: 'matrix-questions',
         icon: 'document',
         labelKey: 'adminPanel.section.matrixQuestions',
@@ -94,6 +85,15 @@ export const ADMIN_PANEL_NAVIGATION_SECTIONS: readonly AdminPanelNavigationSecti
         icon: 'people',
         labelKey: 'adminPanel.section.matrixQuestionQueue',
         route: '/admin-panel/matrix-question-queue',
+        badgeTextKey: null,
+        adminOnly: false,
+        ownerOnly: false,
+      },
+      {
+        key: 'matrix-statistics',
+        icon: 'dashboard',
+        labelKey: 'articles.stats.button',
+        route: '/admin-panel/matrix-statistics',
         badgeTextKey: null,
         adminOnly: false,
         ownerOnly: false,

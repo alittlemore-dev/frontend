@@ -10,7 +10,6 @@ import {
 import {
   AdminArticleDetail,
   AdminArticleList,
-  AdminArticlePayload,
   AdminArticleTag,
   AdminArticleTree,
 } from '../../models/article-workspace.model';
@@ -229,16 +228,12 @@ describe('AdminArticlesPageComponent', () => {
     expect(service.listArticles).toHaveBeenCalledTimes(2);
   });
 
-  it('creates an article from the admin workspace', () => {
-    const payload = articlePayload();
+  it('opens the full authoring page with the current selection', () => {
     fixture.detectChanges();
-
     fixture.componentInstance.openCreate();
-    fixture.componentInstance.saveArticle(payload);
-
-    expect(service.createArticle).toHaveBeenCalledWith(payload, 'ru');
-    expect(service.updateArticle).not.toHaveBeenCalled();
-    expect(service.listArticles).toHaveBeenCalledTimes(2);
+    expect(router.navigate).toHaveBeenCalledWith(['/admin-panel/articles/create/new'], {
+      queryParamsHandling: 'preserve',
+    });
   });
 
   it('routes the row edit action to the article detail page from the actions dropdown', () => {
@@ -264,7 +259,7 @@ describe('AdminArticlesPageComponent', () => {
     fixture.detectChanges();
 
     const links = Array.from(
-      fixture.nativeElement.querySelectorAll<HTMLAnchorElement>('tbody td:first-child a'),
+      fixture.nativeElement.querySelectorAll<HTMLAnchorElement>('.admin-article-row a'),
     ).map((link) => link.getAttribute('href') ?? '');
 
     expect(links).toContain('/admin-panel/articles/typed-articles');
@@ -350,28 +345,6 @@ function articleDetail(): AdminArticleDetail {
     content: '# Content',
     createdAt: '2026-01-01T03:04:05+00:00',
     reactionCounts: { heart: 1, fire: 0, thinking: 0, neutral: 0, poop: 0 },
-    translations: {
-      ru: { title: 'Typed articles', content: '# Content' },
-      en: { title: 'Typed articles', content: '# Content' },
-    },
-  };
-}
-
-function articlePayload(): AdminArticlePayload {
-  return {
-    slug: 'typed-articles',
-    folderId: 'folder-1',
-    publishStatus: 'Draft',
-    tagIds: [],
-    metadata: {
-      seoTitleRu: null,
-      seoTitleEn: null,
-      seoDescriptionRu: null,
-      seoDescriptionEn: null,
-      coverImageFileId: null,
-      coverImageAltRu: null,
-      coverImageAltEn: null,
-    },
     translations: {
       ru: { title: 'Typed articles', content: '# Content' },
       en: { title: 'Typed articles', content: '# Content' },
