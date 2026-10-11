@@ -1,5 +1,6 @@
 import { NotificationService } from '@alittlemore.dev/design-system';
-import { Component, input, output } from '@angular/core';
+import { Component, input, output, signal } from '@angular/core';
+import { AccountSettingsService } from '../../../../../../core/auth/account-settings.service';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
@@ -133,6 +134,7 @@ describe('DateDetailComponent', () => {
       imports: [DateDetailComponent],
       providers: [
         provideRouter([]),
+        { provide: AccountSettingsService, useValue: { timeZone: signal('UTC') } },
         provideI18nTesting(),
         {
           provide: ActivatedRoute,
@@ -155,6 +157,27 @@ describe('DateDetailComponent', () => {
     router = TestBed.inject(Router);
     fixture = TestBed.createComponent(DateDetailComponent);
     fixture.detectChanges();
+  });
+
+  it('updates the anniversary context while editing the first year and omits invalid dates', () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-10-11T12:00:00Z'));
+    try {
+      const input = fixture.nativeElement.querySelector('#date-year') as HTMLInputElement;
+      input.value = '2024';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      fixture.detectChanges();
+      expect(fixture.nativeElement.textContent).toContain('Годовщина: 4 года');
+      input.value = '2025';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      fixture.detectChanges();
+      expect(fixture.nativeElement.textContent).not.toContain('Годовщина:');
+      input.value = '';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      fixture.detectChanges();
+      expect(fixture.nativeElement.textContent).not.toContain('Годовщина:');
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it('reflects edits, a full revert and successful saving in the header', () => {

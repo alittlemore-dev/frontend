@@ -1,9 +1,46 @@
 import { AbstractControl, ValidationErrors } from '@angular/forms';
+import { Temporal } from 'temporal-polyfill';
 
 export interface AnnualDateValue {
   day: number;
   month: number;
   year: number | null;
+}
+
+export interface AnnualDateMilestone {
+  key: string;
+  count: number;
+}
+
+export function annualDateMilestone(
+  value: AnnualDateValue | null,
+  kind: 'event' | 'birthday' | 'memorableDate',
+  occurrenceYear: number | null,
+  locale: string,
+): AnnualDateMilestone | null {
+  if (kind === 'event' || value === null || value.year === null || occurrenceYear === null)
+    return null;
+  const count = occurrenceYear - value.year;
+  if (count <= 0) return null;
+  const category = new Intl.PluralRules(locale).select(count);
+  const suffix =
+    category === 'one' || category === 'few' || category === 'many' ? category : 'other';
+  const milestone = kind === 'birthday' ? 'age' : 'anniversary';
+  return { key: `workspaceDashboard.dates.${milestone}.${suffix}`, count };
+}
+
+export function nextAnnualOccurrenceYear(value: AnnualDateValue, today: string): number | null {
+  const reference = Temporal.PlainDate.from(today);
+  let year = reference.year;
+  while (year <= 9999) {
+    const daysInMonth = Temporal.PlainYearMonth.from({ year, month: value.month }).daysInMonth;
+    if (value.day <= daysInMonth) {
+      const occurrence = Temporal.PlainDate.from({ year, month: value.month, day: value.day });
+      if (Temporal.PlainDate.compare(occurrence, reference) >= 0) return year;
+    }
+    year += 1;
+  }
+  return null;
 }
 
 export function formatAnnualDate(value: AnnualDateValue, locale: string): string {

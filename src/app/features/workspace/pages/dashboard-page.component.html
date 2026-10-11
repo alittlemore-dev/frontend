@@ -60,22 +60,81 @@
         } @else if (upcomingEntries().length === 0) {
           <ds-empty-state [message]="'workspaceDashboard.dates.empty' | t" />
         } @else {
-          <ul class="dashboard-entries list-unstyled mb-0">
-            @for (entry of upcomingEntries(); track entry.id) {
-              <li class="dashboard-upcoming-row">
-                <a
-                  class="fw-semibold"
-                  [routerLink]="entryRoute(entry)"
-                  [queryParams]="eventQuery(entry)"
-                  >{{ entry.displayName }}</a
-                >
-                <span class="small text-body-secondary"
-                  >{{ 'workspaceDashboard.calendar.type.' + entry.kind | t }} ·
-                  {{ entryDateLabel(entry) }}</span
-                >
-              </li>
-            }
-          </ul>
+          <div
+            class="table-responsive"
+            tabindex="0"
+            role="region"
+            [attr.aria-label]="'workspaceDashboard.upcoming' | t"
+          >
+            <table class="dashboard-entries w-100">
+              <colgroup>
+                <col class="dashboard-date-column" />
+                <col class="dashboard-name-column" />
+                <col class="dashboard-people-column" />
+                <col class="dashboard-context-column" />
+              </colgroup>
+              <thead class="small text-body-secondary">
+                <tr>
+                  <th scope="col">{{ 'workspaceDashboard.dates.date' | t }}</th>
+                  <th scope="col">{{ 'workspaceDashboard.dates.name' | t }}</th>
+                  <th scope="col">{{ 'workspaceDashboard.dates.people' | t }}</th>
+                  <th scope="col">{{ 'workspaceDashboard.dates.additionalInfo' | t }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (entry of upcomingEntries(); track entry.id) {
+                  <tr class="dashboard-upcoming-row">
+                    <td class="dashboard-upcoming-date">
+                      <time [attr.datetime]="entry.start">{{ entryDateLabel(entry) }}</time>
+                    </td>
+                    <td>
+                      <a
+                        class="fw-semibold"
+                        [routerLink]="entryRoute(entry)"
+                        [queryParams]="eventQuery(entry)"
+                      >
+                        {{
+                          entry.kind === 'birthday'
+                            ? ('workspaceDashboard.calendar.type.birthday' | t)
+                            : entry.displayName
+                        }}
+                      </a>
+                    </td>
+                    <td class="dashboard-upcoming-people small">
+                      @if (entry.kind === 'birthday') {
+                        <a [routerLink]="entryRoute(entry)">{{ entry.displayName }}</a>
+                      } @else if (entry.kind === 'memorableDate') {
+                        @for (person of entry.relatedPeople; track person.id) {
+                          <a [routerLink]="['/personal-workspace/knowledge/people', person.id]">{{
+                            person.displayName
+                          }}</a>
+                          @if (!$last) {
+                            <span>, </span>
+                          }
+                        } @empty {
+                          <span class="text-body-secondary">{{
+                            'workspaceDashboard.dates.everyoneOrNobody' | t
+                          }}</span>
+                        }
+                      } @else {
+                        <span class="text-body-secondary">—</span>
+                      }
+                    </td>
+                    <td class="dashboard-upcoming-context small">
+                      @if (isNextMonth(entry)) {
+                        <span class="d-block text-body-secondary">{{
+                          'workspaceDashboard.dates.nextMonth' | t
+                        }}</span>
+                      }
+                      @if (entryMilestone(entry); as milestone) {
+                        <span class="d-block fw-medium">{{ milestone }}</span>
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
         }
         <button
           type="button"

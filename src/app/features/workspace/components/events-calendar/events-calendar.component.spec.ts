@@ -156,6 +156,41 @@ describe('EventsCalendarComponent', () => {
       fixture.nativeElement.querySelector('.calendar-dialog[role="dialog"] a').getAttribute('href'),
     ).toBe('/personal-workspace/knowledge/people/person-1');
   });
+  it('shows the anniversary and beneficiaries in day and record details', () => {
+    const anniversary: CalendarOccurrence = {
+      ...birthday,
+      id: 'date-1',
+      sourceId: 'date-1',
+      kind: 'memorableDate',
+      displayName: 'Свадьба',
+      annualDate: { day: 2, month: 10, year: 2005 },
+      relatedPeople: [{ id: 'person-1', displayName: 'Анна' }],
+    };
+    service.occurrences.mockReturnValue(of({ entries: [anniversary], unplacedAnnualEntries: [] }));
+    fixture.componentInstance.onRangeChange(range);
+    fixture.componentInstance.onDateSelected({
+      date: '2026-10-02',
+      start: '2026-10-02',
+      allDay: true,
+    });
+    fixture.detectChanges();
+    const dayDialog = fixture.nativeElement.querySelector(
+      '[aria-labelledby="calendar-day-title"]',
+    ) as HTMLElement;
+    expect(dayDialog.textContent).toContain('Годовщина: 21 год');
+    expect(dayDialog.querySelector('a')?.getAttribute('href')).toBe(
+      '/personal-workspace/knowledge/people/person-1',
+    );
+    (dayDialog.querySelector('.modal-body button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    const detail = fixture.nativeElement.querySelector(
+      '[aria-labelledby="calendar-event-title"]',
+    ) as HTMLElement;
+    expect(detail.textContent).toContain('Годовщина: 21 год');
+    expect(detail.textContent).toContain('Кого поздравить');
+    expect(detail.textContent).toContain('Анна');
+  });
+
   it('opens dates and all-day overflow as day details in every view', () => {
     for (const view of ['month', 'year', 'week', 'day'] as const) {
       fixture.componentInstance.activeView.set(view);

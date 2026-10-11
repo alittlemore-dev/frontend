@@ -136,6 +136,28 @@
                       occurrenceTimeLabel(entry)
                     }}</span>
                   </button>
+                  @if (milestoneLabel(entry); as milestone) {
+                    <span class="d-block small fw-medium">{{ milestone }}</span>
+                  }
+                  @if (entry.kind === 'memorableDate') {
+                    <div class="small">
+                      <span class="text-body-secondary"
+                        >{{ 'workspaceDashboard.dates.people' | t }}:</span
+                      >
+                      @for (person of entry.relatedPeople; track person.id) {
+                        <a [routerLink]="['/personal-workspace/knowledge/people', person.id]">{{
+                          person.displayName
+                        }}</a>
+                        @if (!$last) {
+                          <span aria-hidden="true">, </span>
+                        }
+                      } @empty {
+                        <span class="text-body-secondary">{{
+                          'workspaceDashboard.dates.everyoneOrNobody' | t
+                        }}</span>
+                      }
+                    </div>
+                  }
                 </li>
               }
             </ul>
@@ -205,10 +227,24 @@
             }
           } @else {
             <span>{{ annualLabel(entry) }}</span>
+            @if (milestoneLabel(entry); as milestone) {
+              <span class="fw-medium">{{ milestone }}</span>
+            }
+            @if (entry.kind === 'memorableDate') {
+              <span class="small text-body-secondary"
+                >{{ 'workspaceDashboard.dates.people' | t }}:</span
+              >
+            }
             @for (person of entry.relatedPeople; track person.id) {
               <a [routerLink]="['/personal-workspace/knowledge/people', person.id]">{{
                 person.displayName
               }}</a>
+            } @empty {
+              @if (entry.kind === 'memorableDate') {
+                <span class="small text-body-secondary">{{
+                  'workspaceDashboard.dates.everyoneOrNobody' | t
+                }}</span>
+              }
             }
             <a [routerLink]="entryRoute(entry)">{{
               'workspaceDashboard.calendar.sourceDetails' | t

@@ -28,6 +28,7 @@ import { EventsCalendarComponent } from '../components/events-calendar/events-ca
 import { CalendarOccurrence, CalendarOccurrences } from '../models/events.model';
 import { EventsService } from '../services/events.service';
 import { Temporal } from 'temporal-polyfill';
+import { annualDateMilestone } from '../knowledge/shared/annual-date';
 import {
   VaultDashboardComponent,
   VaultSectionKey,
@@ -121,8 +122,7 @@ export class DashboardPageComponent implements OnInit {
           Temporal.Instant.from(start(left)),
           Temporal.Instant.from(start(right)),
         );
-      })
-      .slice(0, 6);
+      });
   });
   constructor() {
     effect(() => {
@@ -232,6 +232,26 @@ export class DashboardPageComponent implements OnInit {
       ...(entry.allDay ? {} : { timeStyle: 'short' as const }),
       timeZone: entry.allDay ? 'UTC' : this.preferences.timeZone(),
     }).format(new Date(entry.allDay ? entry.start + 'T00:00:00Z' : entry.start));
+  }
+
+  entryMilestone(entry: CalendarOccurrence): string | null {
+    const milestone = annualDateMilestone(
+      entry.annualDate,
+      entry.kind,
+      Temporal.PlainDate.from(this.entryDay(entry)).year,
+      this.i18n.dateLocale(),
+    );
+    return milestone ? this.i18n.translate(milestone.key, { count: milestone.count }) : null;
+  }
+
+  isNextMonth(entry: CalendarOccurrence): boolean {
+    const nextMonth = Temporal.Instant.from(new Date().toISOString())
+      .toZonedDateTimeISO(this.preferences.timeZone())
+      .toPlainDate()
+      .with({ day: 1 })
+      .add({ months: 1 });
+    const day = Temporal.PlainDate.from(this.entryDay(entry));
+    return day.year === nextMonth.year && day.month === nextMonth.month;
   }
 
   private loadCollapsedSectionKeys(): ReadonlySet<DashboardSectionKey> {

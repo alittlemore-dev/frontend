@@ -166,6 +166,9 @@
               >{{ value.displayName }}</a
             >
             <span class="d-block small text-body-secondary">{{ annualDateLabel(value.date) }}</span>
+            @if (anniversaryLabel(value.date); as anniversary) {
+              <span class="d-block small fw-medium">{{ anniversary }}</span>
+            }
           </div>
           <div class="small row-metadata">
             <div [id]="'dates-related-people-' + value.id">

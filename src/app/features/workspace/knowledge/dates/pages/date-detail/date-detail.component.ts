@@ -55,7 +55,13 @@ import {
 } from '../../../../utils/validation';
 import { KnowledgeTag, PersonSummary } from '../../../people/models/people.model';
 import { PeopleService } from '../../../people/services/people.service';
-import { annualDateValidator } from '../../../shared/annual-date';
+import {
+  annualDateMilestone,
+  annualDateValidator,
+  nextAnnualOccurrenceYear,
+} from '../../../shared/annual-date';
+import { AccountSettingsService } from '../../../../../../core/auth/account-settings.service';
+import { Temporal } from 'temporal-polyfill';
 import { formatFileSize } from '../../../shared/file-size';
 import {
   KnowledgeDateDetail,
@@ -105,6 +111,7 @@ export class DateDetailComponent implements OnInit {
   private readonly peopleService = inject(PeopleService);
   private readonly notifications = inject(NotificationService);
   private readonly i18n = inject(I18nService);
+  private readonly preferences = inject(AccountSettingsService);
   private readonly router = inject(Router);
   private readonly detailNavigation = inject(WorkspaceDetailNavigationService);
   private readonly route = inject(ActivatedRoute);
@@ -160,6 +167,19 @@ export class DateDetailComponent implements OnInit {
     ),
     description: ['', Validators.maxLength(100000)],
     notificationsEnabled: [true],
+  });
+  readonly anniversary = computed(() => {
+    const value = this.formSnapshot().date;
+    if (this.dateForm.controls.date.invalid) return null;
+    const date = { day: Number(value.day), month: Number(value.month), year: value.year };
+    const today = Temporal.Now.plainDateISO(this.preferences.timeZone()).toString();
+    const milestone = annualDateMilestone(
+      date,
+      'memorableDate',
+      nextAnnualOccurrenceYear(date, today),
+      this.i18n.dateLocale(),
+    );
+    return milestone ? this.i18n.translate(milestone.key, { count: milestone.count }) : null;
   });
   readonly mainSnapshot = computed(() => ({
     form: this.formSnapshot(),

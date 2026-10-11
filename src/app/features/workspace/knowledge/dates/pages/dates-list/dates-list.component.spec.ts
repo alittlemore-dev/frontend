@@ -1,4 +1,6 @@
 import { NotificationService } from '@alittlemore.dev/design-system';
+import { signal } from '@angular/core';
+import { AccountSettingsService } from '../../../../../../core/auth/account-settings.service';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
 import { Observable, Subject, of } from 'rxjs';
@@ -78,6 +80,7 @@ describe('DatesListComponent', () => {
       imports: [DatesListComponent],
       providers: [
         provideRouter([]),
+        { provide: AccountSettingsService, useValue: { timeZone: signal('UTC') } },
         provideI18nTesting({
           'knowledgeDates.empty': 'Даты не найдены.',
           'knowledgeDates.validationError': 'Исправьте поля.',
@@ -108,6 +111,24 @@ describe('DatesListComponent', () => {
   });
 
   afterEach(() => fixture?.destroy());
+
+  it('shows the upcoming anniversary beside the original date', () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-10-11T12:00:00Z'));
+    try {
+      datesResponse = of({
+        totalCount: 1,
+        totalPages: 3,
+        dates: [{ ...DATE, date: { day: 2, month: 1, year: 2005 } }],
+      });
+      fixture = TestBed.createComponent(DatesListComponent);
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('.dates-row').textContent).toContain(
+        'Годовщина: 22 года',
+      );
+    } finally {
+      jest.useRealTimers();
+    }
+  });
 
   it('retains the named selected person even outside the search page', () => {
     peopleService.listPeople.mockReturnValue(of({ totalCount: 0, totalPages: 1, people: [] }));

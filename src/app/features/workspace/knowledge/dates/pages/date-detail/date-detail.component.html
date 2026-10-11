@@ -81,6 +81,9 @@
         <div class="detail-main">
           <section class="detail-section">
             <h2 class="h6">{{ 'knowledgeDates.section.basic' | t }}</h2>
+            @if (anniversary(); as milestone) {
+              <p class="small fw-medium">{{ milestone }}</p>
+            }
             <div class="mb-3">
               <label class="form-label" for="date-name">
                 {{ 'knowledgeDates.name' | t }}

@@ -40,7 +40,7 @@ import { I18nService } from '../../../../core/i18n/i18n.service';
 import { AccountSettingsService } from '../../../../core/auth/account-settings.service';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
 import { ApiError } from '../../../../core/models/api-error.model';
-import { formatAnnualDate } from '../../knowledge/shared/annual-date';
+import { annualDateMilestone, formatAnnualDate } from '../../knowledge/shared/annual-date';
 import {
   CalendarOccurrence,
   CalendarOccurrences,
@@ -426,6 +426,16 @@ export class EventsCalendarComponent {
   annualLabel(entry: CalendarOccurrence | UnplacedAnnualEntry): string {
     if (!entry.annualDate) return '';
     return formatAnnualDate(entry.annualDate, this.i18n.dateLocale());
+  }
+
+  milestoneLabel(entry: CalendarOccurrence): string | null {
+    const milestone = annualDateMilestone(
+      entry.annualDate,
+      entry.kind,
+      Temporal.PlainDate.from(entry.start.slice(0, 10)).year,
+      this.i18n.dateLocale(),
+    );
+    return milestone ? this.i18n.translate(milestone.key, { count: milestone.count }) : null;
   }
 
   private rangeContains(date: string): boolean {

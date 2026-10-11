@@ -3,7 +3,7 @@ import { DOCUMENT } from '@angular/common';
 import { ComponentFixture, DeferBlockState, TestBed } from '@angular/core/testing';
 import { ChangeDetectionStrategy, Component, output, signal } from '@angular/core';
 import { provideRouter } from '@angular/router';
-import { NEVER } from 'rxjs';
+import { NEVER, Observable, of, throwError } from 'rxjs';
 import { I18nService } from '../../../core/i18n/i18n.service';
 
 import { provideI18nTesting } from '../../../testing/i18n-testing';
@@ -13,6 +13,7 @@ import { DashboardPageComponent } from './dashboard-page.component';
 import { EventsCalendarComponent } from '../components/events-calendar/events-calendar.component';
 import { VaultService } from '../services/vault.service';
 import { AccountSettingsService } from '../../../core/auth/account-settings.service';
+import { CalendarOccurrence, CalendarOccurrences } from '../models/events.model';
 
 @Component({
   selector: 'app-events-calendar',
@@ -29,12 +30,12 @@ const DASHBOARD_COLLAPSED_SECTIONS_STORAGE_KEY = 'dashboardCollapsedSections';
 describe('DashboardPageComponent', () => {
   let fixture: ComponentFixture<DashboardPageComponent>;
   const timeZone = signal('UTC');
-  const occurrences = jest.fn(() => NEVER);
+  const occurrences = jest.fn<Observable<CalendarOccurrences>, [string, string]>(() => NEVER);
 
   beforeEach(async () => {
     localStorage.clear();
     timeZone.set('UTC');
-    occurrences.mockClear();
+    occurrences.mockReset().mockReturnValue(NEVER);
     await TestBed.configureTestingModule({
       providers: [
         provideRouter([]),
@@ -61,9 +62,117 @@ describe('DashboardPageComponent', () => {
   });
 
   afterEach(() => {
+    jest.useRealTimers();
     jest.restoreAllMocks();
     TestBed.resetTestingModule();
     localStorage.clear();
+  });
+
+  it('renders a chronological agenda with people, milestones and the next-month context', () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-12-10T12:00:00Z'));
+    const date: CalendarOccurrence = {
+      id: 'anniversary',
+      sourceId: 'date-1',
+      kind: 'memorableDate',
+      displayName: 'Свадьба',
+      allDay: true,
+      start: '2027-01-02',
+      end: '2027-01-03',
+      annualDate: { day: 2, month: 1, year: 2005 },
+      relatedPeople: [
+        { id: 'person-1', displayName: 'Анна' },
+        { id: 'person-2', displayName: 'Иван' },
+      ],
+    };
+    const birthday: CalendarOccurrence = {
+      ...date,
+      id: 'birthday',
+      sourceId: 'person-1',
+      kind: 'birthday',
+      displayName: 'Анна',
+      start: '2026-12-11',
+      end: '2026-12-12',
+      annualDate: { day: 11, month: 12, year: 1990 },
+      relatedPeople: [],
+    };
+    const event: CalendarOccurrence = {
+      ...date,
+      id: 'event',
+      sourceId: 'event-1',
+      kind: 'event',
+      displayName: 'Встреча',
+      allDay: false,
+      start: '2026-12-10T15:00:00Z',
+      end: '2026-12-10T16:00:00Z',
+      annualDate: null,
+      relatedPeople: [],
+    };
+    occurrences.mockReturnValue(
+      of({ entries: [date, birthday, event], unplacedAnnualEntries: [] }),
+    );
+    fixture = TestBed.createComponent(DashboardPageComponent);
+    fixture.detectChanges();
+    const rows = fixture.nativeElement.querySelectorAll(
+      '.dashboard-upcoming-row',
+    ) as NodeListOf<HTMLElement>;
+    expect(rows).toHaveLength(3);
+    expect(rows[0].textContent).toContain('Встреча');
+    expect(rows[0].querySelector('a')?.getAttribute('href')).toBe(
+      '/personal-workspace?tab=month-calendar&date=2026-12-10',
+    );
+    expect(rows[1].textContent).toContain('Исполняется 36 лет');
+    expect(rows[1].textContent).not.toContain('Следующий месяц');
+    expect(rows[2].textContent).toContain('Годовщина: 22 года');
+    expect(rows[2].textContent).toContain('Следующий месяц');
+    expect(fixture.nativeElement.querySelector('thead').textContent).toContain('Кого поздравить');
+    expect(rows[1].querySelector('.dashboard-upcoming-people')?.textContent).toContain('Анна');
+    expect(rows[2].querySelector('.dashboard-upcoming-context')?.textContent).toContain(
+      'Годовщина: 22 года',
+    );
+    expect(
+      rows[2].querySelector('a[href="/personal-workspace/knowledge/people/person-1"]')?.textContent,
+    ).toContain('Анна');
+    expect(
+      rows[2].querySelector('a[href="/personal-workspace/knowledge/people/person-2"]')?.textContent,
+    ).toContain('Иван');
+  });
+
+  it('keeps all upcoming dates in the agenda and omits ended occurrences', () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-10-11T12:00:00Z'));
+    const entries: CalendarOccurrence[] = Array.from({ length: 8 }, (_, i) => ({
+      id: `date-${i}`,
+      sourceId: `date-${i}`,
+      kind: 'memorableDate',
+      displayName: `Праздник ${i}`,
+      allDay: true,
+      start: `2026-10-${10 + i}`,
+      end: `2026-10-${11 + i}`,
+      annualDate: { day: 10 + i, month: 10, year: null },
+      relatedPeople: [],
+    }));
+    occurrences.mockReturnValue(of({ entries, unplacedAnnualEntries: [] }));
+    fixture = TestBed.createComponent(DashboardPageComponent);
+    fixture.detectChanges();
+    const rows = fixture.nativeElement.querySelectorAll(
+      '.dashboard-upcoming-row',
+    ) as NodeListOf<HTMLElement>;
+    expect(rows).toHaveLength(7);
+    expect(rows[0].textContent).toContain('Всех / никого');
+    expect(rows[0].textContent).not.toContain('Годовщина:');
+    expect(rows[6].textContent).toContain('Праздник 7');
+  });
+
+  it('shows empty and retryable error states for the agenda', () => {
+    occurrences
+      .mockReturnValueOnce(throwError(() => ({ message: 'Calendar unavailable' })))
+      .mockReturnValueOnce(of({ entries: [], unplacedAnnualEntries: [] }));
+    fixture = TestBed.createComponent(DashboardPageComponent);
+    fixture.detectChanges();
+    const error = fixture.nativeElement.querySelector('ds-error-message') as HTMLElement;
+    expect(error.textContent).toContain('Calendar unavailable');
+    (error.querySelector('button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('ds-empty-state')).not.toBeNull();
   });
 
   it('starts with dashboard tabs and omits obsolete page actions', () => {

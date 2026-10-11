@@ -43,9 +43,13 @@ import { KnowledgeTag, PersonSummary } from '../../../people/models/people.model
 import { PeopleService } from '../../../people/services/people.service';
 import {
   AnnualDateFormValue,
+  annualDateMilestone,
   annualDateValidator,
   formatAnnualDate,
+  nextAnnualOccurrenceYear,
 } from '../../../shared/annual-date';
+import { AccountSettingsService } from '../../../../../../core/auth/account-settings.service';
+import { Temporal } from 'temporal-polyfill';
 import {
   KnowledgeDateListFilters,
   KnowledgeDateListSort,
@@ -88,6 +92,7 @@ export class DatesListComponent implements OnInit {
   private readonly peopleService = inject(PeopleService);
   private readonly notifications = inject(NotificationService);
   private readonly i18n = inject(I18nService);
+  private readonly preferences = inject(AccountSettingsService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly document = inject(DOCUMENT);
@@ -543,6 +548,17 @@ export class DatesListComponent implements OnInit {
 
   annualDateLabel(value: KnowledgeDateSummary['date']): string {
     return formatAnnualDate(value, this.i18n.dateLocale());
+  }
+
+  anniversaryLabel(value: KnowledgeDateSummary['date']): string | null {
+    const today = Temporal.Now.plainDateISO(this.preferences.timeZone()).toString();
+    const milestone = annualDateMilestone(
+      value,
+      'memorableDate',
+      nextAnnualOccurrenceYear(value, today),
+      this.i18n.dateLocale(),
+    );
+    return milestone ? this.i18n.translate(milestone.key, { count: milestone.count }) : null;
   }
 
   private appliedFilters(): KnowledgeDateListFilters {
