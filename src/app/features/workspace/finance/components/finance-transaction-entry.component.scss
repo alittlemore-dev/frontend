@@ -15,7 +15,7 @@
     color: var(--bs-secondary-color);
     display: block;
     font-size: 0.8rem;
-    font-weight: 600;
+    font-weight: 400;
     margin-bottom: 0.35rem;
   }
 }
@@ -36,7 +36,7 @@
   justify-content: flex-end;
   margin-top: 0.25rem;
   padding-top: 0.75rem;
-  border-top: 1px solid var(--bs-border-color);
+  border-top: 1px solid var(--border-color-soft);
 }
 
 @media (width >= 576px) {

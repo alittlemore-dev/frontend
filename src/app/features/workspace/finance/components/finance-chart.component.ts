@@ -1,4 +1,18 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
+import { DOCUMENT, isPlatformBrowser } from '@angular/common';
+import { _IdGenerator } from '@angular/cdk/a11y';
+import { CdkConnectedOverlay, CdkOverlayOrigin, ConnectedPosition } from '@angular/cdk/overlay';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  PLATFORM_ID,
+  computed,
+  effect,
+  inject,
+  input,
+  signal,
+  untracked,
+} from '@angular/core';
 import { I18nService } from '../../../../core/i18n/i18n.service';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
 import { FinanceCurrency, FINANCE_CURRENCY_SYMBOLS } from '../models/finance.model';
@@ -11,10 +25,16 @@ export interface FinanceChartDatum {
   amount: string | null;
 }
 
+interface FinanceChartTooltip {
+  origin: CdkOverlayOrigin;
+  datum: FinanceChartDatum;
+  percentage?: number;
+}
+
 @Component({
   selector: 'app-finance-chart',
   standalone: true,
-  imports: [TranslatePipe],
+  imports: [TranslatePipe, CdkOverlayOrigin, CdkConnectedOverlay],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './finance-chart.component.html',
   styleUrl: './finance-chart.component.scss',
@@ -22,6 +42,18 @@ export interface FinanceChartDatum {
 })
 export class FinanceChartComponent {
   private readonly i18n = inject(I18nService);
+  private readonly browserWindow = isPlatformBrowser(inject(PLATFORM_ID))
+    ? inject(DOCUMENT).defaultView
+    : null;
+  private hideTimer: number | null = null;
+  private readonly hovered = signal<FinanceChartTooltip | null>(null);
+  private readonly focused = signal<FinanceChartTooltip | null>(null);
+  readonly tooltip = computed(() => this.hovered() ?? this.focused());
+  readonly tooltipId = inject(_IdGenerator).getId('finance-chart-tooltip-');
+  readonly tooltipPositions: ConnectedPosition[] = [
+    { originX: 'center', originY: 'top', overlayX: 'center', overlayY: 'bottom', offsetY: -8 },
+    { originX: 'center', originY: 'bottom', overlayX: 'center', overlayY: 'top', offsetY: 8 },
+  ];
   readonly title = input.required<string>();
   readonly symbol = computed(() => FINANCE_CURRENCY_SYMBOLS[this.currency()]);
   readonly currency = input.required<FinanceCurrency>();
@@ -104,6 +136,62 @@ export class FinanceChartComponent {
   readonly nonzero = computed(() =>
     this.data().some((row) => row.amount !== null && Number(row.amount) !== 0),
   );
+  private readonly tooltipDataKey = computed(() =>
+    JSON.stringify([this.data(), this.currency(), this.kind()]),
+  );
+
+  constructor() {
+    inject(DestroyRef).onDestroy(() => this.cancelHide());
+    effect(() => {
+      // Parents may rebuild equivalent series when a chart interaction triggers rendering.
+      this.tooltipDataKey();
+      untracked(() => this.hideTooltip());
+    });
+  }
+
+  showTooltip(
+    datum: FinanceChartDatum,
+    origin: CdkOverlayOrigin,
+    source: 'pointer' | 'focus',
+    percentage?: number,
+  ): void {
+    this.cancelHide();
+    const tooltip = { origin, datum, percentage };
+    if (source === 'pointer') this.hovered.set(tooltip);
+    else this.focused.set(tooltip);
+  }
+
+  blurTooltip(): void {
+    this.focused.set(null);
+  }
+
+  retainTooltip(): void {
+    this.cancelHide();
+  }
+
+  scheduleHide(): void {
+    this.cancelHide();
+    if (this.browserWindow === null) {
+      this.hovered.set(null);
+      return;
+    }
+    // Allow crossing the small gap from a chart mark into its tooltip.
+    this.hideTimer = this.browserWindow.setTimeout(() => {
+      this.hovered.set(null);
+      this.hideTimer = null;
+    }, 150);
+  }
+
+  hideTooltip(): void {
+    this.cancelHide();
+    this.hovered.set(null);
+    this.focused.set(null);
+  }
+
+  private cancelHide(): void {
+    if (this.hideTimer !== null) this.browserWindow?.clearTimeout(this.hideTimer);
+    this.hideTimer = null;
+  }
 
   private y(value: number): number {
     const { min, max } = this.range();

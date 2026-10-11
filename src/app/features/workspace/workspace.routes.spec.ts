@@ -53,6 +53,18 @@ describe('workspaceRoutes', () => {
     }
   });
 
+  it('redirects bookmarked statistics filters into the unified tracker', async () => {
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl(
+      '/personal-workspace/finance/statistics?tab=expense&period=thisMonth&currency=EUR&year=2025&month=12',
+    );
+    expect(router.url).toBe(
+      '/personal-workspace/finance?tab=expense&period=thisMonth&currency=EUR&year=2025&month=12',
+    );
+    await harness.navigateByUrl('/personal-workspace/finance/statistics');
+    expect(router.url).toBe('/personal-workspace/finance?tab=summary');
+  });
+
   it('cancels navigation away from a retained workspace when discard is rejected', async () => {
     const harness = await RouterTestingHarness.create();
     await harness.navigateByUrl('/personal-workspace/knowledge/people');

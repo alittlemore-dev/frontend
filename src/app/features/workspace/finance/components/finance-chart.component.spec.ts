@@ -1,4 +1,5 @@
-import { TestBed } from '@angular/core/testing';
+import { OverlayContainer } from '@angular/cdk/overlay';
+import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { provideI18nTesting } from '../../../../testing/i18n-testing';
 import { FinanceChartComponent } from './finance-chart.component';
 
@@ -9,6 +10,104 @@ describe('FinanceChartComponent', () => {
       providers: [provideI18nTesting({ 'finance.notSet': 'Не задано' })],
     }),
   );
+
+  function tooltipFixture(
+    kind: 'vertical' | 'horizontal' | 'pie' = 'vertical',
+  ): ComponentFixture<FinanceChartComponent> {
+    const fixture = TestBed.createComponent(FinanceChartComponent);
+    fixture.componentRef.setInput('title', 'Расходы');
+    fixture.componentRef.setInput('currency', 'USD');
+    fixture.componentRef.setInput('kind', kind);
+    fixture.componentRef.setInput('data', [
+      { id: 'first', label: 'Подписки на рабочие сервисы и облачное хранилище', amount: '75' },
+      { id: 'second', label: 'Транспорт', amount: '25' },
+    ]);
+    fixture.detectChanges();
+    return fixture;
+  }
+
+  function tooltip(): HTMLElement | null {
+    return TestBed.inject(OverlayContainer).getContainerElement().querySelector('[role="tooltip"]');
+  }
+
+  it('shows the complete label and localized amount immediately on pointer entry', () => {
+    const fixture = tooltipFixture();
+    const marks = (fixture.nativeElement as HTMLElement).querySelectorAll('.finance-chart-mark');
+    marks[0].dispatchEvent(new Event('pointerenter'));
+    fixture.detectChanges();
+    expect(tooltip()?.textContent).toContain('Подписки на рабочие сервисы и облачное хранилище');
+    expect(tooltip()?.textContent).toContain('75,00');
+    expect(tooltip()?.textContent).toContain('$');
+    expect(marks[0].getAttribute('aria-describedby')).toBe(tooltip()?.id);
+    marks[1].dispatchEvent(new Event('pointerenter'));
+    fixture.detectChanges();
+    expect(tooltip()?.textContent).toContain('Транспорт');
+    expect(tooltip()?.textContent).toContain('25,00');
+    expect(marks[0].getAttribute('aria-describedby')).toBeNull();
+    fixture.componentRef.setInput('data', [
+      { id: 'first', label: 'Подписки на рабочие сервисы и облачное хранилище', amount: '75' },
+      { id: 'second', label: 'Транспорт', amount: '25' },
+    ]);
+    fixture.detectChanges();
+    expect(tooltip()?.textContent).toContain('Транспорт');
+    fixture.componentRef.setInput('data', [{ id: 'new', label: 'Новый месяц', amount: '20' }]);
+    fixture.detectChanges();
+    expect(tooltip()).toBeNull();
+  });
+
+  it('shows pie category percentages on keyboard focus and dismisses with Escape', () => {
+    const fixture = tooltipFixture('pie');
+    const mark = (fixture.nativeElement as HTMLElement).querySelector('.finance-chart-mark')!;
+    expect(mark.getAttribute('tabindex')).toBe('0');
+    mark.dispatchEvent(new FocusEvent('focus'));
+    fixture.detectChanges();
+    expect(tooltip()?.textContent).toMatch(/75\s*%/);
+    expect(mark.getAttribute('aria-label')).toMatch(/75\s*%/);
+    mark.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    fixture.detectChanges();
+    expect(tooltip()).toBeNull();
+    expect(mark.getAttribute('aria-describedby')).toBeNull();
+    mark.dispatchEvent(new FocusEvent('focus'));
+    fixture.detectChanges();
+    mark.dispatchEvent(new FocusEvent('blur'));
+    fixture.detectChanges();
+    expect(tooltip()).toBeNull();
+  });
+
+  it('keeps a tooltip open while the pointer moves into it and hides after leaving', fakeAsync(() => {
+    const fixture = tooltipFixture();
+    const mark = (fixture.nativeElement as HTMLElement).querySelector('.finance-chart-mark')!;
+    mark.dispatchEvent(new Event('pointerenter'));
+    fixture.detectChanges();
+    mark.dispatchEvent(new Event('pointerleave'));
+    tick(100);
+    tooltip()!.dispatchEvent(new Event('pointerenter'));
+    tick(200);
+    fixture.detectChanges();
+    expect(tooltip()).not.toBeNull();
+    tooltip()!.dispatchEvent(new Event('pointerleave'));
+    tick(150);
+    fixture.detectChanges();
+    expect(tooltip()).toBeNull();
+  }));
+
+  it('shows horizontal bar labels and keeps unset and zero values distinct on focus', () => {
+    const fixture = tooltipFixture('horizontal');
+    fixture.componentRef.setInput('data', [
+      { id: 'unset', label: 'Без плана', amount: null },
+      { id: 'zero', label: 'Нулевой план', amount: '0' },
+    ]);
+    fixture.detectChanges();
+    const marks = (fixture.nativeElement as HTMLElement).querySelectorAll('.finance-chart-mark');
+    marks[0].dispatchEvent(new FocusEvent('focus'));
+    fixture.detectChanges();
+    expect(tooltip()?.textContent).toContain('Не задано');
+    marks[0].dispatchEvent(new FocusEvent('blur'));
+    marks[1].dispatchEvent(new FocusEvent('focus'));
+    fixture.detectChanges();
+    expect(tooltip()?.textContent).toContain('0,00');
+    expect(tooltip()?.textContent).not.toContain('Не задано');
+  });
 
   it('renders negative balances below a shared zero baseline and exposes their values', () => {
     const fixture = TestBed.createComponent(FinanceChartComponent);

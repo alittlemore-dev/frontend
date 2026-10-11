@@ -5,16 +5,17 @@
 
 .finance-transactions-column {
   background: var(--bs-body-bg);
-  border: 1px solid var(--bs-border-color);
-  border-radius: 1rem;
+  border: 1px solid transparent;
+  border-block-color: var(--border-color-soft);
+  border-radius: 0;
   min-width: 0;
   overflow: hidden;
 }
 
 .finance-budget-heading {
   align-items: start;
-  background: var(--bs-tertiary-bg);
-  border-bottom: 1px solid var(--bs-border-color);
+  background: transparent;
+  border-bottom: 1px solid var(--border-color-soft);
   padding: 1rem 1.15rem;
   display: flex;
   gap: 1rem;
@@ -22,7 +23,7 @@
 
   h2 {
     font-size: 1.05rem;
-    font-weight: 650;
+    font-weight: 500;
     margin: 0 0 0.7rem;
   }
 }
@@ -42,12 +43,18 @@
     color: var(--bs-body-color);
     display: block;
     font-size: 0.98rem;
-    font-weight: 650;
+    font-weight: 500;
   }
 }
 
 .finance-icon-cell {
   text-align: right;
+}
+.finance-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem;
+  justify-content: end;
 }
 .finance-icon-button {
   align-items: center;
@@ -69,11 +76,11 @@
   }
 }
 .finance-icon-button-danger {
-  background: var(--bs-danger-bg-subtle);
-  color: var(--bs-danger-text-emphasis);
+  background: transparent;
+  color: var(--bs-secondary-color);
   &:hover:not(:disabled),
   &:focus-visible {
-    background: var(--bs-danger-border-subtle);
+    background: var(--bs-danger-bg-subtle);
     color: var(--bs-danger-text-emphasis);
   }
 }
@@ -83,6 +90,8 @@
 }
 
 .finance-transactions-table {
+  --bs-table-border-color: var(--border-color-soft);
+  font-variant-numeric: tabular-nums;
   font-size: 0.8rem;
   margin: 0;
   table-layout: fixed;
@@ -91,7 +100,7 @@
   th {
     color: var(--bs-secondary-color);
     font-size: 0.68rem;
-    font-weight: 650;
+    font-weight: 500;
     padding: 0.6rem 0.4rem;
   }
 
@@ -112,7 +121,7 @@
   }
 
   th:last-child {
-    width: 2.5rem;
+    width: 5rem;
   }
 
   td:last-child {
@@ -151,13 +160,14 @@
 .finance-category-badge {
   --category-color: var(--bs-secondary-color);
   display: inline-block;
-  border: 1px solid color-mix(in oklab, var(--category-color) 55%, var(--bs-body-bg));
-  border-radius: 0.4rem;
-  background: color-mix(in oklab, var(--category-color) 18%, var(--bs-body-bg));
+  border: 1px solid transparent;
+  border-bottom-color: color-mix(in srgb, var(--category-color) 65%, transparent);
+  border-radius: 0;
+  background: transparent;
   color: var(--bs-body-color);
   padding: 0.15rem 0.4rem;
   font-size: 0.75rem;
-  font-weight: 550;
+  font-weight: 400;
 }
 
 .finance-transaction-description {
@@ -178,4 +188,31 @@
 
 .finance-transactions-empty {
   font-size: 0.8rem;
+}
+
+.finance-transactions-table .finance-history-row td {
+  padding: 0.6rem 0.9rem 1rem;
+  width: auto;
+}
+
+.finance-history {
+  border-left: 2px solid var(--border-color-soft);
+  padding-left: 0.8rem;
+
+  h3 {
+    font-size: 0.85rem;
+    font-weight: 500;
+    margin: 0;
+  }
+}
+
+.finance-history-item {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1rem;
+  margin-top: 0.5rem;
+
+  strong {
+    font-weight: 500;
+  }
 }

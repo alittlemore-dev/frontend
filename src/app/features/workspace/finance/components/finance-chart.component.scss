@@ -1,6 +1,13 @@
 .finance-chart {
+  --finance-chart-focus-color: Highlight;
   margin: 0;
   min-width: 0;
+}
+
+@supports (color: -webkit-focus-ring-color) {
+  .finance-chart {
+    --finance-chart-focus-color: -webkit-focus-ring-color;
+  }
 }
 svg {
   display: block;
@@ -9,23 +16,32 @@ svg {
 }
 .finance-bar {
   fill: var(--accent-color);
+  fill-opacity: 0.8;
 }
 line {
-  stroke: var(--border-color);
+  stroke: var(--border-color-soft);
 }
 text {
   fill: var(--main-text-color);
   font-size: 12px;
 }
 path {
+  fill-opacity: 0.8;
   stroke: var(--main-bg-color);
-  stroke-width: 2;
+  stroke-width: 1;
 }
+.finance-chart figcaption {
+  font-weight: 500;
+}
+
 .finance-chart-table table {
+  --bs-table-border-color: var(--border-color-soft);
+  font-variant-numeric: tabular-nums;
   width: 100%;
   table-layout: fixed;
 
   th {
+    font-weight: 400;
     width: 55%;
   }
 
@@ -61,4 +77,60 @@ path {
   width: 0.75rem;
   height: 0.75rem;
   margin-inline-end: 0.5rem;
+}
+
+.finance-swatch rect {
+  fill-opacity: 0.8;
+}
+
+.finance-chart-mark {
+  &:focus {
+    outline: 2px solid var(--finance-chart-focus-color);
+    outline-offset: 3px;
+  }
+
+  &.active,
+  &.active .finance-bar {
+    fill-opacity: 1;
+  }
+}
+
+// SVG paths can receive a native rectangular outline on pointer focus too.
+path.finance-chart-mark:focus {
+  outline: none;
+  stroke: var(--finance-chart-focus-color);
+  stroke-linejoin: round;
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
+.finance-chart-tooltip {
+  background: var(--bs-body-bg);
+  border: 1px solid var(--border-color-soft);
+  border-radius: 0.35rem;
+  box-shadow: 0 0.25rem 0.75rem color-mix(in srgb, var(--bs-body-color) 12%, transparent);
+  color: var(--bs-body-color);
+  display: grid;
+  gap: 0.2rem;
+  line-height: 1.4;
+  max-width: min(20rem, calc(100vw - 2rem));
+  overflow-wrap: anywhere;
+  padding: 0.6rem 0.8rem;
+}
+
+.finance-chart-tooltip-label {
+  color: var(--bs-secondary-color);
+  font-size: 0.9rem;
+}
+
+.finance-chart-tooltip-value {
+  font-size: 1.05rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+
+.finance-chart-tooltip-percentage {
+  color: var(--bs-secondary-color);
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
 }

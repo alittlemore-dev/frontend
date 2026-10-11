@@ -1,5 +1,5 @@
 import { AccountSettingsService } from '../../../../core/auth/account-settings.service';
-import { signal } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
@@ -11,9 +11,18 @@ import {
   FINANCE_TEST_MONTH as MONTH,
   FINANCE_TEST_STATISTICS as STATISTICS,
 } from '../testing/finance-fixtures';
-import { FinanceStatisticsPageComponent } from './finance-statistics-page.component';
+import { FinanceStatisticsPanelComponent } from './finance-statistics-panel.component';
 
-describe('FinanceStatisticsPageComponent', () => {
+@Component({
+  standalone: true,
+  imports: [FinanceStatisticsPanelComponent],
+  template: '<app-finance-statistics-panel selectedMonth="2026-09-01" [timeZone]="timeZone()" />',
+})
+class StatisticsHostComponent {
+  readonly timeZone = TestBed.inject(AccountSettingsService).timeZone;
+}
+
+describe('FinanceStatisticsPanelComponent', () => {
   const timeZone = signal('UTC');
   const service = {
     ensure: jest.fn(() => of(MONTH)),
@@ -25,7 +34,7 @@ describe('FinanceStatisticsPageComponent', () => {
     jest.clearAllMocks();
     TestBed.configureTestingModule({
       providers: [
-        provideRouter([{ path: 'finance/statistics', component: FinanceStatisticsPageComponent }]),
+        provideRouter([{ path: 'finance/statistics', component: StatisticsHostComponent }]),
         provideI18nTesting(),
         { provide: FinanceService, useValue: service },
         { provide: AccountSettingsService, useValue: { timeZone } },
@@ -36,9 +45,9 @@ describe('FinanceStatisticsPageComponent', () => {
   it('restores filters from a direct URL and shows the month budget in the selected currency', async () => {
     const harness = await RouterTestingHarness.create();
     await harness.navigateByUrl('/finance/statistics?period=thisMonth&currency=USD');
-    expect(service.statistics).toHaveBeenCalledWith('thisMonth', 'USD');
+    expect(service.statistics).toHaveBeenCalledWith('thisMonth', 'USD', '2026-09-01');
     const root = harness.routeNativeElement!;
-    expect(root.querySelectorAll('[role="tab"]')).toHaveLength(3);
+    expect(root.querySelectorAll('[role="tab"]')).toHaveLength(0);
     expect(root.querySelectorAll('app-finance-budget-column')).toHaveLength(2);
     expect(root.querySelector('input')).toBeNull();
     expect(root.querySelectorAll('app-finance-chart')).toHaveLength(10);
@@ -46,14 +55,31 @@ describe('FinanceStatisticsPageComponent', () => {
   });
 
   it('reloads analytics boundaries when the account zone changes', async () => {
+    service.statistics.mockReturnValue(
+      of({ currency: 'USD', reports: [{ ...STATISTICS, period: 'last7Days', monthly: null }] }),
+    );
     const harness = await RouterTestingHarness.create();
     await harness.navigateByUrl('/finance/statistics?period=last7Days&currency=EUR');
     timeZone.set('Asia/Yerevan');
     harness.detectChanges();
-    expect(service.ensure).toHaveBeenCalledTimes(2);
+    expect(service.ensure).not.toHaveBeenCalled();
     expect(service.statistics).toHaveBeenCalledTimes(2);
-    expect(service.statistics).toHaveBeenLastCalledWith('last7Days', 'EUR');
+    expect(service.statistics).toHaveBeenLastCalledWith('last7Days', 'EUR', undefined);
     expect(harness.routeNativeElement!.textContent).toContain('Asia/Yerevan');
+  });
+
+  it('labels historical monthly dates in the snapshot time zone', async () => {
+    timeZone.set('Europe/Berlin');
+    service.statistics.mockReturnValue(
+      of({
+        currency: 'USD',
+        reports: [{ ...STATISTICS, monthly: { ...MONTH, timezoneName: 'Asia/Yerevan' } }],
+      }),
+    );
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl('/finance/statistics');
+    expect(harness.routeNativeElement!.textContent).toContain('Asia/Yerevan');
+    expect(harness.routeNativeElement!.textContent).not.toContain('Europe/Berlin');
   });
 
   it('does not show plans or balances for a rolling period', async () => {
@@ -62,7 +88,7 @@ describe('FinanceStatisticsPageComponent', () => {
     );
     const harness = await RouterTestingHarness.create();
     await harness.navigateByUrl('/finance/statistics?period=last7Days&currency=EUR');
-    expect(service.statistics).toHaveBeenCalledWith('last7Days', 'EUR');
+    expect(service.statistics).toHaveBeenCalledWith('last7Days', 'EUR', undefined);
     expect(harness.routeNativeElement!.querySelector('app-finance-budget-column')).toBeNull();
   });
 
@@ -77,12 +103,13 @@ describe('FinanceStatisticsPageComponent', () => {
       }),
     );
     const harness = await RouterTestingHarness.create();
-    await harness.navigateByUrl('/finance/statistics?currency=month');
-    expect(service.statistics).toHaveBeenCalledWith('thisMonth', 'month');
+    await harness.navigateByUrl('/finance/statistics?period=thisYear&currency=month');
+    expect(service.statistics).toHaveBeenCalledWith('thisYear', 'month', undefined);
     expect(
       harness.routeNativeElement!.querySelectorAll('app-finance-statistics-report'),
     ).toHaveLength(2);
-    const page = harness.routeDebugElement!.componentInstance as FinanceStatisticsPageComponent;
+    const page = harness.routeDebugElement!.children[0]
+      .componentInstance as FinanceStatisticsPanelComponent;
     expect(page.currencyOptions().map((row) => row.label)).toEqual([
       'finance.statistics.currency.month',
       '֏',

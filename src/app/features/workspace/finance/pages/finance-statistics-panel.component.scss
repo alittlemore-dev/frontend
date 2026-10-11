@@ -1,8 +1,24 @@
+h2 {
+  font-weight: 500;
+}
+
+.finance-statistics-totals .card {
+  --bs-card-border-color: transparent;
+  --bs-card-border-radius: 0;
+  --bs-card-bg: transparent;
+  border-block-color: var(--border-color-soft);
+
+  strong {
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
 .finance-statistics-filters {
   display: flex;
   flex-wrap: wrap;
   gap: 1rem;
-  margin-block: 1.5rem;
+  margin-bottom: 1.5rem;
 }
 .finance-statistics-filters > div {
   min-width: 12rem;

@@ -5,6 +5,7 @@ import {
   FinanceCurrency,
   FinanceKind,
   FinanceMonth,
+  FinanceRevision,
   FinanceTransaction,
 } from '../models/finance.model';
 import { formatFinanceDateTime, formatFinanceMoney } from '../utils/finance-format';
@@ -25,6 +26,10 @@ export class FinanceTransactionsColumnComponent {
   readonly timeZone = input.required<string>();
   readonly transactions = input.required<readonly FinanceTransaction[]>();
   readonly historyTransactionId = input.required<string | null>();
+  readonly revisions = input<readonly FinanceRevision[]>([]);
+  readonly revisionsLoading = input(false);
+  readonly revisionsErrorKey = input<string | null>(null);
+  readonly repeatDisabled = input(false);
   readonly saving = input.required<boolean>();
   readonly readOnly = input(false);
   readonly lateOnly = input(false);
@@ -56,6 +61,20 @@ export class FinanceTransactionsColumnComponent {
   readonly editRequested = output<FinanceTransaction>();
   readonly deletionRequested = output<FinanceTransaction>();
   readonly historyRequested = output<FinanceTransaction>();
+  readonly historyClosed = output<void>();
+  readonly repetitionRequested = output<FinanceTransaction>();
+
+  previousAmount(revision: FinanceRevision): string {
+    const amount = revision.previousState['amount'];
+    const currency = revision.previousState['currency'];
+    if (typeof amount !== 'string' || typeof currency !== 'string') return '';
+    return this.money(amount, currency as FinanceCurrency);
+  }
+
+  previousDescription(revision: FinanceRevision): string {
+    const description = revision.previousState['description'];
+    return typeof description === 'string' ? description : '';
+  }
 
   money(amount: string | number, currency: FinanceCurrency): string {
     return formatFinanceMoney(amount, currency, this.i18n.dateLocale());

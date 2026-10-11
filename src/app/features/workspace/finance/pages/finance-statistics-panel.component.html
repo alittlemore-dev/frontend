@@ -1,5 +1,4 @@
 <section [attr.aria-busy]="loading()">
-  <h1>{{ 'finance.statistics.title' | t }}</h1>
   <div class="finance-statistics-filters">
     <div>
       <label for="finance-statistics-period">{{ 'finance.statistics.period' | t }}</label>
@@ -41,6 +40,9 @@
       </button>
     </div>
   }
+  @if (empty()) {
+    <p role="status">{{ 'finance.month.empty' | t }}</p>
+  }
   @if (loading()) {
     <p role="status">{{ 'shared.loading' | t }}</p>
   }
@@ -48,7 +50,7 @@
     @if (data.reports[0]; as report) {
       <p class="text-body-secondary">
         {{ date(report.window.start) }} — {{ periodEnd(report.window.end) }} ·
-        {{ timeZone() }}
+        {{ reportTimeZone() }}
       </p>
       @if (report.availableSince > report.previousWindow.start.slice(0, 10)) {
         <p class="alert alert-info">
@@ -56,26 +58,13 @@
         </p>
       }
     }
-    <ul class="nav nav-tabs mb-3" role="tablist" [attr.aria-label]="'finance.statistics.title' | t">
-      @for (item of tabs; track item) {
-        <li class="nav-item" role="presentation">
-          <button
-            type="button"
-            role="tab"
-            class="nav-link"
-            [class.active]="tab() === item"
-            [attr.id]="'finance-statistics-tab-' + item"
-            [attr.aria-controls]="panelIds(item)"
-            [attr.aria-selected]="tab() === item"
-            (click)="tab.set(item)"
-          >
-            {{ 'finance.statistics.tab.' + item | t }}
-          </button>
-        </li>
-      }
-    </ul>
+
     @for (report of data.reports; track report.currency) {
-      <app-finance-statistics-report [statistics]="report" [tab]="tab()" [timeZone]="timeZone()" />
+      <app-finance-statistics-report
+        [statistics]="report"
+        [tab]="tab()"
+        [timeZone]="report.monthly?.timezoneName ?? timeZone()"
+      />
     }
   }
 </section>

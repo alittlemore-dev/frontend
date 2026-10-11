@@ -99,8 +99,9 @@ describe('FinanceStatisticsReportComponent', () => {
       expect(rows).toHaveLength(2);
       expect(rows[0].textContent).toContain('70');
       expect(rows[1].textContent).toContain('80');
-      expect(chart.querySelectorAll('svg[role="img"] rect')).toHaveLength(3);
-      expect(chart.querySelector('svg[role="img"]')?.textContent).toContain('90');
+      const marks = chart.querySelectorAll('[role="img"][aria-label]');
+      expect(marks).toHaveLength(3);
+      expect(marks[2].getAttribute('aria-label')).toContain('90');
     },
   );
 });

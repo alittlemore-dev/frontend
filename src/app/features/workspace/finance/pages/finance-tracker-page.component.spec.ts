@@ -2,6 +2,7 @@ import { AccountSettingsService } from '../../../../core/auth/account-settings.s
 import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { of, Subject, throwError } from 'rxjs';
+import { Temporal } from 'temporal-polyfill';
 import { provideRouter } from '@angular/router';
 import { By } from '@angular/platform-browser';
 import { I18nService } from '../../../../core/i18n/i18n.service';
@@ -9,15 +10,15 @@ import { FinanceTransactionEntryComponent } from '../components/finance-transact
 import { provideI18nTesting } from '../../../../testing/i18n-testing';
 import { FinanceMonth, FinanceRevision, FinanceTransaction } from '../models/finance.model';
 import { FinanceService } from '../services/finance.service';
-import { FinanceOverviewPageComponent } from './finance-overview-page.component';
+import { FinanceTrackerPageComponent } from './finance-tracker-page.component';
 import {
   FINANCE_TEST_MONTH as MONTH,
   FINANCE_TEST_TRANSACTION as TRANSACTION,
 } from '../testing/finance-fixtures';
 
-describe('FinanceOverviewPageComponent', () => {
+describe('FinanceTrackerPageComponent', () => {
   const accountTimeZone = signal('Asia/Yerevan');
-  let fixture: ComponentFixture<FinanceOverviewPageComponent>;
+  let fixture: ComponentFixture<FinanceTrackerPageComponent>;
   const service = {
     ensure: jest.fn(() => of(MONTH)),
     month: jest.fn(() => of(MONTH)),
@@ -41,7 +42,7 @@ describe('FinanceOverviewPageComponent', () => {
     service.deleteCategoryPermanently.mockReturnValue(of(MONTH));
     service.revisions.mockReturnValue(of([]));
     await TestBed.configureTestingModule({
-      imports: [FinanceOverviewPageComponent],
+      imports: [FinanceTrackerPageComponent],
       providers: [
         provideRouter([]),
         provideI18nTesting({ 'finance.category.none': 'Без категории' }),
@@ -49,16 +50,107 @@ describe('FinanceOverviewPageComponent', () => {
         { provide: AccountSettingsService, useValue: { timeZone: accountTimeZone } },
       ],
     }).compileComponents();
-    fixture = TestBed.createComponent(FinanceOverviewPageComponent);
+    fixture = TestBed.createComponent(FinanceTrackerPageComponent);
     fixture.detectChanges();
   });
 
   afterEach(() => TestBed.resetTestingModule());
 
-  it('creates the month automatically with the selected language and shows both tabs', () => {
+  it('prefills a new operation with current account time and saves only the edited copy', () => {
+    const now = jest
+      .spyOn(Temporal.Now, 'zonedDateTimeISO')
+      .mockReturnValue(Temporal.ZonedDateTime.from('2026-09-20T10:45+04:00[Asia/Yerevan]'));
+    const source = { ...TRANSACTION, amount: '1.25E+2', currency: 'USD' as const };
+    fixture.componentInstance.transactions.set([source]);
+    fixture.componentInstance.setTab('transactions');
+    fixture.detectChanges();
+    const dialog = transactionDialog();
+    (fixture.nativeElement as HTMLElement)
+      .querySelector<HTMLButtonElement>('.finance-repeat-button')!
+      .click();
+    fixture.detectChanges();
+    expect(dialog.open).toBe(true);
+    expect(service.createTransaction).not.toHaveBeenCalled();
+    expect(entries()[0].form.getRawValue()).toEqual({
+      categoryId: 'food',
+      amount: '125',
+      currency: 'USD',
+      dateTime: '2026-09-20T10:45',
+      description: 'Обед',
+    });
+    expect(now).toHaveBeenCalledWith('Asia/Yerevan');
+    const form = entries()[0].form;
+    form.controls.amount.setValue('18.50');
+    form.controls.description.setValue('Повтор');
+    form.controls.dateTime.setValue('2026-09-19T09:15');
+    dialog
+      .querySelector('form')!
+      .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    fixture.detectChanges();
+    expect(service.createTransaction).toHaveBeenCalledWith({
+      categoryId: 'food',
+      amount: '18.50',
+      currency: 'USD',
+      occurredAt: '2026-09-19T05:15:00Z',
+      description: 'Повтор',
+    });
+    expect(service.updateTransaction).not.toHaveBeenCalled();
+    expect(source.amount).toBe('1.25E+2');
+    expect(source.occurredAt).toBe(TRANSACTION.occurredAt);
+    now.mockRestore();
+  });
+
+  it('keeps the repeated draft after a failed save and lets the user retry', () => {
+    const now = jest
+      .spyOn(Temporal.Now, 'zonedDateTimeISO')
+      .mockReturnValue(Temporal.ZonedDateTime.from('2026-09-20T10:45+04:00[Asia/Yerevan]'));
+    service.createTransaction.mockReturnValueOnce(throwError(() => ({ status: 503 })));
+    const dialog = transactionDialog();
+    fixture.componentInstance.repeatTransaction(TRANSACTION);
+    fixture.detectChanges();
+    entries()[0].form.controls.description.setValue('Сохранить после ошибки');
+    const submit = (): void => {
+      dialog
+        .querySelector('form')!
+        .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+      fixture.detectChanges();
+    };
+    submit();
+    expect(dialog.open).toBe(true);
+    expect(dialog.querySelector('[role="alert"]')?.textContent).toContain('finance.error.rate');
+    expect(entries()[0].form.controls.description.value).toBe('Сохранить после ошибки');
+    submit();
+    expect(service.createTransaction).toHaveBeenCalledTimes(2);
+    expect(dialog.open).toBe(false);
+    now.mockRestore();
+  });
+
+  it('asks for a valid category when repeating an archived or uncategorized operation', () => {
+    const dialog = transactionDialog();
+    fixture.componentInstance.month.set({
+      ...MONTH,
+      categories: MONTH.categories.map((category) => ({ ...category, archived: true })),
+    });
+    fixture.componentInstance.repeatTransaction(TRANSACTION);
+    fixture.detectChanges();
+    expect(entries()[0].form.controls.categoryId.value).toBe('');
+    expect(dialog.textContent).toContain('finance.transaction.repeatCategoryUnavailable');
+    dialog
+      .querySelector('form')!
+      .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    expect(service.createTransaction).not.toHaveBeenCalled();
+    expect(service.restoreCategory).not.toHaveBeenCalled();
+    fixture.componentInstance.closeTransactionEditor();
+    fixture.componentInstance.repeatTransaction({ ...TRANSACTION, categoryId: null });
+    fixture.detectChanges();
+    expect(entries()[0].form.controls.categoryId.value).toBe('');
+    expect(entries()[0].form.controls.amount.value).toBe('10');
+  });
+
+  it('creates the month automatically with the selected language and shows the unified tab row', () => {
     expect(service.ensure).toHaveBeenCalledWith('ru');
     const root = fixture.nativeElement as HTMLElement;
-    expect(root.querySelectorAll('[role="tab"]')).toHaveLength(2);
+    expect(root.querySelectorAll('[role="tab"]')).toHaveLength(5);
     expect(root.querySelectorAll('#finance-panel-summary .finance-budget')).toHaveLength(2);
     expect(root.querySelector('ds-site-select')).not.toBeNull();
     expect(root.querySelector<HTMLInputElement>('.finance-name-input')?.value).toBe('Еда');
@@ -558,6 +650,9 @@ describe('FinanceOverviewPageComponent', () => {
     buttons[0].click();
     fixture.detectChanges();
     expect(root.querySelector('#finance-history [role="status"]')).not.toBeNull();
+    expect(root.querySelector('#finance-history')?.closest('tr')?.previousElementSibling).toBe(
+      buttons[0].closest('tr'),
+    );
     expect(buttons[0].getAttribute('aria-expanded')).toBe('true');
     buttons[0].click();
     fixture.detectChanges();
@@ -571,6 +666,9 @@ describe('FinanceOverviewPageComponent', () => {
     fixture.detectChanges();
     expect(root.querySelectorAll('#finance-history')).toHaveLength(1);
     expect(page.revisionsFor()?.id).toBe('other');
+    expect(root.querySelector('#finance-history')?.closest('tr')?.previousElementSibling).toBe(
+      buttons[1].closest('tr'),
+    );
     expect(buttons[0].getAttribute('aria-expanded')).toBe('false');
     expect(buttons[1].getAttribute('aria-expanded')).toBe('true');
   });

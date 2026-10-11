@@ -25,7 +25,7 @@ describe('WorkspacePageComponent', () => {
             path: 'personal-workspace',
             children: workspaceRoutes[0].children?.map((route) => ({
               ...route,
-              component: EmptyRouteComponent,
+              component: route.redirectTo === undefined ? EmptyRouteComponent : undefined,
               loadComponent: undefined,
               canDeactivate: undefined,
             })),

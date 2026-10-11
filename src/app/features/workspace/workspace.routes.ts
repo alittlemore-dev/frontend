@@ -1,4 +1,5 @@
-import { Routes } from '@angular/router';
+import { inject } from '@angular/core';
+import { Router, Routes } from '@angular/router';
 import { unsavedChangesGuard } from './guards/unsaved-changes.guard';
 
 export const workspaceRoutes: Routes = [
@@ -72,19 +73,25 @@ export const workspaceRoutes: Routes = [
       },
       {
         path: 'finance/statistics',
-        title: 'finance.statistics.title',
-        loadComponent: () =>
-          import('./finance/pages/finance-statistics-page.component').then(
-            (m) => m.FinanceStatisticsPageComponent,
-          ),
+        pathMatch: 'full',
+        redirectTo: ({ queryParams }) =>
+          inject(Router).createUrlTree(['/personal-workspace/finance'], {
+            queryParams: {
+              ...queryParams,
+              tab:
+                queryParams['tab'] === 'income' || queryParams['tab'] === 'expense'
+                  ? queryParams['tab']
+                  : 'summary',
+            },
+          }),
       },
       {
         path: 'finance',
-        title: 'finance.overview',
+        title: 'finance.section',
         canDeactivate: [unsavedChangesGuard],
         loadComponent: () =>
-          import('./finance/pages/finance-overview-page.component').then(
-            (m) => m.FinanceOverviewPageComponent,
+          import('./finance/pages/finance-tracker-page.component').then(
+            (m) => m.FinanceTrackerPageComponent,
           ),
       },
       {

@@ -12,6 +12,13 @@ export const WORKSPACE_NAVIGATION_SECTIONS: readonly WorkspaceNavigationSection[
         route: '/personal-workspace/resumes',
         badgeTextKey: null,
       },
+      {
+        key: 'finance',
+        icon: 'dashboard',
+        labelKey: 'finance.section',
+        route: '/personal-workspace/finance',
+        badgeTextKey: null,
+      },
     ],
   },
   {
@@ -37,26 +44,6 @@ export const WORKSPACE_NAVIGATION_SECTIONS: readonly WorkspaceNavigationSection[
         icon: 'calendar',
         labelKey: 'workspaceEvents.title',
         route: '/personal-workspace/events',
-        badgeTextKey: null,
-      },
-    ],
-  },
-  {
-    key: 'finance',
-    labelKey: 'finance.section',
-    pages: [
-      {
-        key: 'finance-overview',
-        icon: 'folder',
-        labelKey: 'finance.overview',
-        route: '/personal-workspace/finance',
-        badgeTextKey: null,
-      },
-      {
-        key: 'finance-statistics',
-        icon: 'dashboard',
-        labelKey: 'finance.statistics.title',
-        route: '/personal-workspace/finance/statistics',
         badgeTextKey: null,
       },
     ],

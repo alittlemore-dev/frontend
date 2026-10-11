@@ -5,46 +5,81 @@
   }
   <svg
     [attr.viewBox]="'0 0 720 ' + height()"
-    role="img"
+    role="group"
     [attr.aria-label]="title() + ' · ' + symbol()"
     preserveAspectRatio="xMidYMid meet"
   >
     @if (kind() === 'pie') {
       @for (slice of slices(); track slice.id) {
-        <path [attr.d]="slice.path" [attr.fill]="slice.fill">
-          <title>
-            {{ slice.label }}: {{ money(slice.amount) }} · {{ percentage(slice.percentage) }}
-          </title>
-        </path>
+        <path
+          cdkOverlayOrigin
+          #origin="cdkOverlayOrigin"
+          class="finance-chart-mark"
+          [class.active]="tooltip()?.datum?.id === slice.id"
+          [attr.d]="slice.path"
+          [attr.fill]="slice.fill"
+          role="img"
+          tabindex="0"
+          [attr.aria-label]="
+            slice.label + ': ' + money(slice.amount) + ' · ' + percentage(slice.percentage)
+          "
+          [attr.aria-describedby]="tooltip()?.datum?.id === slice.id ? tooltipId : null"
+          (pointerenter)="showTooltip(slice, origin, 'pointer', slice.percentage)"
+          (pointerleave)="scheduleHide()"
+          (focus)="showTooltip(slice, origin, 'focus', slice.percentage)"
+          (blur)="blurTooltip()"
+          (keydown.escape)="hideTooltip()"
+        />
       }
     } @else if (kind() === 'horizontal') {
       @for (bar of bars(); track bar.id) {
-        <text x="5" [attr.y]="bar.rowY + 17">
-          {{ bar.shortLabel }}
-          <title>{{ bar.label }}</title>
-        </text>
-        <rect
-          class="finance-bar"
-          x="280"
-          [attr.y]="bar.rowY"
-          [attr.width]="bar.horizontalWidth"
-          height="24"
+        <g
+          cdkOverlayOrigin
+          #origin="cdkOverlayOrigin"
+          class="finance-chart-mark"
+          [class.active]="tooltip()?.datum?.id === bar.id"
+          role="img"
+          tabindex="0"
+          [attr.aria-label]="bar.label + ': ' + money(bar.amount)"
+          [attr.aria-describedby]="tooltip()?.datum?.id === bar.id ? tooltipId : null"
+          (pointerenter)="showTooltip(bar, origin, 'pointer')"
+          (pointerleave)="scheduleHide()"
+          (focus)="showTooltip(bar, origin, 'focus')"
+          (blur)="blurTooltip()"
+          (keydown.escape)="hideTooltip()"
         >
-          <title>{{ bar.label }}: {{ money(bar.amount) }}</title>
-        </rect>
+          <text x="5" [attr.y]="bar.rowY + 17">{{ bar.shortLabel }}</text>
+          <rect
+            class="finance-bar"
+            x="280"
+            [attr.y]="bar.rowY"
+            [attr.width]="bar.horizontalWidth"
+            height="24"
+          />
+        </g>
       }
     } @else {
       <line x1="35" x2="705" [attr.y1]="zeroY()" [attr.y2]="zeroY()" />
       @for (bar of bars(); track bar.id) {
         <rect
-          class="finance-bar"
+          cdkOverlayOrigin
+          #origin="cdkOverlayOrigin"
+          class="finance-bar finance-chart-mark"
+          [class.active]="tooltip()?.datum?.id === bar.id"
           [attr.x]="bar.x"
           [attr.y]="bar.y"
           [attr.width]="bar.width"
           [attr.height]="bar.height"
-        >
-          <title>{{ bar.label }}: {{ money(bar.amount) }}</title>
-        </rect>
+          role="img"
+          tabindex="0"
+          [attr.aria-label]="bar.label + ': ' + money(bar.amount)"
+          [attr.aria-describedby]="tooltip()?.datum?.id === bar.id ? tooltipId : null"
+          (pointerenter)="showTooltip(bar, origin, 'pointer')"
+          (pointerleave)="scheduleHide()"
+          (focus)="showTooltip(bar, origin, 'focus')"
+          (blur)="blurTooltip()"
+          (keydown.escape)="hideTooltip()"
+        />
         @if (bar.showLabel) {
           <text [attr.x]="bar.labelX" y="250" text-anchor="middle">{{ bar.label }}</text>
         }
@@ -79,3 +114,29 @@
     </table>
   </div>
 </figure>
+@if (tooltip(); as tip) {
+  <ng-template
+    cdkConnectedOverlay
+    [cdkConnectedOverlayOrigin]="tip.origin"
+    [cdkConnectedOverlayOpen]="true"
+    [cdkConnectedOverlayPositions]="tooltipPositions"
+    [cdkConnectedOverlayPush]="true"
+    [cdkConnectedOverlayViewportMargin]="12"
+    (overlayOutsideClick)="hideTooltip()"
+    (overlayKeydown)="$event.key === 'Escape' && hideTooltip()"
+  >
+    <div
+      class="finance-chart-tooltip"
+      role="tooltip"
+      [id]="tooltipId"
+      (pointerenter)="retainTooltip()"
+      (pointerleave)="scheduleHide()"
+    >
+      <span class="finance-chart-tooltip-label">{{ tip.datum.label }}</span>
+      <span class="finance-chart-tooltip-value">{{ money(tip.datum.amount) }}</span>
+      @if (tip.percentage !== undefined) {
+        <span class="finance-chart-tooltip-percentage">{{ percentage(tip.percentage) }}</span>
+      }
+    </div>
+  </ng-template>
+}

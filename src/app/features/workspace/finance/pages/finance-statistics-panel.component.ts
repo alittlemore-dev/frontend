@@ -4,16 +4,15 @@ import {
   DestroyRef,
   computed,
   effect,
-  untracked,
   inject,
+  input,
   signal,
-  OnInit,
+  untracked,
 } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SiteSelectComponent, SiteSelectOption } from '@alittlemore.dev/design-system';
-import { Subscription, switchMap } from 'rxjs';
-import { AccountSettingsService } from '../../../../core/auth/account-settings.service';
+import { Subscription } from 'rxjs';
 import { formatFinanceDate, financePeriodEnd } from '../utils/finance-time';
 import { I18nService } from '../../../../core/i18n/i18n.service';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
@@ -21,6 +20,7 @@ import { ApiError } from '../../../../core/models/api-error.model';
 import { FinanceStatisticsReportComponent } from './finance-statistics-report.component';
 import {
   FinanceCurrency,
+  FinanceKind,
   FinanceStatisticsResult,
   FinanceStatisticsCurrency,
   FINANCE_CURRENCY_SYMBOLS,
@@ -40,29 +40,44 @@ const PERIODS: readonly FinanceStatisticsPeriod[] = [
 const CURRENCIES: readonly FinanceCurrency[] = ['AMD', 'RUB', 'USD', 'EUR'];
 
 @Component({
-  selector: 'app-finance-statistics-page',
+  selector: 'app-finance-statistics-panel',
   standalone: true,
   imports: [TranslatePipe, SiteSelectComponent, FinanceStatisticsReportComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  templateUrl: './finance-statistics-page.component.html',
-  styleUrl: './finance-statistics-page.component.scss',
+  templateUrl: './finance-statistics-panel.component.html',
+  styleUrl: './finance-statistics-panel.component.scss',
 })
-export class FinanceStatisticsPageComponent implements OnInit {
+export class FinanceStatisticsPanelComponent {
   private readonly service = inject(FinanceService);
   readonly i18n = inject(I18nService);
-  readonly timeZone = inject(AccountSettingsService).timeZone;
+  readonly selectedMonth = input.required<string>();
+  readonly timeZone = input.required<string>();
+  readonly tab = input<'summary' | FinanceKind>('summary');
+  readonly revision = input(0);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly query = toSignal(this.route.queryParamMap, {
+    initialValue: this.route.snapshot.queryParamMap,
+  });
+  private readonly filterKey = computed(() =>
+    JSON.stringify([this.query().getAll('period'), this.query().getAll('currency')]),
+  );
   private request?: Subscription;
   readonly statistics = signal<FinanceStatisticsResult | null>(null);
+  readonly reportTimeZone = computed(
+    () => this.statistics()?.reports[0]?.monthly?.timezoneName ?? this.timeZone(),
+  );
   readonly loading = signal(true);
   readonly errorKey = signal<string | null>(null);
+  readonly empty = signal(false);
   readonly notice = signal(false);
-  readonly period = signal<FinanceStatisticsPeriod>('thisMonth');
-  readonly currency = signal<FinanceStatisticsCurrency>('month');
-  readonly tab = signal<'summary' | 'income' | 'expense'>('summary');
-  readonly tabs = ['summary', 'income', 'expense'] as const;
+  readonly period = computed(
+    () => PERIODS.find((value) => value === this.query().get('period')) ?? 'thisMonth',
+  );
+  readonly currency = computed<FinanceStatisticsCurrency>(
+    () => CURRENCIES.find((value) => value === this.query().get('currency')) ?? 'month',
+  );
   readonly currencyOptions = computed<readonly SiteSelectOption[]>(() => {
     this.i18n.language();
     return [
@@ -77,72 +92,55 @@ export class FinanceStatisticsPageComponent implements OnInit {
       label: this.i18n.translate(`finance.statistics.period.${value}`),
     }));
   });
-  private loadedTimeZone = this.timeZone();
 
   constructor() {
     effect(() => {
-      const zone = this.timeZone();
-      if (zone === this.loadedTimeZone) return;
-      this.loadedTimeZone = zone;
+      this.filterKey();
+      this.selectedMonth();
+      this.timeZone();
+      this.revision();
       untracked(() => this.load());
     });
-  }
-
-  ngOnInit(): void {
-    this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => this.load());
   }
 
   load(): void {
     this.request?.unsubscribe();
     this.loading.set(true);
     this.errorKey.set(null);
+    this.empty.set(false);
     this.statistics.set(null);
-    const language = this.i18n.language();
-    if (language !== 'ru' && language !== 'en') {
-      this.errorKey.set('finance.error.load');
-      this.loading.set(false);
+    const query = this.query();
+    const invalid =
+      (query.has('period') &&
+        (query.get('period') !== this.period() || query.getAll('period').length !== 1)) ||
+      (query.has('currency') &&
+        (query.get('currency') !== this.currency() || query.getAll('currency').length !== 1));
+    this.notice.set(invalid);
+    if (invalid) {
+      void this.router.navigate([], {
+        relativeTo: this.route,
+        replaceUrl: true,
+        queryParamsHandling: 'merge',
+        queryParams: { period: this.period(), currency: this.currency() },
+      });
       return;
     }
     this.request = this.service
-      .ensure(language)
-      .pipe(
-        switchMap(() => {
-          const query = this.route.snapshot.queryParamMap;
-          const period = query.get('period');
-          const currency = query.get('currency');
-          const selectedPeriod = PERIODS.find((value) => value === period) ?? 'thisMonth';
-          const selectedCurrency =
-            currency === 'month'
-              ? 'month'
-              : (CURRENCIES.find((value) => value === currency) ?? 'month');
-          const invalid =
-            (period !== null &&
-              (!PERIODS.some((value) => value === period) ||
-                query.getAll('period').length !== 1)) ||
-            (currency !== null &&
-              ((currency !== 'month' && !CURRENCIES.some((value) => value === currency)) ||
-                query.getAll('currency').length !== 1));
-          this.notice.set(invalid);
-          this.period.set(selectedPeriod);
-          this.currency.set(selectedCurrency);
-          if (invalid)
-            void this.router.navigate([], {
-              relativeTo: this.route,
-              replaceUrl: true,
-              queryParamsHandling: 'merge',
-              queryParams: { period: selectedPeriod, currency: selectedCurrency },
-            });
-          return this.service.statistics(selectedPeriod, selectedCurrency);
-        }),
-        takeUntilDestroyed(this.destroyRef),
+      .statistics(
+        this.period(),
+        this.currency(),
+        this.period() === 'thisMonth' ? this.selectedMonth() : undefined,
       )
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (data) => {
           this.statistics.set(data);
           this.loading.set(false);
         },
         error: (error: ApiError) => {
-          this.errorKey.set(error.status === 503 ? 'finance.error.rate' : 'finance.error.load');
+          if (error.status === 404) this.empty.set(true);
+          else
+            this.errorKey.set(error.status === 503 ? 'finance.error.rate' : 'finance.error.load');
           this.loading.set(false);
         },
       });
@@ -173,10 +171,9 @@ export class FinanceStatisticsPageComponent implements OnInit {
   }
 
   date(value: string): string {
-    return formatFinanceDate(value, this.i18n.dateLocale(), this.timeZone());
+    return formatFinanceDate(value, this.i18n.dateLocale(), this.reportTimeZone());
   }
-
   periodEnd(value: string): string {
-    return financePeriodEnd(value, this.i18n.dateLocale(), this.timeZone());
+    return financePeriodEnd(value, this.i18n.dateLocale(), this.reportTimeZone());
   }
 }

@@ -40,6 +40,7 @@ import {
   FinanceTransactionEntry,
   FinanceTransactionEditor,
 } from '../models/finance.model';
+import { FinanceStatisticsPanelComponent } from './finance-statistics-panel.component';
 import { FinanceService } from '../services/finance.service';
 import {
   formatFinanceAmount,
@@ -49,6 +50,11 @@ import {
 import { FinanceBudgetColumnComponent } from '../components/finance-budget-column.component';
 import { FinanceTransactionsColumnComponent } from '../components/finance-transactions-column.component';
 import { FinanceTransactionEntryComponent } from '../components/finance-transaction-entry.component';
+
+interface FinanceTransactionRepeat {
+  transaction: FinanceTransaction;
+  stableCategoryId: string | null;
+}
 
 function decimalForInput(value: string): string {
   const match = /^([+-]?)(\d+)(?:\.(\d*))?(?:[eE]([+-]?\d+))?$/.exec(value);
@@ -77,10 +83,11 @@ function decimalForInput(value: string): string {
 }
 
 @Component({
-  selector: 'app-finance-overview-page',
+  selector: 'app-finance-tracker-page',
   standalone: true,
   imports: [
     FormsModule,
+    FinanceStatisticsPanelComponent,
     ModalDialogDirective,
     FinanceTransactionsColumnComponent,
     FinanceTransactionEntryComponent,
@@ -89,10 +96,10 @@ function decimalForInput(value: string): string {
     TranslatePipe,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  templateUrl: './finance-overview-page.component.html',
-  styleUrl: './finance-overview-page.component.scss',
+  templateUrl: './finance-tracker-page.component.html',
+  styleUrl: './finance-tracker-page.component.scss',
 })
-export class FinanceOverviewPageComponent implements OnInit {
+export class FinanceTrackerPageComponent implements OnInit {
   private readonly service = inject(FinanceService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -106,6 +113,7 @@ export class FinanceOverviewPageComponent implements OnInit {
   private initializationSubscription?: Subscription;
   private transactionsSubscription?: Subscription;
   private revisionsSubscription?: Subscription;
+  private pendingRepeat: FinanceTransactionRepeat | null = null;
 
   readonly currencies: readonly FinanceCurrency[] = ['AMD', 'RUB', 'USD', 'EUR'];
   readonly currencySymbols = FINANCE_CURRENCY_SYMBOLS;
@@ -146,7 +154,19 @@ export class FinanceOverviewPageComponent implements OnInit {
   readonly loading = signal(true);
   readonly saving = signal(false);
   readonly errorKey = signal<string | null>(null);
-  readonly tab = signal<'summary' | 'transactions'>('summary');
+  readonly tab = signal<'overview' | 'transactions' | 'summary' | 'income' | 'expense'>('overview');
+  readonly statisticsTabs = ['summary', 'income', 'expense'] as const;
+  readonly statisticsTab = computed(() => {
+    const tab = this.tab();
+    return tab === 'overview' || tab === 'transactions' ? null : tab;
+  });
+  readonly statisticsRevision = signal(0);
+  readonly statisticsPanel = viewChild(FinanceStatisticsPanelComponent);
+  readonly monthNavigation = computed(
+    () =>
+      this.statisticsTab() === null ||
+      (this.statisticsPanel()?.period() ?? 'thisMonth') === 'thisMonth',
+  );
   readonly includeDeleted = signal(false);
   readonly openingDraft = signal('');
   readonly currencyDraft = signal<FinanceCurrency>('USD');
@@ -156,6 +176,7 @@ export class FinanceOverviewPageComponent implements OnInit {
     income: { name: '', plan: '' },
   });
   readonly transactionEditor = signal<FinanceTransactionEditor | null>(null);
+  readonly repeatCategoryUnavailable = signal(false);
   readonly categoryToRemove = signal<FinanceCategory | null>(null);
   private readonly removalDialog = viewChild('removalDialog', { read: ModalDialogDirective });
   private readonly transactionDialog = viewChild('transactionDialog', {
@@ -237,7 +258,13 @@ export class FinanceOverviewPageComponent implements OnInit {
         }
       }
       this.discardApproved = false;
-      this.initialize();
+      const tab = this.route.snapshot.queryParamMap.get('tab');
+      this.tab.set(
+        tab === 'transactions' || tab === 'summary' || tab === 'income' || tab === 'expense'
+          ? tab
+          : 'overview',
+      );
+      if (this.currentPeriod() === null || requested !== this.selectedPeriod()) this.initialize();
     });
   }
 
@@ -335,6 +362,7 @@ export class FinanceOverviewPageComponent implements OnInit {
             this.writePeriod(null, true);
           }
           const period = selected ?? current.periodStart;
+          if (period !== current.periodStart) this.pendingRepeat = null;
           if (period !== this.selectedPeriod()) {
             this.transactionDialog()?.close();
             this.removalDialog()?.close();
@@ -360,8 +388,12 @@ export class FinanceOverviewPageComponent implements OnInit {
           this.receiveMonth(month);
           this.loading.set(false);
           this.loadTransactions();
+          const repeat = this.pendingRepeat;
+          this.pendingRepeat = null;
+          if (repeat) this.openRepeatedTransaction(repeat);
         },
         error: (error: ApiError) => {
+          this.pendingRepeat = null;
           if (error.status === 404 && this.readOnly()) {
             this.month.set(null);
             this.empty.set(true);
@@ -377,6 +409,7 @@ export class FinanceOverviewPageComponent implements OnInit {
     const openingDraft = this.openingDraft();
     const drafts = this.categoryDrafts();
     this.month.set(month);
+    this.statisticsRevision.update((revision) => revision + 1);
     this.openingDraft.set(
       samePeriod && openingDraft !== decimalForInput(previous.openingBalance)
         ? openingDraft
@@ -421,8 +454,13 @@ export class FinanceOverviewPageComponent implements OnInit {
     });
   }
 
-  setTab(tab: 'summary' | 'transactions'): void {
+  setTab(tab: 'overview' | 'transactions' | 'summary' | 'income' | 'expense'): void {
     this.tab.set(tab);
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParamsHandling: 'merge',
+      queryParams: { tab: tab === 'overview' ? null : tab },
+    });
   }
 
   setIncludeDeleted(value: boolean): void {
@@ -577,12 +615,57 @@ export class FinanceOverviewPageComponent implements OnInit {
 
   openTransactionCreation(kind: FinanceKind): void {
     if (this.month() === null || this.saving() || !this.canWriteTransactions()) return;
-    this.transactionEditor.set({ kind, transaction: null, entry: this.blankTransactionEntry() });
+    this.openTransactionEditor({ kind, transaction: null, entry: this.blankTransactionEntry() });
+  }
+
+  private openTransactionEditor(editor: FinanceTransactionEditor): void {
+    this.transactionEditor.set(editor);
+    this.repeatCategoryUnavailable.set(false);
     this.errorKey.set(null);
-    this.transactionDraft.set(this.transactionEditor()?.entry ?? null);
+    this.transactionDraft.set(editor.entry);
     this.editorBaseline.set(JSON.stringify(this.transactionDraft()));
     this.changeDetector.detectChanges();
     this.transactionDialog()?.open();
+  }
+
+  repeatTransaction(transaction: FinanceTransaction): void {
+    const month = this.month();
+    if (month === null || this.saving() || this.loading()) return;
+    const repeat: FinanceTransactionRepeat = {
+      transaction,
+      stableCategoryId:
+        month.categories.find((category) => category.id === transaction.categoryId)?.stableId ??
+        null,
+    };
+    if (this.readOnly()) {
+      if (!this.scope.confirmDiscard()) return;
+      this.pendingRepeat = repeat;
+      this.discardApproved = true;
+      this.writePeriod(null, false);
+      return;
+    }
+    this.openRepeatedTransaction(repeat);
+  }
+
+  private openRepeatedTransaction(repeat: FinanceTransactionRepeat): void {
+    const { transaction, stableCategoryId } = repeat;
+    const category = this.month()?.categories.find(
+      (row) => row.stableId === stableCategoryId && row.kind === transaction.kind && !row.archived,
+    );
+    this.openTransactionEditor({
+      kind: transaction.kind,
+      transaction: null,
+      entry: {
+        categoryId: category?.id ?? '',
+        amount: decimalForInput(transaction.amount),
+        currency: transaction.currency,
+        dateTime: Temporal.Now.zonedDateTimeISO(this.timeZone())
+          .toPlainDateTime()
+          .toString({ smallestUnit: 'minute' }),
+        description: transaction.description,
+      },
+    });
+    this.repeatCategoryUnavailable.set(category === undefined);
   }
 
   openTransactionEdit(transaction: FinanceTransaction): void {
@@ -595,7 +678,7 @@ export class FinanceOverviewPageComponent implements OnInit {
     )
       return;
     const local = Temporal.Instant.from(transaction.occurredAt).toZonedDateTimeISO(this.timeZone());
-    this.transactionEditor.set({
+    this.openTransactionEditor({
       kind: transaction.kind,
       transaction,
       entry: {
@@ -606,11 +689,6 @@ export class FinanceOverviewPageComponent implements OnInit {
         description: transaction.description,
       },
     });
-    this.errorKey.set(null);
-    this.transactionDraft.set(this.transactionEditor()?.entry ?? null);
-    this.editorBaseline.set(JSON.stringify(this.transactionDraft()));
-    this.changeDetector.detectChanges();
-    this.transactionDialog()?.open();
   }
 
   closeTransactionEditor(): void {
@@ -832,18 +910,6 @@ export class FinanceOverviewPageComponent implements OnInit {
     return (
       category.kind === 'expense' && category.difference !== null && Number(category.difference) < 0
     );
-  }
-
-  previousAmount(revision: FinanceRevision): string {
-    const amount = revision.previousState['amount'];
-    const currency = revision.previousState['currency'];
-    if (typeof amount !== 'string' || typeof currency !== 'string') return '';
-    return this.money(amount, currency as FinanceCurrency);
-  }
-
-  previousDescription(revision: FinanceRevision): string {
-    const description = revision.previousState['description'];
-    return typeof description === 'string' ? description : '';
   }
 
   inputText(value: unknown): string {

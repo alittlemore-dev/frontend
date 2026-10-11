@@ -45,10 +45,17 @@ export class FinanceService {
   statistics(
     period: FinanceStatisticsPeriod,
     currency: FinanceStatisticsCurrency,
+    selectedMonth?: string,
   ): Observable<FinanceStatisticsResult> {
     return this.api.get<FinanceStatisticsResult>('/api/personal-workspace/finance/statistics', {
       period,
       currency,
+      ...(period === 'thisMonth' && selectedMonth
+        ? {
+            year: String(Number(selectedMonth.slice(0, 4))),
+            month: String(Number(selectedMonth.slice(5, 7))),
+          }
+        : {}),
     });
   }
 

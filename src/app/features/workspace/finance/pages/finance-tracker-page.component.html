@@ -2,8 +2,8 @@
   <header class="finance-heading">
     <div>
       <h1>
-        {{ 'finance.overview' | t }}
-        @if (selectedPeriod()) {
+        {{ 'finance.section' | t }}
+        @if (selectedPeriod() && monthNavigation()) {
           <span class="finance-month-separator" aria-hidden="true">·</span>
           <span class="finance-month-label">{{ monthLabel() }}</span>
         }
@@ -12,44 +12,104 @@
         <p>{{ timeZone() }}</p>
       }
     </div>
-    <nav class="d-flex align-items-center gap-2" [attr.aria-label]="'finance.month.navigation' | t">
-      <button
-        type="button"
-        class="btn btn-outline-secondary"
-        [disabled]="loading() || saving() || selectedPeriod() === '0001-01-01'"
-        [attr.aria-label]="'finance.month.previous' | t"
-        (click)="navigateMonth(-1)"
+    @if (monthNavigation()) {
+      <nav
+        class="d-flex align-items-center gap-2"
+        [attr.aria-label]="'finance.month.navigation' | t"
       >
-        ←
-      </button>
-      <button
-        type="button"
-        class="btn btn-outline-secondary"
-        [disabled]="loading() || saving() || !readOnly()"
-        (click)="returnToCurrent()"
-      >
-        {{ 'finance.month.current' | t }}
-      </button>
-      <button
-        type="button"
-        class="btn btn-outline-secondary"
-        [disabled]="loading() || saving() || !readOnly()"
-        [attr.aria-label]="'finance.month.next' | t"
-        (click)="navigateMonth(1)"
-      >
-        →
-      </button>
-    </nav>
+        <button
+          type="button"
+          class="btn btn-outline-secondary"
+          [disabled]="loading() || saving() || selectedPeriod() === '0001-01-01'"
+          [attr.aria-label]="'finance.month.previous' | t"
+          (click)="navigateMonth(-1)"
+        >
+          ←
+        </button>
+        <button
+          type="button"
+          class="btn btn-outline-secondary"
+          [disabled]="loading() || saving() || !readOnly()"
+          (click)="returnToCurrent()"
+        >
+          {{ 'finance.month.current' | t }}
+        </button>
+        <button
+          type="button"
+          class="btn btn-outline-secondary"
+          [disabled]="loading() || saving() || !readOnly()"
+          [attr.aria-label]="'finance.month.next' | t"
+          (click)="navigateMonth(1)"
+        >
+          →
+        </button>
+      </nav>
+    }
   </header>
+  @if (currentPeriod()) {
+    <div class="finance-tabs" role="tablist" [attr.aria-label]="'finance.section' | t">
+      <fieldset class="finance-tab-group">
+        <legend class="finance-tabs-label">{{ 'finance.tabGroup.tracking' | t }}</legend>
+        <div class="nav nav-tabs finance-tab-buttons">
+          <button
+            type="button"
+            class="nav-link"
+            role="tab"
+            id="finance-tab-summary"
+            [class.active]="tab() === 'overview'"
+            [attr.aria-selected]="tab() === 'overview'"
+            aria-controls="finance-panel-summary"
+            (click)="setTab('overview')"
+          >
+            {{ 'finance.overview' | t }}
+          </button>
+          <button
+            type="button"
+            class="nav-link"
+            role="tab"
+            id="finance-tab-transactions"
+            [class.active]="tab() === 'transactions'"
+            [attr.aria-selected]="tab() === 'transactions'"
+            aria-controls="finance-panel-transactions"
+            (click)="setTab('transactions')"
+          >
+            {{ 'finance.tab.transactions' | t }}
+          </button>
+        </div>
+      </fieldset>
+      <fieldset class="finance-tab-group">
+        <legend class="finance-tabs-label">{{ 'finance.statistics.title' | t }}</legend>
+        <div class="nav nav-tabs finance-tab-buttons">
+          @for (item of statisticsTabs; track item) {
+            <button
+              type="button"
+              role="tab"
+              class="nav-link"
+              [class.active]="tab() === item"
+              [attr.id]="'finance-statistics-tab-' + item"
+              [attr.aria-controls]="statisticsPanel()?.panelIds(item) ?? null"
+              [attr.aria-label]="
+                ('finance.statistics.title' | t) + ' · ' + ('finance.statistics.tab.' + item | t)
+              "
+              [attr.aria-selected]="tab() === item"
+              (click)="setTab(item)"
+            >
+              {{ 'finance.statistics.tab.' + item | t }}
+            </button>
+          }
+        </div>
+      </fieldset>
+    </div>
+  }
   @if (navigationNotice()) {
     <p role="status" class="text-body-secondary">{{ 'finance.month.invalid' | t }}</p>
   }
-  @if (readOnly()) {
+  @if (readOnly() && statisticsTab() === null) {
     <p class="text-body-secondary">
       {{ (canWriteTransactions() ? 'finance.month.lateOperations' : 'finance.month.readOnly') | t }}
     </p>
   }
-  @if (empty()) {
+  @if (empty() && statisticsTab() === null) {
     <p role="status">{{ 'finance.month.empty' | t }}</p>
   }
 
@@ -73,48 +133,17 @@
   @if (loading() && !month()) {
     <p role="status">{{ 'shared.loading' | t }}</p>
   } @else if (month(); as currentMonth) {
-    <ul class="nav nav-tabs finance-tabs" role="tablist" [attr.aria-label]="'finance.overview' | t">
-      <li class="nav-item" role="presentation">
-        <button
-          type="button"
-          class="nav-link"
-          role="tab"
-          id="finance-tab-summary"
-          [class.active]="tab() === 'summary'"
-          [attr.aria-selected]="tab() === 'summary'"
-          aria-controls="finance-panel-summary"
-          (click)="setTab('summary')"
-        >
-          {{ 'finance.tab.summary' | t }}
-        </button>
-      </li>
-      <li class="nav-item" role="presentation">
-        <button
-          type="button"
-          class="nav-link"
-          role="tab"
-          id="finance-tab-transactions"
-          [class.active]="tab() === 'transactions'"
-          [attr.aria-selected]="tab() === 'transactions'"
-          aria-controls="finance-panel-transactions"
-          (click)="setTab('transactions')"
-        >
-          {{ 'finance.tab.transactions' | t }}
-        </button>
-      </li>
-    </ul>
-
     <div
       id="finance-panel-summary"
       role="tabpanel"
       aria-labelledby="finance-tab-summary"
-      [hidden]="tab() !== 'summary'"
+      [hidden]="tab() !== 'overview'"
     >
       <section class="finance-balance" [attr.aria-label]="'finance.closingBalance' | t">
         <div class="finance-balance-item">
           <label for="finance-opening">{{ 'finance.openingBalance' | t }}</label>
           <div class="finance-balance-value d-flex align-items-baseline">
-            @if (readOnly()) {
+            @if (readOnly() && statisticsTab() === null) {
               <strong>{{
                 balanceAmount(currentMonth.openingBalance, currentMonth.currency)
               }}</strong>
@@ -151,7 +180,7 @@
         </div>
         <div class="finance-balance-item finance-balance-currency">
           <label for="finance-currency">{{ 'finance.currency' | t }}</label>
-          @if (readOnly()) {
+          @if (readOnly() && statisticsTab() === null) {
             <strong>{{ currentMonth.currency }}</strong>
           } @else {
             <ds-site-select
@@ -216,6 +245,10 @@
             [month]="currentMonth"
             [transactions]="kind === 'expense' ? expenseTransactions() : incomeTransactions()"
             [historyTransactionId]="revisionsFor()?.id ?? null"
+            [revisions]="revisions()"
+            [revisionsLoading]="revisionsLoading()"
+            [revisionsErrorKey]="revisionsErrorKey()"
+            [repeatDisabled]="loading()"
             [saving]="saving()"
             [readOnly]="!canWriteTransactions()"
             [lateOnly]="readOnly()"
@@ -224,50 +257,22 @@
             (editRequested)="openTransactionEdit($event)"
             (deletionRequested)="setTransactionDeleted($event, !$event.deleted)"
             (historyRequested)="showRevisions($event)"
+            (historyClosed)="closeRevisions()"
+            (repetitionRequested)="repeatTransaction($event)"
           />
         }
       </div>
-
-      @if (revisionsFor(); as transaction) {
-        <section
-          id="finance-history"
-          class="finance-history"
-          aria-labelledby="finance-history-heading"
-          [attr.aria-busy]="revisionsLoading()"
-        >
-          <div class="d-flex align-items-center justify-content-between gap-2">
-            <h2 id="finance-history-heading">
-              {{ 'finance.history' | t }} ·
-              {{ transaction.categoryName || ('finance.category.none' | t) }}
-            </h2>
-            <button
-              type="button"
-              class="finance-icon-button"
-              [attr.aria-label]="'shared.close' | t"
-              (click)="closeRevisions()"
-            >
-              ×
-            </button>
-          </div>
-          @if (revisionsLoading()) {
-            <p class="text-body-secondary mb-0" role="status">{{ 'shared.loading' | t }}</p>
-          } @else if (revisionsErrorKey(); as key) {
-            <p class="text-danger mb-0" role="alert">{{ key | t }}</p>
-          } @else if (revisions().length === 0) {
-            <p class="text-body-secondary mb-0">{{ 'finance.history.empty' | t }}</p>
-          }
-          @for (revision of revisions(); track revision.number) {
-            <div class="finance-history-item">
-              <strong
-                >{{ 'finance.history.' + revision.action | t }} ·
-                {{ dateTime(revision.changedAt) }}</strong
-              >
-              <span>{{ previousAmount(revision) }} · {{ previousDescription(revision) }}</span>
-            </div>
-          }
-        </section>
-      }
     </div>
+  }
+  @if (statisticsTab(); as activeStatisticsTab) {
+    @if (selectedPeriod(); as selectedMonth) {
+      <app-finance-statistics-panel
+        [selectedMonth]="selectedMonth"
+        [timeZone]="timeZone()"
+        [tab]="activeStatisticsTab"
+        [revision]="statisticsRevision()"
+      />
+    }
   }
   <dialog
     #removalDialog="dsModalDialog"
@@ -348,6 +353,9 @@
       </div>
       @if (errorKey(); as key) {
         <p class="text-danger" role="alert">{{ key | t }}</p>
+      }
+      @if (repeatCategoryUnavailable()) {
+        <p class="text-body-secondary">{{ 'finance.transaction.repeatCategoryUnavailable' | t }}</p>
       }
       <app-finance-transaction-entry
         inputId="finance-transaction"

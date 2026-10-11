@@ -76,6 +76,18 @@ describe('FinanceService', () => {
     request.flush({});
   });
 
+  it('sends calendar selection only for monthly analytics', () => {
+    for (const period of ['thisMonth', 'thisYear'] as const) {
+      service.statistics(period, 'month', '2025-12-01').subscribe();
+      const request = http.expectOne((entry) =>
+        entry.url.endsWith('/api/personal-workspace/finance/statistics'),
+      );
+      expect(request.request.params.get('year')).toBe(period === 'thisMonth' ? '2025' : null);
+      expect(request.request.params.get('month')).toBe(period === 'thisMonth' ? '12' : null);
+      request.flush({});
+    }
+  });
+
   it('writes late transactions to their historical month rather than the current month', () => {
     service
       .createTransaction(

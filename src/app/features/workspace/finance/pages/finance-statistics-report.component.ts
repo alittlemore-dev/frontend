@@ -20,7 +20,7 @@ import { formatFinanceMoney } from '../utils/finance-format';
   imports: [TranslatePipe, FinanceBudgetColumnComponent, FinanceChartComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './finance-statistics-report.component.html',
-  styleUrl: './finance-statistics-page.component.scss',
+  styleUrl: './finance-statistics-panel.component.scss',
 })
 export class FinanceStatisticsReportComponent {
   readonly i18n = inject(I18nService);

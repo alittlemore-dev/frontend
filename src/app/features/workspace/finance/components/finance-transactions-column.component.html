@@ -99,35 +99,120 @@
             }
           </td>
           <td class="finance-icon-cell">
-            @if (editable(transaction)) {
+            <div class="finance-row-actions">
               <button
                 type="button"
-                class="finance-icon-button"
-                [class.finance-icon-button-danger]="!transaction.deleted"
-                [attr.aria-label]="(transaction.deleted ? 'finance.restore' : 'finance.delete') | t"
-                [attr.title]="(transaction.deleted ? 'finance.restore' : 'finance.delete') | t"
-                [disabled]="saving()"
-                (click)="deletionRequested.emit(transaction)"
+                class="finance-icon-button finance-repeat-button"
+                [attr.aria-label]="'finance.transaction.repeat' | t"
+                [attr.title]="'finance.transaction.repeat' | t"
+                [disabled]="saving() || repeatDisabled()"
+                (click)="repetitionRequested.emit(transaction)"
               >
-                {{ transaction.deleted ? '+' : '−' }}
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M3 10a9 9 0 1 1 2 8M3 4v6h6" />
+                </svg>
               </button>
-            }
-            <button
-              type="button"
-              class="finance-icon-button finance-history-button"
-              [class.active]="historyTransactionId() === transaction.id"
-              [attr.aria-expanded]="historyTransactionId() === transaction.id"
-              [attr.aria-controls]="
-                historyTransactionId() === transaction.id ? 'finance-history' : null
-              "
-              [attr.aria-label]="'finance.history' | t"
-              [attr.title]="'finance.history' | t"
-              (click)="historyRequested.emit(transaction)"
-            >
-              ↺
-            </button>
+              <button
+                type="button"
+                class="finance-icon-button finance-history-button"
+                [class.active]="historyTransactionId() === transaction.id"
+                [attr.aria-expanded]="historyTransactionId() === transaction.id"
+                [attr.aria-controls]="
+                  historyTransactionId() === transaction.id ? 'finance-history' : null
+                "
+                [attr.aria-label]="'finance.history' | t"
+                [attr.title]="'finance.history' | t"
+                (click)="historyRequested.emit(transaction)"
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h8M8 17h8"
+                  />
+                </svg>
+              </button>
+              @if (editable(transaction)) {
+                <button
+                  type="button"
+                  class="finance-icon-button"
+                  [class.finance-icon-button-danger]="!transaction.deleted"
+                  [attr.aria-label]="
+                    (transaction.deleted ? 'finance.restore' : 'finance.delete') | t
+                  "
+                  [attr.title]="(transaction.deleted ? 'finance.restore' : 'finance.delete') | t"
+                  [disabled]="saving()"
+                  (click)="deletionRequested.emit(transaction)"
+                >
+                  {{ transaction.deleted ? '+' : '−' }}
+                </button>
+              }
+            </div>
           </td>
         </tr>
+        @if (historyTransactionId() === transaction.id) {
+          <tr class="finance-history-row">
+            <td colspan="4">
+              <section
+                id="finance-history"
+                class="finance-history"
+                aria-labelledby="finance-history-heading"
+                [attr.aria-busy]="revisionsLoading()"
+              >
+                <div class="d-flex align-items-center justify-content-between gap-2">
+                  <h3 id="finance-history-heading">
+                    {{ 'finance.history' | t }} ·
+                    {{ transaction.categoryName || ('finance.category.none' | t) }}
+                  </h3>
+                  <button
+                    type="button"
+                    class="finance-icon-button"
+                    [attr.aria-label]="'shared.close' | t"
+                    (click)="historyClosed.emit()"
+                  >
+                    ×
+                  </button>
+                </div>
+                @if (revisionsLoading()) {
+                  <p class="text-body-secondary mb-0" role="status">{{ 'shared.loading' | t }}</p>
+                } @else if (revisionsErrorKey(); as key) {
+                  <p class="text-danger mb-0" role="alert">{{ key | t }}</p>
+                } @else if (revisions().length === 0) {
+                  <p class="text-body-secondary mb-0">{{ 'finance.history.empty' | t }}</p>
+                }
+                @for (revision of revisions(); track revision.number) {
+                  <div class="finance-history-item">
+                    <strong
+                      >{{ 'finance.history.' + revision.action | t }} ·
+                      {{ dateTime(revision.changedAt) }}</strong
+                    >
+                    <span
+                      >{{ previousAmount(revision) }} · {{ previousDescription(revision) }}</span
+                    >
+                  </div>
+                }
+              </section>
+            </td>
+          </tr>
+        }
       } @empty {
         <tr>
           <td colspan="4" class="finance-transactions-empty text-body-secondary">
