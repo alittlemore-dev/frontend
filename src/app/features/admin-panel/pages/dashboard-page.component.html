@@ -63,6 +63,20 @@
     }
   </div>
 
+  @if (isOwner()) {
+    <div
+      role="tabpanel"
+      [id]="tabPanelId('healthcheck')"
+      [attr.aria-labelledby]="tabId('healthcheck')"
+      [hidden]="activeTab() !== 'healthcheck'"
+      data-testid="dashboard-tabpanel-healthcheck"
+    >
+      @if (healthcheckOpened()) {
+        <app-dashboard-healthcheck [active]="activeTab() === 'healthcheck'" />
+      }
+    </div>
+  }
+
   @if (canManageTeam()) {
     <section
       data-testid="dashboard-manager-view"

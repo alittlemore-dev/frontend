@@ -27,9 +27,10 @@ import {
   ModeratorDashboardQueueStats,
 } from '../models/moderator-dashboard.model';
 import { ModeratorDashboardService } from '../services/moderator-dashboard.service';
+import { DashboardHealthcheckComponent } from '../components/dashboard-healthcheck/dashboard-healthcheck.component';
 
 type DashboardSectionKey = 'moderator-question-queue' | 'moderator-matrix-quality';
-type DashboardTabKey = DashboardSectionKey | 'tools' | 'statistics';
+type DashboardTabKey = DashboardSectionKey | 'tools' | 'statistics' | 'healthcheck';
 
 interface DashboardTabDefinition {
   key: DashboardTabKey;
@@ -58,6 +59,7 @@ const MODERATOR_DASHBOARD_SECTIONS: readonly DashboardSectionKey[] = [
     DashboardFoldableSectionComponent,
     AdminToolsWidgetComponent,
     WorkspaceCacheWidgetComponent,
+    DashboardHealthcheckComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './dashboard-page.component.html',
@@ -84,7 +86,11 @@ export class DashboardPageComponent implements OnInit {
   @ViewChild(WorkspaceCacheWidgetComponent)
   private workspaceCacheWidget: WorkspaceCacheWidgetComponent | undefined;
 
+  @ViewChild(DashboardHealthcheckComponent)
+  private healthcheck: DashboardHealthcheckComponent | undefined;
+
   readonly canManageTeam = this.auth.canManageTeam;
+  readonly isOwner = this.auth.isOwner;
   readonly moderatorQueueStats = signal<ModeratorDashboardQueueStats | null>(null);
   readonly moderatorMatrixStats = signal<ModeratorDashboardMatrixStats | null>(null);
   readonly moderatorQueueLoading = signal(false);
@@ -97,8 +103,12 @@ export class DashboardPageComponent implements OnInit {
       ? [{ key: 'tools' as const, labelKey: 'dashboard.tools.title' }]
       : MODERATOR_DASHBOARD_TABS),
     { key: 'statistics', labelKey: 'dashboard.statistics.title' },
+    ...(this.isOwner()
+      ? [{ key: 'healthcheck' as const, labelKey: 'dashboard.healthcheck.title' }]
+      : []),
   ]);
   readonly statisticsOpened = signal(false);
+  readonly healthcheckOpened = signal(false);
   readonly collapsedSectionKeys = signal<ReadonlySet<string>>(new Set<string>());
   readonly moderatorQueueSummary = computed(() => {
     this.i18n.language();
@@ -112,6 +122,12 @@ export class DashboardPageComponent implements OnInit {
   });
 
   constructor() {
+    effect(() => {
+      if (!this.tabs().some((tab) => tab.key === this.activeTab())) {
+        this.setActiveTab(this.canManageTeam() ? 'tools' : 'moderator-question-queue');
+      }
+      if (!this.isOwner()) this.healthcheckOpened.set(false);
+    });
     effect(() => {
       if (this.canManageTeam()) {
         this.collapsedSectionKeys.set(new Set<string>());
@@ -133,6 +149,7 @@ export class DashboardPageComponent implements OnInit {
         (this.canManageTeam() ? 'tools' : 'moderator-question-queue');
       this.activeTab.set(tab);
       if (tab === 'statistics') this.statisticsOpened.set(true);
+      if (tab === 'healthcheck') this.healthcheckOpened.set(true);
     });
     if (!this.canManageTeam()) {
       this.loadModeratorQueue();
@@ -141,6 +158,10 @@ export class DashboardPageComponent implements OnInit {
   }
 
   loadDashboard(): void {
+    if (this.activeTab() === 'healthcheck') {
+      this.healthcheck?.refresh();
+      return;
+    }
     if (this.activeTab() === 'statistics') {
       this.siteAnalytics?.refresh();
       return;
@@ -219,6 +240,7 @@ export class DashboardPageComponent implements OnInit {
     if (!this.tabs().some((tab) => tab.key === tabKey)) return;
     this.activeTab.set(tabKey);
     if (tabKey === 'statistics') this.statisticsOpened.set(true);
+    if (tabKey === 'healthcheck') this.healthcheckOpened.set(true);
     const tree = this.router.parseUrl(this.location.path() || this.router.url);
     tree.queryParams['tab'] = tabKey;
     this.location.replaceState(this.router.serializeUrl(tree));
