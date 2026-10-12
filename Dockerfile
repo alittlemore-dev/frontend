@@ -1,4 +1,4 @@
-FROM node:26.10.0-alpine AS builder
+FROM node:26.11.1-alpine AS builder
 WORKDIR /app
 
 COPY package*.json ./
@@ -8,7 +8,7 @@ COPY . .
 ARG NG_BUILD_MAX_WORKERS=1
 RUN npm run build
 
-FROM node:26.10.0-alpine AS runtime
+FROM node:26.11.1-alpine AS runtime
 WORKDIR /app
 
 ENV NODE_ENV=production
