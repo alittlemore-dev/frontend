@@ -18,6 +18,7 @@ try {
   await assertMissingArticleNoindex(frontendPort, requests);
   await assertPublishedMatrixQuestionHtml(frontendPort, requests);
   await assertMissingMatrixQuestionNoindex(frontendPort, requests);
+  await assertPrivateHealthcheckClientRendering(frontendPort, requests);
   assertExpected([
     [
       'SSR Russian shared bundle uses i18n service',
@@ -51,6 +52,19 @@ try {
 
 if (failure !== null) {
   process.exitCode = 1;
+}
+
+async function assertPrivateHealthcheckClientRendering(frontendPort, requests) {
+  const requestStart = requests.length;
+  const response = await fetch(`http://127.0.0.1:${frontendPort}/admin-panel/dashboard?tab=healthcheck`, {
+    headers: { Authorization: 'Bearer owner-fixture-session' },
+  });
+  const html = await response.text();
+  assertExpected([
+    ['client dashboard status', response.status === 200],
+    ['no private backup request during SSR', requests.slice(requestStart).every((entry) => !entry.includes('/api/infra/'))],
+    ['no backup metadata in HTML or transfer state', !/retained_sets|last_success_at|delivery_gap_count/.test(html)],
+  ], html, 'private Healthcheck client rendering');
 }
 
 async function assertUnifiedApiDocs(frontendPort) {

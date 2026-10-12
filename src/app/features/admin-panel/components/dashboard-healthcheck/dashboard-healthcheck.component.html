@@ -1,0 +1,136 @@
+<section aria-live="polite" [attr.aria-busy]="loading()">
+  @if (unavailable()) {
+    <div class="alert alert-warning" role="alert" data-testid="healthcheck-unavailable">
+      <p>{{ 'dashboard.healthcheck.unavailable' | t }}</p>
+      <button type="button" class="btn btn-outline-secondary btn-sm" (click)="refresh()">
+        {{ 'shared.retry' | t }}
+      </button>
+    </div>
+  } @else if (loading() && !overview()) {
+    <p role="status">{{ 'shared.loading' | t }}</p>
+  }
+  @if (overview(); as overview) {
+    <p class="small text-body-secondary">
+      {{ 'dashboard.healthcheck.checkedAt' | t }}: {{ formatTime(overview.checkedAt) }}
+    </p>
+    @for (system of overview.systems; track system.id) {
+      <article class="card mb-3" data-testid="healthcheck-system">
+        <div class="card-body">
+          <div class="d-flex flex-wrap justify-content-between gap-2 mb-3">
+            <h3 class="h5 mb-0">{{ 'dashboard.healthcheck.system.' + system.id | t }}</h3>
+            <span
+              [class.text-success]="system.status === 'healthy'"
+              [class.text-warning]="system.status !== 'healthy'"
+              data-testid="healthcheck-status"
+              >{{ 'dashboard.healthcheck.status.' + system.status | t }}</span
+            >
+          </div>
+          <p class="small text-body-secondary">
+            {{ 'dashboard.healthcheck.observedAt' | t }}:
+            {{ formatTime(system.observedAt) || ('dashboard.healthcheck.empty' | t) }}
+          </p>
+          @if (system.backup; as backup) {
+            <dl class="row mb-3">
+              <dt class="col-sm-5">{{ 'dashboard.healthcheck.lastAttempt' | t }}</dt>
+              <dd class="col-sm-7">
+                {{ formatTime(backup.lastAttemptAt) || ('dashboard.healthcheck.empty' | t) }}
+              </dd>
+              <dt class="col-sm-5">{{ 'dashboard.healthcheck.lastSuccess' | t }}</dt>
+              <dd class="col-sm-7">
+                {{ formatTime(backup.lastSuccessAt) || ('dashboard.healthcheck.empty' | t) }}
+              </dd>
+              <dt class="col-sm-5">{{ 'dashboard.healthcheck.nextDue' | t }}</dt>
+              <dd class="col-sm-7">
+                {{ formatTime(backup.nextDueAt) || ('dashboard.healthcheck.empty' | t) }}
+              </dd>
+              <dt class="col-sm-5">{{ 'dashboard.healthcheck.runState' | t }}</dt>
+              <dd class="col-sm-7">{{ 'dashboard.healthcheck.run.' + backup.runState | t }}</dd>
+              <dt class="col-sm-5">{{ 'dashboard.healthcheck.restoreVerified' | t }}</dt>
+              <dd class="col-sm-7">
+                {{
+                  (backup.lastRestoreVerifiedAt
+                    ? formatTime(backup.lastRestoreVerifiedAt)
+                    : null) || ('dashboard.healthcheck.restoreNotVerified' | t)
+                }}
+              </dd>
+            </dl>
+            @if (backup.currentRun; as run) {
+              <p>
+                {{ 'dashboard.healthcheck.phase.' + run.phase | t }} ·
+                {{ formatTime(run.startedAt) }}
+              </p>
+            }
+            @if (backup.lastError; as error) {
+              <p class="text-warning">
+                {{ errorKey(error) | t }}
+                <span class="small"
+                  >{{ error.code }} {{ error.sourceId }} {{ error.destinationId }}</span
+                >
+              </p>
+            }
+            @for (destination of backup.destinations; track destination.id) {
+              <section class="border-top pt-3 mt-3">
+                <h4 class="h6">
+                  {{ 'dashboard.healthcheck.destination' | t }}: {{ destination.id }}
+                </h4>
+                <p class="small">
+                  {{ 'dashboard.healthcheck.pending' | t }}: {{ destination.pendingCount }} ·
+                  {{ 'dashboard.healthcheck.deliveryGaps' | t }}: {{ destination.deliveryGapCount }}
+                </p>
+                @if (destination.lastError; as error) {
+                  <p class="text-warning">
+                    {{ errorKey(error) | t }} <span class="small">{{ error.code }}</span>
+                  </p>
+                }
+                @if (destination.cleanupError; as error) {
+                  <p class="text-warning">
+                    {{ errorKey(error) | t }} <span class="small">{{ error.code }}</span>
+                  </p>
+                }
+                @if (destination.retainedSets.length) {
+                  <div class="table-responsive">
+                    <table class="table table-sm align-middle">
+                      <caption class="visually-hidden">
+                        {{
+                          'dashboard.healthcheck.retainedSets' | t
+                        }}
+                      </caption>
+                      <thead>
+                        <tr>
+                          <th scope="col">{{ 'dashboard.healthcheck.checkpoint' | t }}</th>
+                          <th scope="col">{{ 'dashboard.healthcheck.completedAt' | t }}</th>
+                          <th scope="col">{{ 'dashboard.healthcheck.size' | t }}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (set of destination.retainedSets; track set.runId) {
+                          <tr data-testid="healthcheck-set">
+                            <td>
+                              @for (role of set.roles; track role) {
+                                <span class="d-block">{{
+                                  'dashboard.healthcheck.role.' + role | t
+                                }}</span>
+                              }
+                            </td>
+                            <td>{{ formatTime(set.completedAt) }}</td>
+                            <td>
+                              {{ set.totalBytes | number }} {{ 'dashboard.healthcheck.bytes' | t }}
+                            </td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                } @else {
+                  <p>{{ 'dashboard.healthcheck.noSets' | t }}</p>
+                }
+              </section>
+            }
+          }
+        </div>
+      </article>
+    } @empty {
+      <p>{{ 'dashboard.healthcheck.noSystems' | t }}</p>
+    }
+  }
+</section>

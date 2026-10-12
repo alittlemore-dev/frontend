@@ -1,8 +1,8 @@
 import { AnalyticsService } from './analytics-page/analytics.service';
 import { DOCUMENT } from '@angular/common';
-import { WritableSignal, signal } from '@angular/core';
+import { WritableSignal, computed, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { Observable, of, throwError } from 'rxjs';
 import { AccountInfo } from '../../../core/auth/account.model';
 import { AuthService } from '../../../core/auth/auth.service';
@@ -17,6 +17,7 @@ import { WorkspaceCacheService } from '../services/workspace-cache.service';
 import { AdminToolsService } from '../services/admin-tools.service';
 import { ModeratorDashboardService } from '../services/moderator-dashboard.service';
 import { DashboardPageComponent } from './dashboard-page.component';
+import { HealthcheckService } from '../services/healthcheck.service';
 
 describe('DashboardPageComponent', () => {
   let fixture: ComponentFixture<DashboardPageComponent>;
@@ -74,7 +75,20 @@ describe('DashboardPageComponent', () => {
         },
         provideRouter([]),
         provideI18nTesting(),
-        { provide: AuthService, useValue: { canManageTeam, currentUser } },
+        {
+          provide: AuthService,
+          useValue: {
+            canManageTeam,
+            currentUser,
+            isOwner: computed(() => currentUser()?.role === 'owner'),
+          },
+        },
+        {
+          provide: HealthcheckService,
+          useValue: {
+            getHealthcheck: jest.fn(() => of({ checkedAt: '2026-10-11T12:00:00Z', systems: [] })),
+          },
+        },
         {
           provide: ModeratorDashboardService,
           useValue: { getQueueStats, getMatrixStats },
@@ -116,7 +130,9 @@ describe('DashboardPageComponent', () => {
 
       expect(view.querySelector('[role="tablist"]')).toBeNull();
       expect(view.getAttribute('role')).toBe('tabpanel');
-      expect(fixture.nativeElement.querySelectorAll('[role="tab"]')).toHaveLength(2);
+      expect(fixture.nativeElement.querySelectorAll('[role="tab"]')).toHaveLength(
+        role === 'owner' ? 3 : 2,
+      );
       expect(view.querySelector('app-admin-tools-widget')).not.toBeNull();
       expect(view.querySelector('[data-testid="admin-tools-cache-card"]')).not.toBeNull();
       expect(view.querySelector('[data-testid="workspace-cache-card"]')).not.toBeNull();
@@ -282,6 +298,47 @@ describe('DashboardPageComponent', () => {
 
     expect(toggle.getAttribute('aria-expanded')).toBe('false');
   });
+
+  it('opens Healthcheck lazily for the owner and refreshes only that view', () => {
+    currentUser.set({ username: 'owner', role: 'owner' });
+    render();
+    const service = TestBed.inject(HealthcheckService);
+    expect(service.getHealthcheck).not.toHaveBeenCalled();
+    fixture.componentInstance.setActiveTab('healthcheck');
+    fixture.detectChanges();
+    expect(service.getHealthcheck).toHaveBeenCalledTimes(1);
+    fixture.componentInstance.loadDashboard();
+    expect(service.getHealthcheck).toHaveBeenCalledTimes(2);
+    expect(toolsService.getCacheStatus).toHaveBeenCalledTimes(1);
+    const panel = fixture.nativeElement.querySelector(
+      '[data-testid="dashboard-tabpanel-healthcheck"]',
+    ) as HTMLElement;
+    expect(panel.hidden).toBe(false);
+    expect(panel.getAttribute('aria-labelledby')).toBe('dashboard-tab-healthcheck');
+    currentUser.set({ username: 'admin', role: 'admin' });
+    fixture.detectChanges();
+    expect(fixture.componentInstance.activeTab()).toBe('tools');
+    expect(fixture.nativeElement.querySelector('app-dashboard-healthcheck')).toBeNull();
+  });
+
+  it.each(['admin', 'moderator'] as const)(
+    'rejects a direct Healthcheck query for %s while retaining other tabs',
+    (role) => {
+      currentUser.set({ username: role, role });
+      canManageTeam.set(role === 'admin');
+      TestBed.overrideProvider(ActivatedRoute, {
+        useValue: { queryParamMap: of(convertToParamMap({ tab: 'healthcheck' })) },
+      });
+      render();
+      expect(
+        fixture.nativeElement.querySelector('[data-testid="dashboard-tab-healthcheck"]'),
+      ).toBeNull();
+      expect(TestBed.inject(HealthcheckService).getHealthcheck).not.toHaveBeenCalled();
+      expect(fixture.componentInstance.activeTab()).toBe(
+        role === 'admin' ? 'tools' : 'moderator-question-queue',
+      );
+    },
+  );
 });
 
 function cacheStatus(): object {

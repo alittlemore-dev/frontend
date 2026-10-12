@@ -16,19 +16,19 @@ case "$action" in
         ;;
     test)
         ensure_frontend_deps
-        npm test -- --watchAll=false
+        npm test -- --watchAll=false --runInBand
         ;;
     test-watch)
         ensure_frontend_deps
-        npm run test:watch
+        npm run test:watch -- --runInBand
         ;;
     test-coverage)
         ensure_frontend_deps
-        npm run test:coverage
+        npm run test:coverage -- --runInBand
         ;;
     tests-coverage)
         ensure_frontend_deps
-        npm test -- --watchAll=false --coverage
+        npm test -- --watchAll=false --coverage --runInBand
         ;;
     format)
         ensure_frontend_deps
