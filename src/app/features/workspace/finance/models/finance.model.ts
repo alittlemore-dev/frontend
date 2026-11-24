@@ -45,10 +45,16 @@ export interface FinanceMonth {
   plannedIncome: string | null;
   plannedExpense: string | null;
   closingBalance: string;
+  contributions: string;
+  withdrawals: string;
+  openingAllocation: string;
+  incomeMinusExpenses: string;
+  carryCorrection: string | null;
   categories: FinanceCategory[];
 }
 
 export interface FinanceTransaction {
+  allowsDirectChanges: boolean;
   createdAt: string;
   source: 'web' | 'telegram';
   authorId: string;

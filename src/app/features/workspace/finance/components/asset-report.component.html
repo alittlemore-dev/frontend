@@ -1,0 +1,217 @@
+@let r = report();
+<div class="finance-statistics-totals">
+  <article class="card">
+    <div class="card-body">
+      <h2 class="h5">{{ 'finance.assets.capital' | t }}</h2>
+      <strong class="fs-4">{{ money(r.closing.knownValue) }}</strong>
+      <p class="mb-0">
+        {{ 'finance.assets.startValue' | t }} · {{ money(r.opening.knownValue) }}
+        @if (!r.opening.complete) {
+          ({{ 'finance.assets.partial' | t }})
+        }
+      </p>
+    </div>
+  </article>
+  <article class="card">
+    <div class="card-body">
+      <h2 class="h5">{{ 'finance.assets.netSavings' | t }}</h2>
+      <strong class="fs-4">{{ money(r.netSavings) }}</strong>
+      <p class="mb-0">{{ 'finance.assets.actualPercent' | t }} · {{ percent(r.actualPercent) }}</p>
+    </div>
+  </article>
+  <article class="card">
+    <div class="card-body">
+      <h2 class="h5">{{ 'finance.assets.targetAmount' | t }}</h2>
+      <strong class="fs-4">{{ money(r.targetAmount) }}</strong>
+      <p class="mb-0">{{ 'finance.assets.remaining' | t }} · {{ money(r.remaining) }}</p>
+      <ng-content />
+    </div>
+  </article>
+</div>
+@if (!r.closing.complete) {
+  <p class="alert alert-info mt-3">{{ 'finance.assets.partialExplanation' | t }}</p>
+}
+<div class="d-flex flex-wrap align-items-center gap-2 my-3">
+  <label for="asset-statistics-group">{{ 'finance.assets.group' | t }}</label>
+  <ds-site-select
+    inputId="asset-statistics-group"
+    controlSize="small"
+    appearance="default"
+    [options]="groupingOptions()"
+    [value]="group()"
+    [required]="true"
+    [invalid]="false"
+    [controlDisabled]="false"
+    (valueChange)="selectGroup($event)"
+  />
+</div>
+<div class="finance-statistics-grid finance-statistics-charts">
+  @if (history().length) {
+    <app-finance-chart
+      [title]="'finance.assets.history' | t"
+      [data]="history()"
+      [currency]="r.currency"
+      [aligned]="true"
+      [drilldown]="true"
+      (datumSelected)="journal.emit($event)"
+    />
+  } @else {
+    <p role="status">{{ 'finance.assets.emptyHistory' | t }}</p>
+  }
+  <app-finance-chart
+    [title]="'finance.assets.composition' | t"
+    [data]="composition()"
+    [currency]="r.currency"
+    [kind]="r.closing.complete ? 'pie' : 'vertical'"
+    [aligned]="true"
+  />
+</div>
+<p class="small text-body-secondary mt-2">
+  {{ 'finance.assets.nonInterest' | t }} · {{ money(r.nonInterestValue) }}
+  @if (r.nonInterestPercent !== null) {
+    ({{ percent(r.nonInterestPercent) }})
+  }
+</p>
+<details class="my-3">
+  <summary>{{ 'finance.assets.changes' | t }}</summary>
+  <table class="table table-sm mt-2">
+    <caption class="visually-hidden">
+      {{
+        'finance.assets.changes' | t
+      }}
+    </caption>
+    <tbody>
+      @for (key of reasons; track key) {
+        <tr>
+          <th scope="row">{{ 'finance.assets.' + key | t }}</th>
+          <td class="text-end">{{ money(r[key]) }}</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</details>
+@if (r.months.length) {
+  <section class="mt-4">
+    <h2 class="h4">{{ 'finance.assets.goalActual' | t }}</h2>
+    <p>{{ 'finance.assets.achieved' | t }} · {{ r.achievedMonths }} / {{ r.eligibleMonths }}</p>
+    @if (r.months.length > 1) {
+      @let series = goalSeries();
+      <div class="finance-statistics-grid finance-statistics-charts">
+        <app-finance-chart
+          [title]="'finance.assets.netSavings' | t"
+          [data]="series.actual"
+          [scale]="series.scale"
+          [currency]="r.currency"
+          [aligned]="true"
+          [drilldown]="true"
+          (datumSelected)="journal.emit($event)"
+        />
+        @if (series.hasTarget) {
+          <app-finance-chart
+            [title]="'finance.assets.targetAmount' | t"
+            [data]="series.target"
+            [scale]="series.scale"
+            [currency]="r.currency"
+            [aligned]="true"
+            [drilldown]="true"
+            (datumSelected)="journal.emit($event)"
+          />
+        }
+      </div>
+    }
+    <div class="table-responsive mt-3">
+      <table class="table table-sm">
+        <caption class="visually-hidden">
+          {{
+            'finance.assets.goalActual' | t
+          }}
+        </caption>
+        <thead>
+          <tr>
+            @for (key of ['month', 'netSavings', 'targetAmount', 'income']; track key) {
+              <th scope="col">{{ 'finance.assets.' + key | t }}</th>
+            }
+          </tr>
+        </thead>
+        <tbody>
+          @for (m of r.months; track m.month) {
+            <tr>
+              <th scope="row">
+                <button
+                  type="button"
+                  class="btn btn-link btn-sm p-0"
+                  (click)="journal.emit(m.month)"
+                >
+                  {{ month(m.month) }}
+                </button>
+                @if (!m.full) {
+                  <small class="d-block text-body-secondary">{{
+                    'finance.assets.incompleteMonth' | t
+                  }}</small>
+                }
+              </th>
+              <td>
+                {{ money(m.netSavings) }}
+                @if (m.actualPercent !== null) {
+                  <small class="d-block text-body-secondary">{{ percent(m.actualPercent) }}</small>
+                }
+              </td>
+              <td>
+                {{ money(m.targetAmount) }}
+                @if (m.targetPercent !== null) {
+                  <small class="d-block text-body-secondary">{{ percent(m.targetPercent) }}</small>
+                }
+              </td>
+              <td>{{ money(m.income) }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+}
+<section class="mt-4">
+  <h2 class="h4">{{ 'finance.assets.forecast' | t }}</h2>
+  @let forecast = r.forecast;
+  @if (forecast.points.length) {
+    <p>
+      {{ 'finance.assets.forecastBase' | t }} · {{ money(forecast.startValue) }}.
+      {{ 'finance.assets.forecastAssumption' | t }}
+    </p>
+    @if (observationMonths()) {
+      <p class="text-body-secondary">
+        {{ 'finance.assets.observationMonths' | t }} · {{ observationMonths() }}
+      </p>
+    }
+    @let series = forecastSeries();
+    <div class="finance-statistics-grid finance-statistics-charts">
+      <app-finance-chart
+        [title]="'finance.assets.actualScenario' | t"
+        [data]="series.actual"
+        [scale]="series.scale"
+        [currency]="r.currency"
+        [aligned]="true"
+      />
+      @if (series.hasTarget) {
+        <app-finance-chart
+          [title]="'finance.assets.targetScenario' | t"
+          [data]="series.target"
+          [scale]="series.scale"
+          [currency]="r.currency"
+          [aligned]="true"
+        />
+      }
+    </div>
+    <p class="small text-body-secondary mt-2">
+      {{ 'finance.assets.monthlyActual' | t }} · {{ money(forecast.monthlyActual) }}.
+      {{ 'finance.assets.monthlyTarget' | t }} · {{ money(forecast.monthlyTarget) }}.
+    </p>
+  } @else {
+    <p role="status">
+      {{ 'finance.assets.emptyForecast' | t }}
+      @if (forecast.availableOn) {
+        {{ 'finance.assets.available' | t }} · {{ date(forecast.availableOn) }}.
+      }
+    </p>
+  }
+</section>

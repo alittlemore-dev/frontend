@@ -312,6 +312,23 @@
               {{ 'account.telegram.notifyFinanceLimit' | t }}
             </label>
           </div>
+          @for (field of assetNotifications; track field) {
+            <div class="form-check form-switch mb-3">
+              <input
+                #toggle
+                type="checkbox"
+                role="switch"
+                class="form-check-input"
+                [id]="'telegram-' + field"
+                [checked]="draft[field]"
+                [disabled]="!editable()"
+                (change)="setAssetNotification(field, toggle.checked)"
+              />
+              <label class="form-check-label" [for]="'telegram-' + field">{{
+                'account.telegram.' + field | t
+              }}</label>
+            </div>
+          }
           <div class="row g-2 mb-3">
             <div class="col-12 col-md-4">
               <label class="form-label" for="telegram-notification-language">{{

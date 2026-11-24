@@ -1,0 +1,13 @@
+.finance-statistics-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+.finance-statistics-filters > div {
+  min-width: 12rem;
+}
+.finance-statistics-filters label {
+  display: block;
+  margin-bottom: 0.35rem;
+}

@@ -1,0 +1,49 @@
+:host {
+  display: block;
+  max-width: 100%;
+}
+
+.asset-balance,
+.finance-inline-input {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.finance-inline-input {
+  width: 12ch;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  color: var(--bs-body-color);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 0.35rem;
+  padding: 0.15rem 0.3rem;
+
+  &:hover {
+    background: var(--bs-tertiary-bg);
+  }
+
+  &:focus-visible {
+    background: var(--bs-body-bg);
+    border-color: var(--bs-primary);
+    outline: 2px solid color-mix(in srgb, var(--bs-primary) 22%, transparent);
+  }
+}
+
+.asset-balances-compact {
+  justify-content: flex-end;
+
+  .asset-balance {
+    max-width: 100%;
+    span {
+      flex: none;
+      white-space: nowrap;
+    }
+  }
+  .finance-inline-input {
+    width: 13ch;
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 0.3rem 0.4rem;
+  }
+}

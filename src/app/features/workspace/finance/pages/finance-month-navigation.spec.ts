@@ -1,3 +1,5 @@
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { AccountSettingsService } from '../../../../core/auth/account-settings.service';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
@@ -35,6 +37,8 @@ describe('Finance month navigation', () => {
     TestBed.configureTestingModule({
       providers: [
         provideRouter([{ path: 'finance', component: FinanceTrackerPageComponent }]),
+        provideHttpClient(),
+        provideHttpClientTesting(),
         provideI18nTesting(),
         { provide: FinanceService, useValue: service },
         { provide: AccountSettingsService, useValue: { timeZone: () => 'UTC' } },
@@ -133,7 +137,7 @@ describe('Finance month navigation', () => {
       FinanceTrackerPageComponent,
     );
     const dialog = harness.routeNativeElement!.querySelector<HTMLDialogElement>(
-      '.finance-transaction-dialog',
+      'dialog[aria-labelledby="finance-transaction-title"]',
     )!;
     dialog.showModal = () => dialog.setAttribute('open', '');
     dialog.close = () => dialog.removeAttribute('open');
@@ -164,9 +168,40 @@ describe('Finance month navigation', () => {
   it('shows a missing historical month without retaining data from another month', async () => {
     service.historicalMonth.mockReturnValue(throwError(() => ({ status: 404 })));
     const harness = await RouterTestingHarness.create();
-    await harness.navigateByUrl('/finance?year=2025&month=11');
+    const page = await harness.navigateByUrl(
+      '/finance?year=2025&month=11',
+      FinanceTrackerPageComponent,
+    );
     expect(harness.routeNativeElement!.textContent).toContain('finance.month.empty');
     expect(harness.routeNativeElement!.querySelector('.finance-category-table')).toBeNull();
+    expect(
+      harness.routeNativeElement!.querySelector('app-finance-asset-overview-column'),
+    ).toBeTruthy();
+    page.setTab('transactions');
+    await harness.fixture.whenStable();
+    harness.detectChanges();
+    expect(harness.routeNativeElement!.querySelector('app-finance-asset-operations')).toBeTruthy();
+    harness
+      .routeNativeElement!.querySelector<HTMLInputElement>('.finance-transactions-toolbar input')!
+      .click();
+    harness.detectChanges();
+    expect(page.includeDeleted()).toBe(true);
+    expect(service.historicalTransactions).not.toHaveBeenCalled();
+  });
+
+  it('opens a bookmarked asset journal in operations for the original position and month', async () => {
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl('/finance?tab=assets&assetJournal=2025-12&assetPosition=savings');
+    await harness.fixture.whenStable();
+    harness.detectChanges();
+    const query = TestBed.inject(Router).parseUrl(TestBed.inject(Router).url).queryParams;
+    expect(query).toMatchObject({
+      tab: 'transactions',
+      assetPosition: 'savings',
+      year: '2025',
+      month: '12',
+    });
+    expect(harness.routeNativeElement!.querySelector('app-finance-asset-operations')).toBeTruthy();
   });
 
   it('normalizes incomplete and future query dates to the current month', async () => {
@@ -184,7 +219,7 @@ describe('Finance month navigation', () => {
     const harness = await RouterTestingHarness.create();
     const page = await harness.navigateByUrl('/finance', FinanceTrackerPageComponent);
     const dialog = harness.routeNativeElement!.querySelector<HTMLDialogElement>(
-      '.finance-transaction-dialog',
+      'dialog[aria-labelledby="finance-transaction-title"]',
     )!;
     dialog.showModal = () => dialog.setAttribute('open', '');
     dialog.close = () => dialog.removeAttribute('open');
@@ -222,7 +257,7 @@ describe('Finance month navigation', () => {
       FinanceTrackerPageComponent,
     );
     const dialog = harness.routeNativeElement!.querySelector<HTMLDialogElement>(
-      '.finance-transaction-dialog',
+      'dialog[aria-labelledby="finance-transaction-title"]',
     )!;
     dialog.showModal = () => dialog.setAttribute('open', '');
     dialog.close = () => dialog.removeAttribute('open');

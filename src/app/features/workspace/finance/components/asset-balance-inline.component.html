@@ -1,0 +1,45 @@
+<div
+  class="asset-balances d-flex flex-wrap align-items-end gap-3"
+  [class.asset-balances-compact]="compact()"
+  [attr.aria-busy]="busy()"
+>
+  @for (field of fields(); track field) {
+    <div class="asset-balance">
+      <label
+        class="small text-body-secondary"
+        [class.visually-hidden]="compact() && fields().length === 1"
+        [for]="'asset-' + position().id + '-' + field"
+        >{{ label(field) | t }}</label
+      >
+      <div class="d-flex align-items-baseline gap-1">
+        <input
+          class="finance-inline-input text-end"
+          [id]="'asset-' + position().id + '-' + field"
+          type="text"
+          inputmode="decimal"
+          autocomplete="off"
+          [formControl]="form.controls[field]"
+          [attr.aria-label]="
+            (label(field) | t) +
+            ' · ' +
+            position().name +
+            (field === 'value' ? ' · ' + position().currency : '')
+          "
+          [attr.aria-describedby]="error() ? errorId() : null"
+          [placeholder]="'finance.notSet' | t"
+          [readOnly]="busy() || disabled()"
+          (input)="error.set('')"
+          (blur)="save(field)"
+          (keydown.enter)="$event.preventDefault(); save(field)"
+          (keydown.escape)="$event.preventDefault(); discard()"
+        />
+        @if (field === 'value') {
+          <span [title]="position().currency">{{ symbols[position().currency] }}</span>
+        }
+      </div>
+    </div>
+  }
+</div>
+@if (error()) {
+  <small class="text-danger" role="alert" [id]="errorId()">{{ error() | t }}</small>
+}

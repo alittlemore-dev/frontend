@@ -11,6 +11,11 @@ export const FINANCE_TEST_MONTH: FinanceMonth = {
   plannedIncome: null,
   plannedExpense: null,
   closingBalance: '0',
+  contributions: '0',
+  withdrawals: '0',
+  openingAllocation: '0',
+  incomeMinusExpenses: '0',
+  carryCorrection: null,
   categories: [
     {
       id: 'food',
@@ -38,6 +43,7 @@ export const FINANCE_TEST_MONTH: FinanceMonth = {
 };
 
 export const FINANCE_TEST_TRANSACTION: FinanceTransaction = {
+  allowsDirectChanges: true,
   source: 'web',
   authorId: 'owner',
   authorLabel: 'owner',

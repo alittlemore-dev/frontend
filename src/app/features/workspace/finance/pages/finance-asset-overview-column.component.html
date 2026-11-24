@@ -1,0 +1,443 @@
+<section
+  class="finance-budget"
+  [attr.aria-label]="'finance.assets.tab' | t"
+  [attr.aria-busy]="loading()"
+>
+  <header class="finance-budget-heading">
+    <h2>{{ 'finance.assets.tab' | t }}</h2>
+    @if (portfolio(); as data) {
+      <div class="finance-budget-totals">
+        <span
+          >{{ 'finance.assets.capital' | t }}
+          <strong>{{ money(data.report.closing.knownValue, data.report.currency) }}</strong>
+        </span>
+        @if (viewOnly()) {
+          <span
+            >{{ 'finance.assets.goalIncomeShare' | t }}
+            <strong>{{ data.goal ? percent(data.goal.percent) : ('finance.notSet' | t) }}</strong>
+          </span>
+        } @else {
+          <app-asset-goal-inline
+            [month]="month()"
+            [selectedMonth]="period()"
+            [goal]="data.goal"
+            (saved)="refresh()"
+          />
+        }
+      </div>
+    }
+  </header>
+  @if (loadError()) {
+    <p class="text-danger p-2 mb-0" role="alert">
+      {{ 'finance.error.load' | t }}
+      <button type="button" class="btn btn-sm btn-link" (click)="refresh()">
+        {{ 'shared.retry' | t }}
+      </button>
+    </p>
+  } @else if (loading() && !portfolio()) {
+    <p class="small text-body-secondary p-2 mb-0" role="status">{{ 'shared.loading' | t }}</p>
+  }
+  @if (error() && !removal()) {
+    <p class="text-danger p-2 mb-0" role="alert">{{ error() | t }}</p>
+  }
+  @if (portfolio(); as data) {
+    @if (!data.report.closing.complete && data.report.closing.positions.length) {
+      <p class="small text-warning-emphasis px-3 mt-2 mb-0">
+        {{ 'finance.assets.partialExplanation' | t }}
+      </p>
+    }
+    <div class="table-responsive position-relative">
+      <table class="table finance-category-table asset-table">
+        <thead>
+          <tr>
+            <th scope="col">{{ 'finance.assets.name' | t }}</th>
+            <th scope="col" class="asset-location">
+              <span>{{ 'finance.assets.placeColumn' | t }}</span>
+            </th>
+            <th scope="col" class="asset-kind">
+              <span>{{ 'finance.assets.kind' | t }}</span>
+            </th>
+            <th scope="col" class="text-end">{{ 'finance.assets.amount' | t }}</th>
+            @if (!viewOnly()) {
+              <th scope="col" class="asset-actions">
+                <span class="visually-hidden">{{ 'finance.actions' | t }}</span>
+              </th>
+            }
+          </tr>
+        </thead>
+        <tbody>
+          @for (p of data.report.closing.positions; track p.id) {
+            @let editable = !viewOnly() && !p.archived;
+            @let expanded = expandedId() === p.id;
+            @let warning = p.missingPrice || p.missingRate || p.stale;
+            @let location = locationNames().get(p.locationId);
+            <tr [class.finance-archived]="p.archived" [attr.data-asset-id]="p.id">
+              <td>
+                <div class="asset-name-cell">
+                  <button
+                    type="button"
+                    class="asset-disclosure"
+                    [class.text-warning-emphasis]="warning"
+                    [title]="'finance.assets.positionSettings' | t"
+                    [attr.aria-label]="('finance.assets.positionSettings' | t) + ' · ' + p.name"
+                    [attr.aria-expanded]="expanded"
+                    [attr.aria-controls]="expanded ? 'asset-details-' + p.id : null"
+                    [disabled]="busy()"
+                    (click)="toggleDetails(p.id)"
+                  >
+                    <span aria-hidden="true"></span>
+                  </button>
+                  <app-finance-row-name
+                    [value]="nameDrafts()[p.id] ?? p.name"
+                    [label]="'finance.assets.name' | t"
+                    [title]="p.name"
+                    [readOnly]="!editable"
+                    [disabled]="writing()"
+                    (changed)="changeName(p, $event)"
+                    (submitted)="rename(p)"
+                  ></app-finance-row-name>
+                </div>
+              </td>
+              <td class="asset-location text-body-secondary" [title]="location ?? ''">
+                <span>{{ location }}</span>
+              </td>
+              <td
+                class="asset-kind text-body-secondary"
+                [title]="'finance.assets.kind.' + p.kind | t"
+              >
+                <span>{{ 'finance.assets.kind.' + p.kind | t }}</span>
+              </td>
+              <td class="text-end">
+                @if (editable) {
+                  <app-asset-balance-inline
+                    field="value"
+                    [compact]="true"
+                    [position]="p"
+                    [asOf]="data.report.closing.asOf"
+                    [trackingStart]="data.report.trackingStart"
+                    [today]="today()"
+                    [movements]="data.movements"
+                    [disabled]="busy() || loading()"
+                    (saved)="refresh()"
+                  />
+                } @else {
+                  <span
+                    class="d-block text-truncate"
+                    [title]="money(p.originalValue, p.currency)"
+                    >{{ money(p.originalValue, p.currency) }}</span
+                  >
+                }
+              </td>
+              @if (!viewOnly()) {
+                <td class="finance-icon-cell">
+                  <app-finance-row-actions
+                    [label]="'finance.assets.removePosition' | t"
+                    [archived]="p.archived === true"
+                    [disabled]="busy()"
+                    (primary)="openRemoval(p)"
+                    (restore)="restore(p)"
+                  ></app-finance-row-actions>
+                </td>
+              }
+            </tr>
+            @if (expanded) {
+              <tr>
+                <td [attr.colspan]="viewOnly() ? 4 : 5" [id]="'asset-details-' + p.id">
+                  <div class="asset-details">
+                    @if (!selection()) {
+                      <dl>
+                        <div>
+                          <dt>{{ 'finance.assets.location' | t }}</dt>
+                          <dd>{{ location }}</dd>
+                        </div>
+                        <div>
+                          <dt>{{ 'finance.assets.kind' | t }}</dt>
+                          <dd>{{ 'finance.assets.kind.' + p.kind | t }}</dd>
+                        </div>
+                        @if (p.instrument) {
+                          <div>
+                            <dt>{{ 'finance.assets.instrument' | t }}</dt>
+                            <dd>{{ p.instrument }}</dd>
+                          </div>
+                        }
+                        @if (p.venue) {
+                          <div>
+                            <dt>{{ 'finance.assets.venue' | t }}</dt>
+                            <dd>{{ p.venue }}</dd>
+                          </div>
+                        }
+                        @if (p.annualRate !== null) {
+                          <div>
+                            <dt>{{ 'finance.assets.annualRate' | t }}</dt>
+                            <dd>{{ number(p.annualRate) }}</dd>
+                          </div>
+                        }
+                        @if (p.maturesOn) {
+                          <div>
+                            <dt>{{ 'finance.assets.maturesOn' | t }}</dt>
+                            <dd>{{ date(p.maturesOn) }}</dd>
+                          </div>
+                        }
+                      </dl>
+                    }
+                    @if (security(p.kind)) {
+                      @if (editable) {
+                        <app-asset-balance-inline
+                          #quantity
+                          field="quantity"
+                          [position]="p"
+                          [asOf]="data.report.closing.asOf"
+                          [trackingStart]="data.report.trackingStart"
+                          [today]="today()"
+                          [movements]="data.movements"
+                          [disabled]="busy() || loading()"
+                          (saved)="refresh()"
+                        />
+                      } @else {
+                        <div>
+                          {{ 'finance.assets.quantity' | t }} ·
+                          {{ p.quantity === null ? ('finance.notSet' | t) : number(p.quantity) }}
+                        </div>
+                      }
+                    }
+                    @if (p.currency !== data.report.currency && p.value !== null) {
+                      <div>
+                        {{ 'finance.transaction.converted' | t }} ·
+                        {{ money(p.value, data.report.currency) }}
+                      </div>
+                    }
+                    @if (warning) {
+                      <p class="text-warning-emphasis mb-0">
+                        @if (p.missingPrice) {
+                          {{ 'finance.assets.missingPrice' | t }}
+                        }
+                        @if (p.missingRate) {
+                          {{ 'finance.assets.missingRate' | t }}
+                        }
+                        @if (p.stale) {
+                          {{ 'finance.assets.stale' | t }}
+                        }
+                      </p>
+                    }
+                    @if (selection(); as current) {
+                      <app-asset-editor
+                        [intent]="current"
+                        [month]="month()"
+                        [selectedMonth]="period()"
+                        [today]="today()"
+                        [locations]="data.locations"
+                        [valuation]="data.report.closing"
+                        (closed)="selection.set(null)"
+                        (saved)="selection.set(null); refresh()"
+                      />
+                    } @else if (editable) {
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-link p-0"
+                        [disabled]="busy()"
+                        (click)="selection.set({ mode: 'position', position: p })"
+                      >
+                        {{ 'shared.edit' | t }}
+                      </button>
+                    }
+                  </div>
+                </td>
+              </tr>
+            }
+          }
+          @if (!viewOnly()) {
+            <tr class="finance-new-category">
+              <td colspan="3">
+                <app-finance-row-name
+                  inputId="finance-new-asset"
+                  [creating]="true"
+                  [value]="newAsset().name"
+                  [label]="'finance.assets.addPosition' | t"
+                  [disabled]="writing()"
+                  (changed)="fields.name.setValue($event)"
+                  (submitted)="create()"
+                ></app-finance-row-name>
+              </td>
+              <td>
+                <div class="asset-new-amount">
+                  <input
+                    class="finance-inline-input finance-amount-input"
+                    type="text"
+                    inputmode="decimal"
+                    [attr.aria-label]="
+                      (security(newAsset().kind)
+                        ? 'finance.assets.totalValue'
+                        : 'finance.assets.observedBalance'
+                      ) | t
+                    "
+                    [placeholder]="'finance.notSet' | t"
+                    [formControl]="fields.amount"
+                    [readOnly]="writing()"
+                    (keydown.enter)="create()"
+                  />
+                  <label for="finance-new-asset-currency" class="visually-hidden">{{
+                    'finance.currency' | t
+                  }}</label>
+                  <ds-site-select
+                    inputId="finance-new-asset-currency"
+                    [formControl]="fields.currency"
+                    [options]="currencyOptions"
+                    controlSize="small"
+                    appearance="default"
+                    [required]="true"
+                    [invalid]="false"
+                    [controlDisabled]="writing()"
+                  />
+                </div>
+              </td>
+              <td class="finance-icon-cell">
+                <app-finance-row-actions
+                  [creating]="true"
+                  [label]="'finance.assets.addPosition' | t"
+                  [disabled]="writing() || !newAsset().name.trim()"
+                  (primary)="create()"
+                ></app-finance-row-actions>
+              </td>
+            </tr>
+            <tr>
+              <td colspan="5" class="asset-options">
+                <button
+                  type="button"
+                  class="asset-detail-toggle"
+                  [attr.aria-expanded]="newDetails()"
+                  (click)="newDetails.set(!newDetails())"
+                >
+                  {{ 'finance.assets.positionSettings' | t }}
+                </button>
+                @if (newDetails()) {
+                  <fieldset class="asset-new-settings" [disabled]="writing()">
+                    <div>
+                      <label for="finance-new-asset-kind"
+                        >{{ 'finance.assets.kind' | t }}
+                        <span class="required-marker text-danger" aria-hidden="true">*</span></label
+                      >
+                      <ds-site-select
+                        inputId="finance-new-asset-kind"
+                        [formControl]="fields.kind"
+                        [options]="kindOptions()"
+                        controlSize="small"
+                        appearance="default"
+                        [required]="true"
+                        [invalid]="false"
+                        [controlDisabled]="writing()"
+                      />
+                    </div>
+                    @if (data.locations.length) {
+                      <div>
+                        <label for="finance-new-asset-location">{{
+                          'finance.assets.location' | t
+                        }}</label>
+                        <ds-site-select
+                          inputId="finance-new-asset-location"
+                          [formControl]="fields.location"
+                          [options]="locationOptions()"
+                          controlSize="small"
+                          appearance="default"
+                          [required]="false"
+                          [invalid]="false"
+                          [controlDisabled]="writing()"
+                        />
+                      </div>
+                    }
+                    @if (!newAsset().location) {
+                      <label
+                        >{{ 'finance.assets.newLocation' | t }}
+                        <input
+                          class="form-control form-control-sm"
+                          maxlength="255"
+                          [placeholder]="'finance.assets.defaultLocation' | t"
+                          [formControl]="fields.newLocation"
+                        />
+                      </label>
+                    }
+                    @if (security(newAsset().kind)) {
+                      <label
+                        >{{ 'finance.assets.instrument' | t }}
+                        <input
+                          class="form-control form-control-sm"
+                          maxlength="255"
+                          [formControl]="fields.instrument"
+                      /></label>
+                      <label
+                        >{{ 'finance.assets.venue' | t }}
+                        <input
+                          class="form-control form-control-sm"
+                          maxlength="255"
+                          [formControl]="fields.venue"
+                      /></label>
+                    }
+                    @if (newAsset().kind === 'savings' || newAsset().kind === 'deposit') {
+                      <label
+                        >{{ 'finance.assets.annualRate' | t }}
+                        <input
+                          class="form-control form-control-sm"
+                          inputmode="decimal"
+                          [formControl]="fields.annualRate"
+                      /></label>
+                      <app-asset-date
+                        inputId="new-asset-maturity"
+                        [label]="'finance.assets.maturesOn' | t"
+                        [required]="false"
+                        [disabled]="writing()"
+                        [value]="newAsset().maturesOn"
+                        (changed)="fields.maturesOn.setValue($event)"
+                      />
+                    }
+                  </fieldset>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</section>
+<dialog
+  dsModalDialog
+  [dismissible]="!writing()"
+  (dismissed)="removal.set(null)"
+  class="asset-removal-dialog"
+  aria-modal="true"
+  aria-labelledby="asset-removal-title"
+  aria-describedby="asset-removal-warning"
+>
+  <div class="d-flex align-items-center justify-content-between gap-3">
+    <h2 id="asset-removal-title" class="h5 m-0">{{ 'finance.assets.removePosition' | t }}</h2>
+    <button
+      type="button"
+      class="btn-close"
+      [attr.aria-label]="'shared.close' | t"
+      [disabled]="writing()"
+      (click)="removalDialog().close()"
+    ></button>
+  </div>
+  <p class="fw-medium mt-3 mb-1">{{ removal()?.name }}</p>
+  <p id="asset-removal-warning">{{ 'finance.assets.removePositionWarning' | t }}</p>
+  @if (error() && removal()) {
+    <p class="text-danger" role="alert">{{ error() | t }}</p>
+  }
+  <div class="d-flex flex-wrap gap-2 justify-content-end">
+    <button
+      type="button"
+      class="btn btn-sm btn-outline-secondary"
+      [disabled]="writing() || removal()?.archived"
+      (click)="remove(false)"
+    >
+      {{ 'finance.archive' | t }}
+    </button>
+    <button
+      type="button"
+      class="btn btn-sm btn-outline-danger"
+      [disabled]="writing()"
+      (click)="remove(true)"
+    >
+      {{ 'finance.category.deletePermanently' | t }}
+    </button>
+  </div>
+</dialog>

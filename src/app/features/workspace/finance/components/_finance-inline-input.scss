@@ -1,0 +1,27 @@
+.finance-inline-input {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 0.35rem;
+  color: var(--bs-body-color);
+  min-width: 0;
+  padding: 0.3rem 0.4rem;
+  width: 100%;
+
+  &:hover:not(:disabled) {
+    background: var(--bs-tertiary-bg);
+  }
+
+  &:focus {
+    background: var(--bs-body-bg);
+    border-color: var(--bs-primary);
+    outline: 2px solid color-mix(in srgb, var(--bs-primary) 22%, transparent);
+  }
+
+  &:disabled {
+    opacity: 0.65;
+  }
+}
+
+.finance-name-input {
+  font-weight: 400;
+}

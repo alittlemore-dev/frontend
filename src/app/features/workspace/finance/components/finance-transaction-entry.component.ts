@@ -1,5 +1,6 @@
 import { TextareaAutosizeDirective } from '../../../../shared/directives/textarea-autosize.directive';
 import {
+  LocalizedDatePickerComponent,
   LocalizedDateTimePickerComponent,
   LocalizedDateTimePickerLabels,
   SiteSelectComponent,
@@ -20,14 +21,11 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 
+import { financeDatePickerLabels } from './asset-date.component';
 import { I18nService } from '../../../../core/i18n/i18n.service';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
-import {
-  FINANCE_CURRENCY_SYMBOLS,
-  FinanceCategory,
-  FinanceCurrency,
-  FinanceTransactionEntry,
-} from '../models/finance.model';
+import { FinanceCategory, FinanceCurrency, FinanceTransactionEntry } from '../models/finance.model';
+import { FINANCE_CURRENCY_OPTIONS } from '../utils/finance-select-options';
 
 @Component({
   selector: 'app-finance-transaction-entry',
@@ -35,6 +33,7 @@ import {
   imports: [
     TextareaAutosizeDirective,
     ReactiveFormsModule,
+    LocalizedDatePickerComponent,
     LocalizedDateTimePickerComponent,
     SiteSelectComponent,
     TranslatePipe,
@@ -47,7 +46,12 @@ export class FinanceTransactionEntryComponent {
   readonly i18n = inject(I18nService);
   readonly inputId = input.required<string>();
   readonly initialValue = input.required<FinanceTransactionEntry>();
-  readonly categories = input.required<readonly FinanceCategory[]>();
+  readonly categories = input<readonly FinanceCategory[]>([]);
+  readonly assetPositions = input<
+    readonly { id: string; name: string; currency: FinanceCurrency }[] | null
+  >(null);
+  readonly dateLabels = computed(() => financeDatePickerLabels(this.i18n));
+  private readonly availableCategories = computed(() => this.assetPositions() ?? this.categories());
   readonly min = input.required<string>();
   readonly max = input.required<string>();
   readonly timeZone = input.required<string>();
@@ -72,12 +76,13 @@ export class FinanceTransactionEntryComponent {
     }),
   });
 
-  readonly currencyOptions: readonly SiteSelectOption[] = (
-    ['AMD', 'RUB', 'USD', 'EUR'] as const
-  ).map((currency) => ({ value: currency, label: FINANCE_CURRENCY_SYMBOLS[currency] }));
+  readonly currencyOptions = FINANCE_CURRENCY_OPTIONS;
   readonly categoryOptions = computed<readonly SiteSelectOption[]>(() => [
-    { value: '', label: this.i18n.translate('finance.category.choose') },
-    ...this.categories().map((category) => ({ value: category.id, label: category.name })),
+    {
+      value: '',
+      label: this.i18n.translate('finance.category.choose'),
+    },
+    ...this.availableCategories().map((category) => ({ value: category.id, label: category.name })),
   ]);
   readonly dateTimeLabels = computed<LocalizedDateTimePickerLabels>(() => {
     this.i18n.language();
@@ -137,7 +142,9 @@ export class FinanceTransactionEntryComponent {
     this.saveAttempted.set(true);
     this.form.markAllAsTouched();
     if (
-      !this.categories().some((category) => category.id === this.form.controls.categoryId.value)
+      !this.availableCategories().some(
+        (category) => category.id === this.form.controls.categoryId.value,
+      )
     ) {
       this.form.controls.categoryId.setErrors({ unavailable: true });
     }

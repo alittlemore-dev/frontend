@@ -1,0 +1,72 @@
+<button
+  type="button"
+  class="btn btn-sm btn-link px-0"
+  [attr.aria-expanded]="!!period()"
+  aria-controls="asset-goal-settings"
+  (click)="toggle()"
+>
+  {{ 'finance.assets.goalSettings' | t }}
+</button>
+@if (period(); as selected) {
+  <section id="asset-goal-settings" class="border-top pt-2">
+    <p class="small text-body-secondary">{{ 'finance.assets.goalRuleHint' | t }}</p>
+    <fieldset class="m-0 p-0 border-0" [disabled]="editor()?.busy()">
+      <legend class="small mb-1">{{ 'finance.assets.effectiveMonth' | t }}</legend>
+      <div class="d-flex flex-wrap gap-1 mb-2">
+        <label class="visually-hidden" for="asset-goal-month">{{
+          'finance.assets.month' | t
+        }}</label>
+        <ds-site-select
+          inputId="asset-goal-month"
+          [options]="monthOptions()"
+          controlSize="small"
+          appearance="default"
+          [required]="true"
+          [invalid]="false"
+          [controlDisabled]="invalidYear() || !!editor()?.busy()"
+          [value]="selected.slice(5)"
+          (valueChange)="changePeriod(selected.slice(0, 5) + $event)"
+        />
+        <input
+          #year
+          id="asset-goal-year"
+          type="text"
+          class="form-control form-control-sm w-auto"
+          inputmode="numeric"
+          size="4"
+          maxlength="4"
+          [attr.aria-label]="'finance.assets.year' | t"
+          [attr.aria-invalid]="invalidYear() || null"
+          [attr.aria-describedby]="invalidYear() ? 'asset-goal-year-error' : null"
+          [value]="selected.slice(0, 4)"
+          (change)="changeYear(year)"
+        />
+      </div>
+    </fieldset>
+    @if (invalidYear()) {
+      <p role="alert" class="small text-danger" id="asset-goal-year-error">
+        {{ 'finance.assets.goalYearError' | t }}
+      </p>
+    }
+    @if (loading()) {
+      <p role="status">{{ 'shared.loading' | t }}</p>
+    } @else if (error()) {
+      <p class="small text-danger" role="alert">
+        {{ 'finance.error.load' | t }}
+        <button type="button" class="btn btn-link btn-sm" (click)="load(selected)">
+          {{ 'shared.retry' | t }}
+        </button>
+      </p>
+    } @else {
+      <fieldset class="m-0 p-0 border-0" [disabled]="invalidYear()">
+        <app-asset-goal-inline
+          [goal]="goal()"
+          [month]="month()"
+          [selectedMonth]="selected"
+          [configureIncome]="true"
+          (saved)="saved.emit()"
+        />
+      </fieldset>
+    }
+  </section>
+}

@@ -70,7 +70,11 @@
           [attr.y]="bar.y"
           [attr.width]="bar.width"
           [attr.height]="bar.height"
-          role="img"
+          [class.finance-chart-link]="drilldown()"
+          [attr.role]="drilldown() ? 'button' : 'img'"
+          (click)="selectDatum(bar.id)"
+          (keydown.enter)="selectDatum(bar.id, $event)"
+          (keydown.space)="selectDatum(bar.id, $event)"
           tabindex="0"
           [attr.aria-label]="bar.label + ': ' + money(bar.amount)"
           [attr.aria-describedby]="tooltip()?.datum?.id === bar.id ? tooltipId : null"
@@ -81,7 +85,9 @@
           (keydown.escape)="hideTooltip()"
         />
         @if (bar.showLabel) {
-          <text [attr.x]="bar.labelX" y="250" text-anchor="middle">{{ bar.label }}</text>
+          <text [attr.x]="bar.labelX" y="250" text-anchor="middle">
+            {{ bar.axisLabel ?? bar.label }}
+          </text>
         }
       }
     }

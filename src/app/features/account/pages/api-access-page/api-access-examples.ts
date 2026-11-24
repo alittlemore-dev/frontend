@@ -61,6 +61,14 @@ export const API_ACCESS_EXAMPLES: readonly ApiAccessExample[] = [
     file: { name: 'resume.json', content: resumeJson },
   },
   {
+    id: 'assetsReport',
+    permission: 'workspace.assets.read',
+    command: request(
+      'GET',
+      'personal-workspace/finance/assets/report?start=2026-03-01&end=2026-03-31&currency=RUB',
+    ),
+  },
+  {
     id: 'event',
     permission: 'workspace.events.create',
     command: request('POST', 'personal-workspace/events', 'event.json'),

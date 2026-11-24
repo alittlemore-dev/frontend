@@ -33,6 +33,12 @@ export class TelegramSettingsComponent {
   private readonly document = inject(DOCUMENT);
   private readonly destroyRef = inject(DestroyRef);
   private loadSubscription: Subscription | null = null;
+  readonly assetNotifications = [
+    'notifyAssetMovement',
+    'notifySavingsGoalReached',
+    'notifyAssetsMonthSummary',
+    'notifyDepositMaturity',
+  ] as const;
   readonly settings = signal<TelegramSettings | null>(null);
   readonly issued = signal<IssuedTelegramInvitation | null>(null);
   readonly loading = signal(false);
@@ -118,6 +124,10 @@ export class TelegramSettingsComponent {
     this.notificationDraft.update((current) => (current ? { ...current, ...patch } : null));
   }
 
+  setAssetNotification(field: (typeof this.assetNotifications)[number], checked: boolean): void {
+    this.updateNotificationDraft({ [field]: checked });
+  }
+
   setNotificationLanguage(value: string): void {
     if (value === 'ru' || value === 'en') this.updateNotificationDraft({ language: value });
   }
@@ -132,6 +142,10 @@ export class TelegramSettingsComponent {
         notifyMemorableDate: connection.notifyMemorableDate,
         notifyFinanceTransaction: connection.notifyFinanceTransaction,
         notifyFinanceLimit: connection.notifyFinanceLimit,
+        notifyAssetMovement: connection.notifyAssetMovement,
+        notifySavingsGoalReached: connection.notifySavingsGoalReached,
+        notifyAssetsMonthSummary: connection.notifyAssetsMonthSummary,
+        notifyDepositMaturity: connection.notifyDepositMaturity,
         language: connection.language,
       }),
       () => this.notificationDraft.set(null),

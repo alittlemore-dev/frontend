@@ -367,7 +367,10 @@ describe('ApiAccessPageComponent', () => {
     const bodies = Array.from(
       fixture.nativeElement.querySelectorAll('[data-testid^="ds-section-body-api-example-"]'),
     ) as HTMLElement[];
-    expect(toggles).toHaveLength(4);
+    const report = bodies.find((body) => body.textContent?.includes('workspace.assets.read'));
+    expect(report?.textContent).toContain(
+      '/finance/assets/report?start=2026-03-01&end=2026-03-31&currency=RUB',
+    );
     expect(toggles.every((toggle) => toggle.getAttribute('aria-expanded') === 'false')).toBe(true);
     expect(bodies.every((body) => body.hidden)).toBe(true);
     toggles[0].click();

@@ -96,7 +96,7 @@
   align-items: start;
   display: grid;
   gap: 1rem;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .finance-inline-input {
@@ -212,7 +212,7 @@
   overflow-wrap: anywhere;
 }
 
-@container (max-width: 550px) {
+@container (max-width: 980px) {
   .finance-budget-grid {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -265,13 +265,14 @@
 }
 
 .finance-tab-buttons {
+  --bs-nav-link-padding-x: min(1rem, 4vw);
   --bs-nav-tabs-border-color: var(--bs-border-color);
   --bs-nav-tabs-link-hover-border-color: transparent;
   --bs-nav-tabs-link-active-color: var(--accent-color);
   --bs-nav-tabs-link-active-bg: transparent;
   --bs-nav-tabs-link-active-border-color: transparent;
 
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
 
   .nav-link {
     color: var(--bs-secondary-color);

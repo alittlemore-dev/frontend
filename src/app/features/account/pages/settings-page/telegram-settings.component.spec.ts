@@ -29,6 +29,10 @@ const SETTINGS: TelegramSettings = {
       notifyMemorableDate: false,
       notifyFinanceTransaction: false,
       notifyFinanceLimit: false,
+      notifyAssetMovement: false,
+      notifySavingsGoalReached: false,
+      notifyAssetsMonthSummary: false,
+      notifyDepositMaturity: false,
       language: 'en',
     },
   ],
@@ -481,6 +485,40 @@ describe('TelegramSettingsComponent', () => {
     expect(root.querySelector('[role="alert"]')).not.toBeNull();
   });
 
+  it('saves asset switches independently for the selected recipient', () => {
+    const first = SETTINGS.connections[0];
+    const second = {
+      ...first,
+      id: 'second',
+      notifyAssetMovement: true,
+      notifyAssetsMonthSummary: true,
+    };
+    service.load.mockReturnValue(of({ ...SETTINGS, connections: [first, second] }));
+    fixture.componentInstance.load();
+    fixture.componentInstance.beginEditNotifications(second);
+    fixture.detectChanges();
+    const panel = fixture.nativeElement as HTMLElement;
+    panel.querySelector<HTMLInputElement>('#telegram-notifyAssetMovement')!.click();
+    panel.querySelector<HTMLInputElement>('#telegram-notifyDepositMaturity')!.click();
+    fixture.detectChanges();
+    fixture.componentInstance.saveNotifications();
+    fixture.detectChanges();
+    expect(service.updateConnectionSettings).toHaveBeenCalledWith(
+      'second',
+      expect.objectContaining({
+        notifyAssetMovement: false,
+        notifySavingsGoalReached: false,
+        notifyAssetsMonthSummary: true,
+        notifyDepositMaturity: true,
+      }),
+    );
+    fixture.componentInstance.beginEditNotifications(first);
+    fixture.detectChanges();
+    expect(panel.querySelector<HTMLInputElement>('#telegram-notifyDepositMaturity')!.checked).toBe(
+      false,
+    );
+  });
+
   it('saves all notification settings together and closes the editor', () => {
     const component = fixture.componentInstance;
     component.beginEditNotifications(SETTINGS.connections[0]);
@@ -489,6 +527,10 @@ describe('TelegramSettingsComponent', () => {
       notifyMemorableDate: true,
       notifyFinanceTransaction: true,
       notifyFinanceLimit: true,
+      notifyAssetMovement: true,
+      notifySavingsGoalReached: false,
+      notifyAssetsMonthSummary: true,
+      notifyDepositMaturity: false,
       language: 'ru',
     });
     component.saveNotifications();
@@ -499,6 +541,10 @@ describe('TelegramSettingsComponent', () => {
       notifyMemorableDate: true,
       notifyFinanceTransaction: true,
       notifyFinanceLimit: true,
+      notifyAssetMovement: true,
+      notifySavingsGoalReached: false,
+      notifyAssetsMonthSummary: true,
+      notifyDepositMaturity: false,
       language: 'ru',
     });
     expect(component.notificationDraft()).toBeNull();

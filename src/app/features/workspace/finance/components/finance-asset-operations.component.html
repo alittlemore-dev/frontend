@@ -1,0 +1,148 @@
+<app-finance-operation-list
+  headingKey="finance.assets.tab"
+  totalLabel="finance.assets.capital"
+  secondaryAmountLabel="finance.assets.inPositionCurrency"
+  dateLabel="finance.transaction.date"
+  categoryLabel="finance.assets.position"
+  [total]="total()"
+  [canAdd]="canAdd()"
+  [saving]="busy() || loading()"
+  [rows]="rows()"
+  historyId="finance-assets-history"
+  [historyTransactionId]="historyId()"
+  [revisions]="historyRows()"
+  [revisionsLoading]="historyLoading()"
+  [revisionsErrorKey]="historyError()"
+  (creationRequested)="edit()"
+  (editRequested)="edit($event)"
+  (repetitionRequested)="edit($event, true)"
+  (historyRequested)="showHistory($event)"
+  (historyClosed)="closeHistory()"
+  (deletionRequested)="toggle($event)"
+>
+  @if (fromReport()) {
+    <div class="px-3 py-2">
+      @if (positionFilter(); as id) {
+        <span>{{ positionName(id) }} · </span>
+      }
+      <button class="btn btn-sm btn-link p-0" type="button" (click)="returnReport()">
+        {{ 'finance.assets.returnReport' | t }}
+      </button>
+    </div>
+  }
+  @if (error()) {
+    <p class="px-3 small text-danger" role="alert">
+      {{ error() | t }}
+      <button class="btn btn-sm btn-link" type="button" (click)="refresh.set(refresh() + 1)">
+        {{ 'shared.retry' | t }}
+      </button>
+    </p>
+  } @else if (loading()) {
+    <p class="px-3 small" role="status">{{ 'shared.loading' | t }}</p>
+  } @else if (!canAdd() && !positionFilter()) {
+    <p class="px-3 small">
+      <button class="btn btn-sm btn-link p-0" type="button" (click)="overview()">
+        {{ 'finance.assets.addPosition' | t }} · {{ 'finance.overview' | t }}
+      </button>
+    </p>
+  }
+</app-finance-operation-list>
+
+<dialog
+  dsModalDialog
+  class="finance-transaction-dialog"
+  aria-modal="true"
+  aria-labelledby="asset-operation-heading"
+  [dismissible]="!busy() && !dirty()"
+  (dismissed)="close()"
+  (cancel)="dirty() && leave()"
+>
+  @if (editing()) {
+    <div class="d-flex align-items-start justify-content-between gap-3 mb-3 pb-3 border-bottom">
+      <h2 class="finance-dialog-title m-0" id="asset-operation-heading">
+        {{ (movement() ? 'finance.transaction.edit' : 'finance.transaction.add') | t }}
+        <span class="text-body-secondary fw-medium">· {{ 'finance.assets.tab' | t }}</span>
+      </h2>
+      <button
+        class="btn-close"
+        type="button"
+        [attr.aria-label]="'shared.close' | t"
+        [disabled]="busy()"
+        (click)="leave()"
+      ></button>
+    </div>
+  }
+  @if (editing()) {
+    <div class="row g-3 mb-3 asset-flow-kind">
+      <div class="col-12 col-sm-6">
+        <label for="asset-operation-category"
+          >{{ 'finance.assets.position' | t }}
+          <span class="required-marker text-danger" aria-hidden="true">*</span>
+        </label>
+        <ds-site-select
+          inputId="asset-operation-category"
+          [value]="positionId()"
+          [options]="positionOptions()"
+          controlSize="small"
+          appearance="default"
+          [required]="true"
+          [invalid]="false"
+          [controlDisabled]="busy()"
+          (valueChange)="choosePosition($event)"
+        />
+      </div>
+      @if (position()) {
+        <div class="col-12 col-sm-6">
+          <label for="asset-operation-kind"
+            >{{ 'finance.assets.action' | t }}
+            <span class="required-marker text-danger" aria-hidden="true">*</span>
+          </label>
+          <ds-site-select
+            inputId="asset-operation-kind"
+            [value]="kind() === 'openingBudget' ? 'openingExternal' : kind()"
+            [options]="kindOptions()"
+            controlSize="small"
+            appearance="default"
+            [required]="true"
+            [invalid]="false"
+            [controlDisabled]="busy()"
+            (valueChange)="chooseKind($event)"
+          />
+        </div>
+      }
+    </div>
+  }
+  @if (editorError()) {
+    <p class="text-danger" role="alert">{{ editorError() | t }}</p>
+  }
+  @if (manual(); as manualEdit) {
+    <app-finance-transaction-entry
+      inputId="asset-operation"
+      [assetPositions]="choices()"
+      [initialValue]="manualEdit"
+      [min]="start()"
+      [max]="end()"
+      [timeZone]="timeZone()"
+      [saving]="busy()"
+      [editing]="!!movement()"
+      (draftChanged)="draft.set($event)"
+      (submitted)="save($event)"
+      (cancelled)="leave()"
+    />
+  } @else if (advanced(); as selection) {
+    @if (data(); as portfolio) {
+      <app-asset-editor
+        [intent]="selection"
+        [month]="month()"
+        [selectedMonth]="start()"
+        [today]="today()"
+        [allowBudget]="budgetAvailable()"
+        [locations]="portfolio.locations"
+        [valuation]="portfolio.valuation"
+        (saved)="saved($event)"
+        (reconcileRequested)="chooseKind('reconcile')"
+        (closed)="leave()"
+      />
+    }
+  }
+</dialog>

@@ -1,8 +1,5 @@
-import {
-  ModalDialogDirective,
-  SiteSelectComponent,
-  SiteSelectOption,
-} from '@alittlemore.dev/design-system';
+import { NgTemplateOutlet } from '@angular/common';
+import { ModalDialogDirective, SiteSelectComponent } from '@alittlemore.dev/design-system';
 import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
@@ -19,13 +16,15 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { Observable, Subscription, of, switchMap } from 'rxjs';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Params, Router } from '@angular/router';
 import { UnsavedChangesService } from '../../../../core/unsaved-changes/unsaved-changes.service';
 import { Temporal } from 'temporal-polyfill';
 
 import { I18nService } from '../../../../core/i18n/i18n.service';
 import { AccountSettingsService } from '../../../../core/auth/account-settings.service';
-import { financeMonthTimeRange } from '../utils/finance-time';
+import { adjustFinanceAmount, decimalForInput } from '../utils/finance-decimal';
+import { financeMonthTimeRange, formatFinanceMonth } from '../utils/finance-time';
+import { FINANCE_CURRENCY_OPTIONS } from '../utils/finance-select-options';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
 import { ApiError } from '../../../../core/models/api-error.model';
 import {
@@ -40,6 +39,9 @@ import {
   FinanceTransactionEntry,
   FinanceTransactionEditor,
 } from '../models/finance.model';
+import { FinanceAssetsPanelComponent } from './finance-assets-panel.component';
+import { FinanceAssetOverviewColumnComponent } from './finance-asset-overview-column.component';
+import { FinanceAssetOperationsComponent } from '../components/finance-asset-operations.component';
 import { FinanceStatisticsPanelComponent } from './finance-statistics-panel.component';
 import { FinanceService } from '../services/finance.service';
 import {
@@ -51,35 +53,11 @@ import { FinanceBudgetColumnComponent } from '../components/finance-budget-colum
 import { FinanceTransactionsColumnComponent } from '../components/finance-transactions-column.component';
 import { FinanceTransactionEntryComponent } from '../components/finance-transaction-entry.component';
 
+type FinanceTab = 'overview' | 'transactions' | 'summary' | 'income' | 'expense' | 'assets';
+
 interface FinanceTransactionRepeat {
   transaction: FinanceTransaction;
   stableCategoryId: string | null;
-}
-
-function decimalForInput(value: string): string {
-  const match = /^([+-]?)(\d+)(?:\.(\d*))?(?:[eE]([+-]?\d+))?$/.exec(value);
-  if (!match) return value;
-  const [, sign, integer, fraction = '', exponent = '0'] = match;
-  const digits = integer + fraction;
-  if (/^0+$/.test(digits)) return '0';
-  const shift = Number(exponent);
-  if (!Number.isInteger(shift) || Math.abs(shift) > 30) return value;
-  const point = integer.length + shift;
-  let whole: string;
-  let decimal: string;
-  if (point <= 0) {
-    whole = '0';
-    decimal = '0'.repeat(-point) + digits;
-  } else if (point >= digits.length) {
-    whole = digits + '0'.repeat(point - digits.length);
-    decimal = '';
-  } else {
-    whole = digits.slice(0, point);
-    decimal = digits.slice(point);
-  }
-  whole = whole.replace(/^0+(?=\d)/, '');
-  decimal = decimal.replace(/0+$/, '');
-  return `${sign === '-' ? '-' : ''}${whole}${decimal ? `.${decimal}` : ''}`;
 }
 
 @Component({
@@ -87,7 +65,11 @@ function decimalForInput(value: string): string {
   standalone: true,
   imports: [
     FormsModule,
+    NgTemplateOutlet,
     FinanceStatisticsPanelComponent,
+    FinanceAssetsPanelComponent,
+    FinanceAssetOverviewColumnComponent,
+    FinanceAssetOperationsComponent,
     ModalDialogDirective,
     FinanceTransactionsColumnComponent,
     FinanceTransactionEntryComponent,
@@ -108,6 +90,9 @@ export class FinanceTrackerPageComponent implements OnInit {
   readonly i18n = inject(I18nService);
   private readonly preferences = inject(AccountSettingsService);
   readonly timeZone = signal(this.preferences.timeZone());
+  readonly today = computed(() =>
+    Temporal.Now.zonedDateTimeISO(this.timeZone()).toPlainDate().toString(),
+  );
   private readonly destroyRef = inject(DestroyRef);
   private readonly changeDetector = inject(ChangeDetectorRef);
   private initializationSubscription?: Subscription;
@@ -115,11 +100,17 @@ export class FinanceTrackerPageComponent implements OnInit {
   private revisionsSubscription?: Subscription;
   private pendingRepeat: FinanceTransactionRepeat | null = null;
 
-  readonly currencies: readonly FinanceCurrency[] = ['AMD', 'RUB', 'USD', 'EUR'];
   readonly currencySymbols = FINANCE_CURRENCY_SYMBOLS;
+  readonly budgetFields = [
+    'contributions',
+    'withdrawals',
+    'openingAllocation',
+    'incomeMinusExpenses',
+  ] as const;
   readonly kinds: readonly FinanceKind[] = ['expense', 'income'];
   readonly month = signal<FinanceMonth | null>(null);
   readonly currentPeriod = signal<string | null>(null);
+  readonly currentCurrency = signal<FinanceCurrency>('RUB');
   readonly selectedPeriod = signal<string | null>(null);
   readonly readOnly = computed(() => this.selectedPeriod() !== this.currentPeriod());
   readonly canWriteTransactions = computed(() => {
@@ -154,18 +145,23 @@ export class FinanceTrackerPageComponent implements OnInit {
   readonly loading = signal(true);
   readonly saving = signal(false);
   readonly errorKey = signal<string | null>(null);
-  readonly tab = signal<'overview' | 'transactions' | 'summary' | 'income' | 'expense'>('overview');
+  private readonly assetOverview = viewChild(FinanceAssetOverviewColumnComponent);
+  private readonly assetOperations = viewChild(FinanceAssetOperationsComponent);
+  private readonly assetStatistics = viewChild(FinanceAssetsPanelComponent);
+  private previousQuery: Params | null = null;
+  readonly tab = signal<FinanceTab>('overview');
   readonly statisticsTabs = ['summary', 'income', 'expense'] as const;
   readonly statisticsTab = computed(() => {
     const tab = this.tab();
-    return tab === 'overview' || tab === 'transactions' ? null : tab;
+    return tab === 'overview' || tab === 'transactions' || tab === 'assets' ? null : tab;
   });
   readonly statisticsRevision = signal(0);
   readonly statisticsPanel = viewChild(FinanceStatisticsPanelComponent);
-  readonly monthNavigation = computed(
-    () =>
-      this.statisticsTab() === null ||
-      (this.statisticsPanel()?.period() ?? 'thisMonth') === 'thisMonth',
+  readonly monthNavigation = computed(() =>
+    this.tab() === 'assets'
+      ? this.assetStatistics()?.period() === 'thisMonth'
+      : this.statisticsTab() === null ||
+        (this.statisticsPanel()?.period() ?? 'thisMonth') === 'thisMonth',
   );
   readonly includeDeleted = signal(false);
   readonly openingDraft = signal('');
@@ -201,20 +197,11 @@ export class FinanceTrackerPageComponent implements OnInit {
   readonly expenseTransactions = computed(() =>
     this.transactions().filter((row) => row.kind === 'expense'),
   );
-  readonly currencyOptions: readonly SiteSelectOption[] = this.currencies.map((currency) => ({
-    value: currency,
-    label: FINANCE_CURRENCY_SYMBOLS[currency],
-  }));
+  readonly currencyOptions = FINANCE_CURRENCY_OPTIONS;
   readonly monthLabel = computed(() => {
     this.i18n.language();
     const period = this.selectedPeriod();
-    return period === null
-      ? ''
-      : new Intl.DateTimeFormat(this.i18n.dateLocale(), {
-          month: 'long',
-          year: 'numeric',
-          timeZone: 'UTC',
-        }).format(new Date(`${period}T00:00:00Z`));
+    return period === null ? '' : formatFinanceMonth(period, this.i18n.dateLocale());
   });
   readonly transactionTimeRange = computed(() => {
     const month = this.month();
@@ -250,6 +237,35 @@ export class FinanceTrackerPageComponent implements OnInit {
       computed(() => !this.readOnly() || this.canWriteTransactions()),
     );
     this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      const query = this.route.snapshot.queryParams;
+      if (
+        this.previousQuery &&
+        !this.discardApproved &&
+        JSON.stringify(query) !== JSON.stringify(this.previousQuery)
+      ) {
+        if (!this.leaveAssetForms()) {
+          void this.router.navigate([], {
+            relativeTo: this.route,
+            queryParams: this.previousQuery,
+            replaceUrl: true,
+          });
+          return;
+        }
+      }
+      this.previousQuery = query;
+      if (query['tab'] === 'assets' && (query['assetJournal'] || query['assetPosition'])) {
+        const journal = /^(\d{4})-(0[1-9]|1[0-2])$/.exec(query['assetJournal'] ?? '');
+        void this.router.navigate([], {
+          relativeTo: this.route,
+          queryParamsHandling: 'merge',
+          replaceUrl: true,
+          queryParams: {
+            tab: 'transactions',
+            ...(journal && { year: journal[1], month: Number(journal[2]) }),
+          },
+        });
+        return;
+      }
       const requested = this.routePeriod();
       if (this.currentPeriod() !== null && requested !== this.selectedPeriod()) {
         if (this.saving() || (!this.discardApproved && !this.scope.confirmDiscard())) {
@@ -260,7 +276,11 @@ export class FinanceTrackerPageComponent implements OnInit {
       this.discardApproved = false;
       const tab = this.route.snapshot.queryParamMap.get('tab');
       this.tab.set(
-        tab === 'transactions' || tab === 'summary' || tab === 'income' || tab === 'expense'
+        tab === 'assets' ||
+          tab === 'transactions' ||
+          tab === 'summary' ||
+          tab === 'income' ||
+          tab === 'expense'
           ? tab
           : 'overview',
       );
@@ -308,12 +328,14 @@ export class FinanceTrackerPageComponent implements OnInit {
     if (!selected || this.saving() || this.loading() || !this.scope.confirmDiscard()) return;
     const next = Temporal.PlainDate.from(selected).add({ months: offset });
     if (next.year < 1 || next.toString() > this.currentPeriod()!) return;
+    if (!this.leaveAssetForms()) return;
     this.discardApproved = true;
     this.writePeriod(next.toString(), false);
   }
 
   returnToCurrent(): void {
     if (this.saving() || this.loading() || !this.readOnly() || !this.scope.confirmDiscard()) return;
+    if (!this.leaveAssetForms()) return;
     this.discardApproved = true;
     this.writePeriod(null, false);
   }
@@ -356,6 +378,7 @@ export class FinanceTrackerPageComponent implements OnInit {
       .pipe(
         switchMap((current) => {
           this.currentPeriod.set(current.periodStart);
+          this.currentCurrency.set(current.currency);
           const selected = this.routePeriod();
           if (selected === null) {
             this.navigationNotice.set(true);
@@ -454,18 +477,33 @@ export class FinanceTrackerPageComponent implements OnInit {
     });
   }
 
-  setTab(tab: 'overview' | 'transactions' | 'summary' | 'income' | 'expense'): void {
+  setTab(tab: FinanceTab): void {
+    if (tab === this.tab() || !this.leaveAssetForms()) return;
+    this.discardApproved = true;
     this.tab.set(tab);
     void this.router.navigate([], {
       relativeTo: this.route,
       queryParamsHandling: 'merge',
-      queryParams: { tab: tab === 'overview' ? null : tab },
+      queryParams: {
+        tab: tab === 'overview' ? null : tab,
+        assetJournal: null,
+        assetPosition: null,
+        assetReportMonth: null,
+      },
     });
+  }
+
+  private leaveAssetForms(): boolean {
+    return (
+      this.assetOverview()?.leave() !== false &&
+      this.assetOperations()?.leave() !== false &&
+      this.assetStatistics()?.leave() !== false
+    );
   }
 
   setIncludeDeleted(value: boolean): void {
     this.includeDeleted.set(value);
-    this.loadTransactions();
+    if (this.month()) this.loadTransactions();
   }
 
   saveOpeningBalance(): void {
@@ -479,6 +517,12 @@ export class FinanceTrackerPageComponent implements OnInit {
     this.mutateMonth(this.service.updateOpeningBalance(amount), () =>
       this.openingDraft.set(decimalForInput(this.month()?.openingBalance ?? '')),
     );
+  }
+
+  applyCarryCorrection(month: FinanceMonth): void {
+    if (this.readOnly() || this.saving() || !month.carryCorrection) return;
+    this.openingDraft.set(adjustFinanceAmount(month.openingBalance, month.carryCorrection));
+    this.saveOpeningBalance();
   }
 
   selectCurrency(value: string): void {
@@ -715,7 +759,7 @@ export class FinanceTrackerPageComponent implements OnInit {
   }
 
   private isCurrency(value: string): value is FinanceCurrency {
-    return this.currencies.some((currency) => currency === value);
+    return this.currencyOptions.some((option) => option.value === value);
   }
 
   saveTransaction(entry: FinanceTransactionEntry): void {

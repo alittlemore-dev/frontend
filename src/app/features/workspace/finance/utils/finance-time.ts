@@ -32,6 +32,14 @@ export function formatFinanceDate(value: string, locale: string, timeZone: strin
   }).format(new Date(dateOnly ? `${value}T00:00:00Z` : value));
 }
 
+export function formatFinanceMonth(value: string, locale: string): string {
+  return new Intl.DateTimeFormat(locale, {
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(new Date(`${value.slice(0, 7)}-01T00:00:00Z`));
+}
+
 export function financePeriodEnd(value: string, locale: string, timeZone: string): string {
   return formatFinanceDate(
     Temporal.Instant.from(value).subtract({ nanoseconds: 1 }).toString(),
