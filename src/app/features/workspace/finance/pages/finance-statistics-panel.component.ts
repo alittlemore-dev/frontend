@@ -11,7 +11,11 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
-import { SiteSelectComponent, SiteSelectOption } from '@alittlemore.dev/design-system';
+import {
+  FinanceStatisticsFiltersComponent,
+  STATISTICS_PERIODS,
+  STATISTICS_CURRENCIES,
+} from '../components/finance-statistics-filters.component';
 import { Subscription } from 'rxjs';
 import { formatFinanceDate, financePeriodEnd } from '../utils/finance-time';
 import { I18nService } from '../../../../core/i18n/i18n.service';
@@ -19,30 +23,16 @@ import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
 import { ApiError } from '../../../../core/models/api-error.model';
 import { FinanceStatisticsReportComponent } from './finance-statistics-report.component';
 import {
-  FinanceCurrency,
   FinanceKind,
   FinanceStatisticsResult,
   FinanceStatisticsCurrency,
-  FINANCE_CURRENCY_SYMBOLS,
-  FinanceStatisticsPeriod,
 } from '../models/finance.model';
 import { FinanceService } from '../services/finance.service';
-
-const PERIODS: readonly FinanceStatisticsPeriod[] = [
-  'thisMonth',
-  'thisYear',
-  'thisWeek',
-  'today',
-  'last7Days',
-  'last30Days',
-  'last365Days',
-];
-const CURRENCIES: readonly FinanceCurrency[] = ['AMD', 'RUB', 'USD', 'EUR'];
 
 @Component({
   selector: 'app-finance-statistics-panel',
   standalone: true,
-  imports: [TranslatePipe, SiteSelectComponent, FinanceStatisticsReportComponent],
+  imports: [TranslatePipe, FinanceStatisticsFiltersComponent, FinanceStatisticsReportComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './finance-statistics-panel.component.html',
   styleUrl: './finance-statistics-panel.component.scss',
@@ -73,26 +63,11 @@ export class FinanceStatisticsPanelComponent {
   readonly empty = signal(false);
   readonly notice = signal(false);
   readonly period = computed(
-    () => PERIODS.find((value) => value === this.query().get('period')) ?? 'thisMonth',
+    () => STATISTICS_PERIODS.find((value) => value === this.query().get('period')) ?? 'thisMonth',
   );
   readonly currency = computed<FinanceStatisticsCurrency>(
-    () => CURRENCIES.find((value) => value === this.query().get('currency')) ?? 'month',
+    () => STATISTICS_CURRENCIES.find((value) => value === this.query().get('currency')) ?? 'month',
   );
-  readonly currencyOptions = computed<readonly SiteSelectOption[]>(() => {
-    this.i18n.language();
-    return [
-      { value: 'month', label: this.i18n.translate('finance.statistics.currency.month') },
-      ...CURRENCIES.map((value) => ({ value, label: FINANCE_CURRENCY_SYMBOLS[value] })),
-    ];
-  });
-  readonly periodOptions = computed<readonly SiteSelectOption[]>(() => {
-    this.i18n.language();
-    return PERIODS.map((value) => ({
-      value,
-      label: this.i18n.translate(`finance.statistics.period.${value}`),
-    }));
-  });
-
   constructor() {
     effect(() => {
       this.filterKey();
@@ -147,16 +122,16 @@ export class FinanceStatisticsPanelComponent {
   }
 
   selectPeriod(value: string): void {
-    if (!PERIODS.some((period) => period === value)) return;
+    if (!STATISTICS_PERIODS.some((period) => period === value)) return;
     void this.router.navigate([], {
       relativeTo: this.route,
       queryParamsHandling: 'merge',
-      queryParams: { period: value },
+      queryParams: { period: value, assetPeriod: null, start: null, end: null },
     });
   }
 
   selectCurrency(value: string): void {
-    if (value !== 'month' && !CURRENCIES.some((currency) => currency === value)) return;
+    if (value !== 'month' && !STATISTICS_CURRENCIES.some((currency) => currency === value)) return;
     void this.router.navigate([], {
       relativeTo: this.route,
       queryParamsHandling: 'merge',

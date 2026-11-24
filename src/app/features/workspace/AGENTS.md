@@ -15,6 +15,16 @@
   concrete month and year; call the monthly analytics period Month rather than This month.
 - Keep tabs and contextual filters bookmarkable. Preserve old links through redirects when
   consolidating pages, and protect authored drafts during month or page navigation.
+- Use the tracker’s category rows for editable overview amounts, transaction controls for entries
+  and history, and its shared chart and filter components for statistics. Compare corresponding
+  fields in the rendered income, expense and asset forms. Use `ds-site-select` for single-choice
+  fields, including inline creation and expanded settings. Verify keyboard selection and that the
+  selected value survives saving and reopening. Compare populated overview rows at desktop and
+  mobile widths. Keep the name and editable amount on one line and make secondary details
+  available on demand. When an operation depends on the asset type, let the owner select the
+  asset before offering the applicable actions. Keep save, archive and restore interactions aligned.
+- Format visible finance dates, months and timestamps with the existing locale-aware helpers,
+  including chart labels, revision history and date ranges. Preserve plain dates across time zones.
 - Monthly finance analytics show one report in the selected reporting currency (the selected
   month's currency by default). The previous month is comparison data, not another report block.
   Use existing stored-rate conversion contracts; never sum incompatible currencies directly.

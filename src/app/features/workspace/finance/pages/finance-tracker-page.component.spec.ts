@@ -1,3 +1,5 @@
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { AccountSettingsService } from '../../../../core/auth/account-settings.service';
 import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
@@ -45,6 +47,8 @@ describe('FinanceTrackerPageComponent', () => {
       imports: [FinanceTrackerPageComponent],
       providers: [
         provideRouter([]),
+        provideHttpClient(),
+        provideHttpClientTesting(),
         provideI18nTesting({ 'finance.category.none': 'Без категории' }),
         { provide: FinanceService, useValue: service },
         { provide: AccountSettingsService, useValue: { timeZone: accountTimeZone } },
@@ -150,8 +154,14 @@ describe('FinanceTrackerPageComponent', () => {
   it('creates the month automatically with the selected language and shows the unified tab row', () => {
     expect(service.ensure).toHaveBeenCalledWith('ru');
     const root = fixture.nativeElement as HTMLElement;
-    expect(root.querySelectorAll('[role="tab"]')).toHaveLength(5);
-    expect(root.querySelectorAll('#finance-panel-summary .finance-budget')).toHaveLength(2);
+    const statistics = root.querySelector('#finance-statistics-tab-assets')!;
+    expect(statistics.closest('fieldset')?.querySelector('legend')?.textContent).toBe(
+      root
+        .querySelector('#finance-statistics-tab-income')
+        ?.closest('fieldset')
+        ?.querySelector('legend')?.textContent,
+    );
+    expect(root.querySelectorAll('#finance-panel-summary .finance-budget')).toHaveLength(3);
     expect(root.querySelector('ds-site-select')).not.toBeNull();
     expect(root.querySelector<HTMLInputElement>('.finance-name-input')?.value).toBe('Еда');
     expect(root.querySelector<HTMLInputElement>('#finance-opening')?.value).toBe('0');
@@ -209,7 +219,7 @@ describe('FinanceTrackerPageComponent', () => {
 
   function transactionDialog(): HTMLDialogElement {
     const dialog = fixture.nativeElement.querySelector(
-      '.finance-transaction-dialog',
+      'dialog[aria-labelledby="finance-transaction-title"]',
     ) as HTMLDialogElement;
     dialog.showModal = () => dialog.setAttribute('open', '');
     dialog.close = () => dialog.removeAttribute('open');
@@ -294,7 +304,7 @@ describe('FinanceTrackerPageComponent', () => {
     fixture.detectChanges();
     const root = fixture.nativeElement as HTMLElement;
     const columns = root.querySelectorAll('.finance-transactions-column');
-    expect(columns).toHaveLength(2);
+    expect(columns).toHaveLength(3);
     expect(columns[0].querySelectorAll('.finance-transaction-row')).toHaveLength(1);
     expect(columns[0].textContent).toContain('Еда');
     expect(columns[1].querySelectorAll('.finance-transaction-row')).toHaveLength(1);

@@ -10,6 +10,7 @@ import {
   effect,
   inject,
   input,
+  output,
   signal,
   untracked,
 } from '@angular/core';
@@ -22,6 +23,7 @@ import { formatFinanceMoney } from '../utils/finance-format';
 export interface FinanceChartDatum {
   id: string;
   label: string;
+  axisLabel?: string;
   amount: string | null;
 }
 
@@ -60,6 +62,8 @@ export class FinanceChartComponent {
   readonly data = input.required<readonly FinanceChartDatum[]>();
   readonly tableData = input<readonly FinanceChartDatum[] | null>(null);
   readonly aligned = input(false);
+  readonly drilldown = input(false);
+  readonly datumSelected = output<string>();
   readonly kind = input<'vertical' | 'horizontal' | 'pie'>('vertical');
   readonly scale = input<readonly number[]>([]);
   readonly height = computed(() =>
@@ -159,6 +163,12 @@ export class FinanceChartComponent {
     const tooltip = { origin, datum, percentage };
     if (source === 'pointer') this.hovered.set(tooltip);
     else this.focused.set(tooltip);
+  }
+
+  selectDatum(id: string, event?: Event): void {
+    if (!this.drilldown()) return;
+    event?.preventDefault();
+    this.datumSelected.emit(id);
   }
 
   blurTooltip(): void {

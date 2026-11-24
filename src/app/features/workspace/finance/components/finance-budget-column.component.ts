@@ -9,6 +9,10 @@ import {
   FinanceMonth,
 } from '../models/finance.model';
 import { formatFinanceMoney } from '../utils/finance-format';
+import {
+  FinanceRowActionsComponent,
+  FinanceRowNameComponent,
+} from './finance-overview-row.component';
 
 export interface FinanceCategoryFields {
   name: string;
@@ -27,7 +31,7 @@ export interface FinanceCategoryDraftChange extends FinanceCategoryFieldChange {
 @Component({
   selector: 'app-finance-budget-column',
   standalone: true,
-  imports: [FormsModule, TranslatePipe],
+  imports: [FormsModule, TranslatePipe, FinanceRowNameComponent, FinanceRowActionsComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './finance-budget-column.component.html',
   styleUrl: './finance-budget-column.component.scss',

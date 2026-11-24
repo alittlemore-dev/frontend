@@ -1,0 +1,73 @@
+<form [formGroup]="form" (ngSubmit)="save()" (keydown.escape)="discard()" novalidate>
+  <fieldset class="m-0 p-0 border-0" [disabled]="busy()" [attr.aria-busy]="busy()">
+    <label for="asset-goal-percent" class="small text-body-secondary d-block">{{
+      'finance.assets.goalIncomeShare' | t
+    }}</label>
+    <div class="d-flex align-items-baseline gap-1 goal-value">
+      <input
+        id="asset-goal-percent"
+        class="goal-percent"
+        type="text"
+        inputmode="decimal"
+        formControlName="percent"
+        [placeholder]="'finance.notSet' | t"
+        [style.width.ch]="draft().percent ? draft().percent.length + 1 : 10"
+        [attr.aria-describedby]="error() ? 'asset-goal-unit asset-goal-error' : 'asset-goal-unit'"
+        [attr.aria-invalid]="error() === 'finance.assets.goalPercentError' || null"
+        (blur)="onPercentBlur($event)"
+        (keydown.enter)="$event.preventDefault(); save()"
+      />
+      <span id="asset-goal-unit" [class.visually-hidden]="!draft().percent">%</span>
+    </div>
+    @if (configureIncome()) {
+      <div class="d-flex flex-column align-items-start gap-2 mt-2">
+        <label>
+          <input class="form-check-input" type="checkbox" formControlName="allIncome" />
+          {{ 'finance.assets.allIncome' | t }}
+        </label>
+        @if (!draft().allIncome) {
+          @if (unavailableIds().length) {
+            <p class="text-body-secondary mb-0">
+              {{ 'finance.assets.unavailableGoalCategories' | t }}
+            </p>
+            <label>
+              <input
+                #kept
+                class="form-check-input"
+                type="checkbox"
+                [checked]="keepingUnavailable()"
+                (change)="keepUnavailable(kept.checked)"
+              />
+              {{ 'finance.assets.keepUnavailableGoalCategories' | t }}
+            </label>
+          }
+          @for (category of categories(); track category.stableId) {
+            <label>
+              <input
+                #choice
+                class="form-check-input"
+                type="checkbox"
+                [checked]="draft().categoryIds.includes(category.stableId)"
+                (change)="selectCategory(category.stableId, choice.checked)"
+              />
+              {{ category.name }}
+            </label>
+          }
+        }
+        @if (dirty()) {
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-sm btn-outline-success">
+              {{ 'shared.save' | t }}
+            </button>
+            <button type="button" class="btn btn-sm btn-link" (click)="discard()">
+              {{ 'shared.cancel' | t }}
+            </button>
+          </div>
+        }
+      </div>
+    }
+  </fieldset>
+  @if (error()) {
+    <p role="alert" id="asset-goal-error" class="small text-danger mb-0">{{ error() | t }}</p>
+  }
+</form>

@@ -1,6 +1,9 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import { I18nService } from '../../../../core/i18n/i18n.service';
-import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
+import {
+  FinanceOperationListComponent,
+  FinanceOperationRow,
+} from './finance-operation-list.component';
 import {
   FinanceCurrency,
   FinanceKind,
@@ -14,7 +17,7 @@ import { financeChartColors } from '../utils/finance-chart-colors';
 @Component({
   selector: 'app-finance-transactions-column',
   standalone: true,
-  imports: [TranslatePipe],
+  imports: [FinanceOperationListComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './finance-transactions-column.component.html',
   styleUrl: './finance-transactions-column.component.scss',
@@ -47,6 +50,46 @@ export class FinanceTransactionsColumnComponent {
     return new Map(categories.map((id, index) => [id, colors[index]]));
   });
 
+  readonly rows = computed<FinanceOperationRow<FinanceTransaction>[]>(() => {
+    this.i18n.language();
+    return this.transactions().map((transaction) => ({
+      item: transaction,
+      id: transaction.id,
+      date: transaction.occurredAt,
+      displayDate: this.dateTime(transaction.occurredAt),
+      label: transaction.categoryName || this.i18n.translate('finance.category.none'),
+      color: this.categoryColor(transaction),
+      description: transaction.description,
+      caption:
+        this.i18n.translate('finance.transaction.author') +
+        ': ' +
+        transaction.authorLabel +
+        ' · ' +
+        this.i18n.translate('finance.transaction.source.' + transaction.source),
+      linked: transaction.allowsDirectChanges === false,
+      editable: this.editable(transaction),
+      repeatable: true,
+      deleted: transaction.deleted,
+      amount: this.money(transaction.amount, transaction.currency),
+      secondaryAmount:
+        transaction.currency !== this.month().currency
+          ? this.money(transaction.convertedAmount, this.month().currency)
+          : '',
+    }));
+  });
+  readonly historyRows = computed(() =>
+    this.revisions().map((revision) => ({
+      number: revision.number,
+      heading:
+        this.i18n.translate('finance.history.' + revision.action) +
+        ' · ' +
+        this.dateTime(revision.changedAt),
+      detail: [this.previousAmount(revision), this.previousDescription(revision)]
+        .filter(Boolean)
+        .join(' · '),
+    })),
+  );
+
   categoryColor(transaction: FinanceTransaction): string | null {
     return transaction.categoryId === null
       ? null
@@ -54,7 +97,11 @@ export class FinanceTransactionsColumnComponent {
   }
 
   editable(transaction: FinanceTransaction): boolean {
-    return !this.readOnly() && (!this.lateOnly() || this.editableIds().includes(transaction.id));
+    return (
+      transaction.allowsDirectChanges !== false &&
+      !this.readOnly() &&
+      (!this.lateOnly() || this.editableIds().includes(transaction.id))
+    );
   }
 
   readonly creationRequested = output<void>();

@@ -46,11 +46,8 @@
 
   .finance-entry-description,
   .finance-entry-error,
-  .finance-entry-actions {
-    grid-column: 1 / -1;
-  }
-
-  .finance-entry-date {
+  .finance-entry-actions,
+  .finance-entry-full-width {
     grid-column: 1 / -1;
   }
 }

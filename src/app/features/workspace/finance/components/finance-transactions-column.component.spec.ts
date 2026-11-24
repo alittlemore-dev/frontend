@@ -43,6 +43,18 @@ describe('FinanceTransactionsColumnComponent', () => {
     expect(editing).toHaveBeenCalledWith(FINANCE_TEST_TRANSACTION);
   });
 
+  it('keeps a linked payout readable and directs changes to Assets', () => {
+    fixture.componentRef.setInput('transactions', [
+      { ...FINANCE_TEST_TRANSACTION, allowsDirectChanges: false },
+    ]);
+    fixture.detectChanges();
+    const row = fixture.nativeElement as HTMLElement;
+    expect(row.querySelector('.finance-transaction-edit')).toBeNull();
+    expect(row.querySelector('.finance-icon-button-danger')).toBeNull();
+    expect(row.querySelector('.finance-history-button')).not.toBeNull();
+    expect(row.textContent).toContain('finance.transaction.linked');
+  });
+
   it('shows the saved Telegram creator and source on active and deleted operations', () => {
     fixture.componentRef.setInput('transactions', [
       {

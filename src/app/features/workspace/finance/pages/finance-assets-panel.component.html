@@ -1,0 +1,66 @@
+<section
+  id="finance-statistics-panel-assets"
+  role="tabpanel"
+  aria-labelledby="finance-statistics-tab-assets"
+  [attr.aria-busy]="loading()"
+>
+  <app-finance-statistics-filters
+    [period]="period()"
+    [currency]="currency()"
+    [allowRange]="true"
+    (periodChange)="selectPeriod($event)"
+    (currencyChange)="selectCurrency($event)"
+  />
+  @if (period() === 'range') {
+    <div class="mb-3">
+      <label for="assets-range" class="form-label">{{ 'finance.assets.range' | t }}</label>
+      <ds-localized-date-range-picker
+        inputId="assets-range"
+        controlSize="small"
+        [value]="range()"
+        [dateLocale]="i18n.dateLocale()"
+        [labels]="dateRangeLabels()"
+        [requirements]="rangeRequirements"
+        [invalid]="false"
+        [controlDisabled]="false"
+        [readonly]="false"
+        [max]="today().toString()"
+        (valueChange)="setRange($event)"
+      />
+    </div>
+  }
+  @if (error(); as key) {
+    <div class="alert alert-danger" role="alert">
+      {{ key | t }}
+      <button type="button" class="btn btn-sm btn-outline-danger" (click)="load()">
+        {{ 'shared.retry' | t }}
+      </button>
+    </div>
+  }
+  @if (loading()) {
+    <p role="status">{{ 'shared.loading' | t }}</p>
+  }
+  <ng-template #goalSettings>
+    @if (month(); as activeMonth) {
+      @if (!readOnly()) {
+        <app-asset-goal-settings [month]="activeMonth" (saved)="load()" />
+      }
+    }
+  </ng-template>
+  @if (data(); as result) {
+    <p class="text-body-secondary">{{ dateRange(result.report) }} · {{ timeZone() }}</p>
+    @if (result.report.closing.positions.length || result.report.history.length) {
+      <app-asset-report
+        [report]="result.report"
+        [locations]="result.locations"
+        [timeZone]="timeZone()"
+        (journal)="openJournal($event)"
+      >
+        <ng-container [ngTemplateOutlet]="goalSettings" />
+      </app-asset-report>
+    } @else {
+      <p role="status">{{ 'finance.assets.noStatistics' | t }}</p>
+      <ng-container [ngTemplateOutlet]="goalSettings" />
+    }
+  }
+</section>

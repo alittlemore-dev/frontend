@@ -23,6 +23,10 @@ export interface TelegramConnection {
   notifyMemorableDate: boolean;
   notifyFinanceTransaction: boolean;
   notifyFinanceLimit: boolean;
+  notifyAssetMovement: boolean;
+  notifySavingsGoalReached: boolean;
+  notifyAssetsMonthSummary: boolean;
+  notifyDepositMaturity: boolean;
   language: 'ru' | 'en';
 }
 
@@ -32,6 +36,10 @@ export type TelegramConnectionSettings = Pick<
   | 'notifyMemorableDate'
   | 'notifyFinanceTransaction'
   | 'notifyFinanceLimit'
+  | 'notifyAssetMovement'
+  | 'notifySavingsGoalReached'
+  | 'notifyAssetsMonthSummary'
+  | 'notifyDepositMaturity'
   | 'language'
 >;
 

@@ -1,0 +1,296 @@
+@if (selection(); as s) {
+  <form
+    [class]="s.mode === 'movement' ? 'finance-entry' : 'bg-body-tertiary px-3 py-2 my-2'"
+    (ngSubmit)="save()"
+    #form="ngForm"
+  >
+    <fieldset class="finance-entry-full-width" [disabled]="busy()">
+      <legend #heading tabindex="-1" class="h6" [class.visually-hidden]="s.mode === 'movement'">
+        {{ 'finance.assets.editor.' + s.mode | t }}
+      </legend>
+      <div class="row g-3">
+        @if (s.mode === 'location' || s.mode === 'position') {
+          <div class="col-12 col-md-6">
+            <label for="asset-name" class="form-label"
+              >{{ 'finance.assets.name' | t }}
+              <span class="required-marker text-danger" aria-hidden="true">*</span></label
+            >
+            <input
+              class="form-control"
+              id="asset-name"
+              name="name"
+              required
+              maxlength="255"
+              [ngModel]="draft().name"
+              (ngModelChange)="update('name', $event)"
+            />
+          </div>
+        }
+        @if (s.mode === 'position') {
+          <div class="col-12 col-md-6">
+            <label for="asset-location" class="form-label"
+              >{{ 'finance.assets.location' | t }}
+              <span class="required-marker text-danger" aria-hidden="true">*</span></label
+            >
+            <ds-site-select
+              inputId="asset-location"
+              name="location"
+              [options]="locationOptions()"
+              controlSize="small"
+              appearance="default"
+              [required]="true"
+              [invalid]="form.submitted && !draft().locationId"
+              [controlDisabled]="busy()"
+              [ngModel]="draft().locationId"
+              (ngModelChange)="update('locationId', $event)"
+            />
+          </div>
+          <div class="col-12 col-md-6">
+            <label for="asset-type" class="form-label"
+              >{{ 'finance.assets.kind' | t }}
+              <span class="required-marker text-danger" aria-hidden="true">*</span></label
+            >
+            <ds-site-select
+              inputId="asset-type"
+              name="type"
+              [options]="kindOptions()"
+              controlSize="small"
+              appearance="default"
+              [required]="true"
+              [invalid]="false"
+              [controlDisabled]="busy() || !!s.position"
+              [ngModel]="draft().positionKind"
+              (ngModelChange)="update('positionKind', $event)"
+            />
+          </div>
+          <div class="col-12 col-md-6">
+            <label for="asset-currency" class="form-label"
+              >{{ 'finance.currency' | t }}
+              <span class="required-marker text-danger" aria-hidden="true">*</span></label
+            >
+            <ds-site-select
+              inputId="asset-currency"
+              name="currency"
+              [options]="currencyOptions"
+              controlSize="small"
+              appearance="default"
+              [required]="true"
+              [invalid]="false"
+              [controlDisabled]="busy() || !!s.position"
+              [ngModel]="draft().currency"
+              (ngModelChange)="update('currency', $event)"
+            />
+          </div>
+          @if (security(draft().positionKind)) {
+            @for (field of ['instrument', 'venue']; track field) {
+              <div class="col-12 col-md-6">
+                <label [for]="'asset-' + field" class="form-label"
+                  >{{ 'finance.assets.' + field | t }}
+                  <span class="required-marker text-danger" aria-hidden="true">*</span></label
+                >
+                <input
+                  class="form-control"
+                  [id]="'asset-' + field"
+                  [name]="field"
+                  [disabled]="!!s.position"
+                  required
+                  [ngModel]="field === 'instrument' ? draft().instrument : draft().venue"
+                  (ngModelChange)="update(field === 'instrument' ? 'instrument' : 'venue', $event)"
+                />
+              </div>
+            }
+          }
+          @if (draft().positionKind === 'deposit' || draft().positionKind === 'savings') {
+            <div class="col-12 col-md-6">
+              <label for="asset-rate" class="form-label">{{
+                'finance.assets.annualRate' | t
+              }}</label>
+              <input
+                class="form-control"
+                id="asset-rate"
+                name="rate"
+                inputmode="decimal"
+                [ngModel]="draft().annualRate"
+                (ngModelChange)="update('annualRate', $event)"
+              />
+            </div>
+            <div class="col-12 col-md-6">
+              <app-asset-date
+                inputId="asset-maturity"
+                [label]="'finance.assets.maturesOn' | t"
+                [required]="false"
+                [disabled]="busy()"
+                [value]="draft().maturesOn"
+                (changed)="update('maturesOn', $event)"
+              />
+            </div>
+          }
+        }
+        @if (s.mode === 'movement') {
+          <div class="col-12 col-md-6">
+            <app-asset-date
+              inputId="asset-on-date"
+              [label]="'finance.assets.date' | t"
+              [disabled]="busy()"
+              [value]="draft().onDate"
+              (changed)="update('onDate', $event)"
+            />
+          </div>
+          @if (needsCounter()) {
+            <div class="col-12 col-md-6">
+              <label for="asset-counter" class="form-label"
+                >{{ counterLabel() | t }}
+                <span class="required-marker text-danger" aria-hidden="true">*</span></label
+              >
+              <ds-site-select
+                inputId="asset-counter"
+                name="counter"
+                [options]="counterChoices()"
+                controlSize="small"
+                appearance="default"
+                [required]="true"
+                [invalid]="form.submitted && !counter() && !external()"
+                [controlDisabled]="busy()"
+                [ngModel]="draft().counterPositionId"
+                (ngModelChange)="update('counterPositionId', $event)"
+              />
+            </div>
+          }
+          @if (opening()) {
+            <div class="col-12">
+              <label class="form-label" for="asset-opening-source"
+                >{{ 'finance.assets.inBudget' | t }}
+                <span class="required-marker text-danger" aria-hidden="true">*</span></label
+              >
+              <ds-site-select
+                inputId="asset-opening-source"
+                name="openingSource"
+                [options]="sourceOptions()"
+                controlSize="small"
+                appearance="default"
+                [required]="true"
+                [invalid]="form.submitted && !draft().openingSource"
+                [controlDisabled]="busy()"
+                [ngModel]="draft().openingSource"
+                (ngModelChange)="changeOpeningSource($event)"
+              />
+            </div>
+          }
+          @if (needsHolding()) {
+            <div class="col-12 small" role="status">
+              {{ 'finance.assets.recordHoldingFirst' | t }}
+              <button
+                type="button"
+                class="btn btn-link btn-sm p-0"
+                (click)="reconcileRequested.emit()"
+              >
+                {{ 'finance.assets.action.reconcile' | t }}
+              </button>
+            </div>
+          }
+          @for (field of numericFields(); track field) {
+            <div class="col-12 col-md-6">
+              <label class="form-label" [for]="'asset-' + field"
+                >{{
+                  (trade() && field === 'amount'
+                    ? 'finance.assets.tradeAmount'
+                    : 'finance.assets.' + field
+                  ) | t
+                }}
+                @if (field !== 'quantity') {
+                  ({{ field === 'counterAmount' ? counter()?.currency : primary()?.currency }})
+                }
+                @if (numericRequired(field)) {
+                  <span class="required-marker text-danger" aria-hidden="true">*</span>
+                }
+              </label>
+              <input
+                class="form-control form-control-sm"
+                inputmode="decimal"
+                [id]="'asset-' + field"
+                [name]="field"
+                [required]="numericRequired(field)"
+                [ngModel]="draft()[field]"
+                (ngModelChange)="update(field, $event)"
+              />
+            </div>
+          }
+          @if (draft().kind === 'payoutToBudget') {
+            <div class="col-12 col-md-6">
+              <label for="asset-category" class="form-label">{{
+                'finance.assets.incomeCategory' | t
+              }}</label>
+              <ds-site-select
+                inputId="asset-category"
+                name="category"
+                [options]="categoryOptions()"
+                controlSize="small"
+                appearance="default"
+                [required]="false"
+                [invalid]="false"
+                [controlDisabled]="busy()"
+                [ngModel]="draft().categoryId"
+                (ngModelChange)="update('categoryId', $event)"
+              />
+            </div>
+          }
+          <div class="col-12">
+            <label for="asset-note" class="form-label">{{ 'finance.assets.note' | t }}</label>
+            <textarea
+              appTextareaAutosize
+              class="form-control form-control-sm"
+              id="asset-note"
+              name="note"
+              rows="2"
+              maxlength="2000"
+              [ngModel]="draft().note"
+              (ngModelChange)="update('note', $event)"
+            ></textarea>
+          </div>
+          @if (previewLoading()) {
+            <p class="col-12 mb-0" role="status">{{ 'shared.loading' | t }}</p>
+          } @else if (openingPreviewError(); as error) {
+            <p class="col-12 mb-0 text-danger" role="alert">
+              {{ error | t }}
+              <button
+                type="button"
+                class="btn btn-sm btn-outline-secondary"
+                (click)="retryPreview()"
+              >
+                {{ 'shared.retry' | t }}
+              </button>
+            </p>
+          }
+          @for (preview of previews(); track preview.label) {
+            <p class="col-12 mb-0" role="status">
+              {{ 'finance.assets.' + preview.label | t }} · {{ preview.value }}
+            </p>
+          }
+        }
+      </div>
+    </fieldset>
+    @if (message()) {
+      <p class="finance-entry-error text-danger mt-2" role="alert">{{ message() | t }}</p>
+    }
+    <div [class]="s.mode === 'movement' ? 'finance-entry-actions' : 'd-flex gap-2 mt-3'">
+      <button
+        type="button"
+        class="btn btn-outline-secondary btn-sm"
+        [class.order-1]="s.mode !== 'movement'"
+        [disabled]="busy()"
+        (click)="close()"
+      >
+        {{ 'shared.cancel' | t }}
+      </button>
+      <button
+        type="submit"
+        class="btn btn-sm"
+        [class.detail-save]="s.mode === 'movement'"
+        [class.btn-success]="s.mode !== 'movement'"
+        [disabled]="busy() || needsHolding() || (needsBudgetPreview() && !budgetPreview())"
+      >
+        {{ (s.mode === 'movement' && !s.movement ? 'shared.add' : 'shared.save') | t }}
+      </button>
+    </div>
+  </form>
+}

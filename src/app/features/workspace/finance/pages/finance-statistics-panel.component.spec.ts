@@ -3,6 +3,7 @@ import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
+import { siteSelectOptionLabels } from '@alittlemore.dev/design-system/testing';
 import { of, Subject } from 'rxjs';
 import { provideI18nTesting } from '../../../../testing/i18n-testing';
 import { FinanceStatisticsResult } from '../models/finance.model';
@@ -108,9 +109,7 @@ describe('FinanceStatisticsPanelComponent', () => {
     expect(
       harness.routeNativeElement!.querySelectorAll('app-finance-statistics-report'),
     ).toHaveLength(2);
-    const page = harness.routeDebugElement!.children[0]
-      .componentInstance as FinanceStatisticsPanelComponent;
-    expect(page.currencyOptions().map((row) => row.label)).toEqual([
+    expect(siteSelectOptionLabels(harness.fixture, '#finance-statistics-currency')).toEqual([
       'finance.statistics.currency.month',
       '֏',
       '₽',

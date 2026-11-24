@@ -27,7 +27,7 @@
       </span>
     </div>
   </header>
-  <div class="table-responsive">
+  <div class="table-responsive position-relative">
     <table class="table finance-category-table">
       <thead>
         <tr>
@@ -46,20 +46,16 @@
         @for (category of categories(); track category.id) {
           <tr [class.finance-archived]="category.archived">
             <td>
-              @if (category.archived || readOnly()) {
-                <span>{{ category.name }}</span>
-              } @else {
-                <input
-                  class="finance-inline-input finance-name-input"
-                  [attr.aria-label]="'finance.category.name' | t"
-                  maxlength="255"
-                  [ngModel]="categoryDraft(category).name"
-                  (ngModelChange)="draftChanged.emit({ category, field: 'name', value: $event })"
-                  (blur)="saved.emit(category)"
-                  (keydown.enter)="saved.emit(category)"
-                  [disabled]="saving()"
-                />
-              }
+              <app-finance-row-name
+                [value]="
+                  category.archived || readOnly() ? category.name : categoryDraft(category).name
+                "
+                [label]="'finance.category.name' | t"
+                [readOnly]="category.archived || readOnly()"
+                [disabled]="saving()"
+                (changed)="draftChanged.emit({ category, field: 'name', value: $event })"
+                (submitted)="saved.emit(category)"
+              ></app-finance-row-name>
             </td>
             <td>
               @if (category.archived || readOnly()) {
@@ -96,28 +92,13 @@
             </td>
             @if (!readOnly()) {
               <td class="finance-icon-cell">
-                @if (category.archived) {
-                  <button
-                    type="button"
-                    class="finance-icon-button"
-                    [attr.aria-label]="'finance.restore' | t"
-                    [attr.title]="'finance.restore' | t"
-                    (click)="restorationRequested.emit(category)"
-                    [disabled]="saving()"
-                  >
-                    +
-                  </button>
-                }
-                <button
-                  type="button"
-                  class="finance-icon-button finance-icon-button-danger"
-                  [attr.aria-label]="'finance.category.remove' | t"
-                  [attr.title]="'finance.category.remove' | t"
-                  (click)="removalRequested.emit(category)"
+                <app-finance-row-actions
+                  [label]="'finance.category.remove' | t"
+                  [archived]="category.archived"
                   [disabled]="saving()"
-                >
-                  −
-                </button>
+                  (primary)="removalRequested.emit(category)"
+                  (restore)="restorationRequested.emit(category)"
+                ></app-finance-row-actions>
               </td>
             }
           </tr>
@@ -125,16 +106,14 @@
         @if (!readOnly()) {
           <tr class="finance-new-category">
             <td>
-              <input
-                class="finance-inline-input finance-name-input"
-                maxlength="255"
-                [attr.aria-label]="'finance.category.add' | t"
-                [placeholder]="'finance.category.add' | t"
-                [ngModel]="newCategoryDraft().name"
-                (ngModelChange)="newDraftChanged.emit({ field: 'name', value: $event })"
-                (keydown.enter)="created.emit()"
+              <app-finance-row-name
+                [value]="newCategoryDraft().name"
+                [label]="'finance.category.add' | t"
+                [creating]="true"
                 [disabled]="saving()"
-              />
+                (changed)="newDraftChanged.emit({ field: 'name', value: $event })"
+                (submitted)="created.emit()"
+              ></app-finance-row-name>
             </td>
             <td>
               <input
@@ -152,16 +131,12 @@
             </td>
             <td colspan="2"></td>
             <td class="finance-icon-cell">
-              <button
-                type="button"
-                class="finance-icon-button"
-                [attr.aria-label]="'finance.category.add' | t"
-                [attr.title]="'finance.category.add' | t"
-                (click)="created.emit()"
+              <app-finance-row-actions
+                [label]="'finance.category.add' | t"
+                [creating]="true"
                 [disabled]="saving() || !newCategoryDraft().name.trim()"
-              >
-                +
-              </button>
+                (primary)="created.emit()"
+              ></app-finance-row-actions>
             </td>
           </tr>
         }

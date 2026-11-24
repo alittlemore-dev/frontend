@@ -97,6 +97,18 @@
               {{ 'finance.statistics.tab.' + item | t }}
             </button>
           }
+          <button
+            type="button"
+            class="nav-link"
+            role="tab"
+            id="finance-statistics-tab-assets"
+            aria-controls="finance-statistics-panel-assets"
+            [class.active]="tab() === 'assets'"
+            [attr.aria-selected]="tab() === 'assets'"
+            (click)="setTab('assets')"
+          >
+            {{ 'finance.assets.tab' | t }}
+          </button>
         </div>
       </fieldset>
     </div>
@@ -104,12 +116,12 @@
   @if (navigationNotice()) {
     <p role="status" class="text-body-secondary">{{ 'finance.month.invalid' | t }}</p>
   }
-  @if (readOnly() && statisticsTab() === null) {
+  @if (readOnly() && statisticsTab() === null && tab() !== 'assets') {
     <p class="text-body-secondary">
       {{ (canWriteTransactions() ? 'finance.month.lateOperations' : 'finance.month.readOnly') | t }}
     </p>
   }
-  @if (empty() && statisticsTab() === null) {
+  @if (empty() && statisticsTab() === null && tab() !== 'assets') {
     <p role="status">{{ 'finance.month.empty' | t }}</p>
   }
 
@@ -130,6 +142,19 @@
     </div>
   }
 
+  <ng-template #operationsToolbar>
+    <div class="finance-transactions-toolbar">
+      <label class="form-check-label d-flex align-items-center gap-2">
+        <input
+          type="checkbox"
+          class="form-check-input m-0"
+          [ngModel]="includeDeleted()"
+          (ngModelChange)="setIncludeDeleted($event)"
+        />
+        {{ 'finance.transaction.showDeleted' | t }}
+      </label>
+    </div>
+  </ng-template>
   @if (loading() && !month()) {
     <p role="status">{{ 'shared.loading' | t }}</p>
   } @else if (month(); as currentMonth) {
@@ -139,7 +164,7 @@
       aria-labelledby="finance-tab-summary"
       [hidden]="tab() !== 'overview'"
     >
-      <section class="finance-balance" [attr.aria-label]="'finance.closingBalance' | t">
+      <section class="finance-balance" [attr.aria-label]="'finance.assets.available' | t">
         <div class="finance-balance-item">
           <label for="finance-opening">{{ 'finance.openingBalance' | t }}</label>
           <div class="finance-balance-value d-flex align-items-baseline">
@@ -168,7 +193,7 @@
           </div>
         </div>
         <div class="finance-balance-item finance-balance-final">
-          <span>{{ 'finance.closingBalance' | t }}</span>
+          <span>{{ 'finance.assets.available' | t }}</span>
           <div class="finance-balance-value d-flex align-items-baseline">
             <strong class="finance-balance-number">{{
               balanceAmount(currentMonth.closingBalance, currentMonth.currency)
@@ -198,6 +223,28 @@
         </div>
       </section>
 
+      <dl class="row mb-4">
+        @for (field of budgetFields; track field) {
+          <div class="col-6 col-lg-3">
+            <dt>{{ 'finance.assets.' + field | t }}</dt>
+            <dd>{{ money(currentMonth[field], currentMonth.currency) }}</dd>
+          </div>
+        }
+      </dl>
+      @if (currentMonth.carryCorrection && !readOnly()) {
+        <p role="status">
+          {{ 'finance.assets.carryCorrection' | t }} ·
+          {{ money(currentMonth.carryCorrection, currentMonth.currency) }}
+          <button
+            type="button"
+            class="btn btn-sm btn-outline-secondary"
+            [disabled]="saving()"
+            (click)="applyCarryCorrection(currentMonth)"
+          >
+            {{ 'finance.assets.applyCarry' | t }}
+          </button>
+        </p>
+      }
       <div class="finance-budget-grid">
         @for (kind of kinds; track kind) {
           <app-finance-budget-column
@@ -216,6 +263,13 @@
             (restorationRequested)="setCategoryArchived($event, false)"
           />
         }
+        @if (tab() === 'overview') {
+          <app-finance-asset-overview-column
+            [month]="currentMonth"
+            [today]="today()"
+            [readOnly]="readOnly()"
+          />
+        }
       </div>
     </div>
 
@@ -225,17 +279,7 @@
       aria-labelledby="finance-tab-transactions"
       [hidden]="tab() !== 'transactions'"
     >
-      <div class="finance-transactions-toolbar">
-        <label class="form-check-label d-flex align-items-center gap-2">
-          <input
-            type="checkbox"
-            class="form-check-input m-0"
-            [ngModel]="includeDeleted()"
-            (ngModelChange)="setIncludeDeleted($event)"
-          />
-          {{ 'finance.transaction.showDeleted' | t }}
-        </label>
-      </div>
+      <ng-container [ngTemplateOutlet]="operationsToolbar" />
 
       <div class="finance-budget-grid finance-transactions-grid">
         @for (kind of kinds; track kind) {
@@ -261,8 +305,57 @@
             (repetitionRequested)="repeatTransaction($event)"
           />
         }
+        @if (tab() === 'transactions') {
+          <app-finance-asset-operations
+            [month]="currentMonth"
+            [timeZone]="timeZone()"
+            [includeDeleted]="includeDeleted()"
+            [canWriteBudget]="canWriteTransactions()"
+            (budgetChanged)="initialize()"
+          />
+        }
       </div>
     </div>
+  }
+  @if (empty() && selectedPeriod(); as period) {
+    @if (tab() === 'overview') {
+      <div role="tabpanel" id="finance-panel-summary" aria-labelledby="finance-tab-summary">
+        <app-finance-asset-overview-column
+          [month]="null"
+          [selectedMonth]="period"
+          [fallbackCurrency]="currentCurrency()"
+          [today]="today()"
+          [readOnly]="true"
+        />
+      </div>
+    } @else if (tab() === 'transactions') {
+      <div
+        role="tabpanel"
+        id="finance-panel-transactions"
+        aria-labelledby="finance-tab-transactions"
+      >
+        <ng-container [ngTemplateOutlet]="operationsToolbar" />
+        <app-finance-asset-operations
+          [month]="null"
+          [selectedMonth]="period"
+          [fallbackCurrency]="currentCurrency()"
+          [timeZone]="timeZone()"
+          [includeDeleted]="includeDeleted()"
+          [canWriteBudget]="false"
+        />
+      </div>
+    }
+  }
+  @if (tab() === 'assets') {
+    @if (selectedPeriod(); as selected) {
+      <app-finance-assets-panel
+        [readOnly]="readOnly()"
+        [month]="month()"
+        [selectedMonth]="selected"
+        [fallbackCurrency]="currentCurrency()"
+        [timeZone]="timeZone()"
+      />
+    }
   }
   @if (statisticsTab(); as activeStatisticsTab) {
     @if (selectedPeriod(); as selectedMonth) {

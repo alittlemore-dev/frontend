@@ -1,0 +1,28 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+.finance-transaction-dialog {
+  background: var(--bs-body-bg);
+  border: 1px solid var(--border-color-soft);
+  border-radius: 0.6rem;
+  color: var(--bs-body-color);
+  width: 44rem;
+  max-width: 92vw;
+  max-height: 92dvh;
+  padding: 1.25rem;
+  &::backdrop {
+    background: rgba(var(--bs-dark-rgb), 0.5);
+  }
+}
+.finance-dialog-title {
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+.asset-flow-kind label {
+  color: var(--bs-secondary-color);
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 400;
+  margin-bottom: 0.35rem;
+}

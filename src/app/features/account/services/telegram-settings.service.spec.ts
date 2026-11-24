@@ -96,6 +96,10 @@ describe('TelegramSettingsService', () => {
       notifyMemorableDate: false,
       notifyFinanceTransaction: false,
       notifyFinanceLimit: false,
+      notifyAssetMovement: false,
+      notifySavingsGoalReached: false,
+      notifyAssetsMonthSummary: false,
+      notifyDepositMaturity: false,
       language: 'ru' as const,
     };
     service.updateConnectionSettings('abc', settings).subscribe();

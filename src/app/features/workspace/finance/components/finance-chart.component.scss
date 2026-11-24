@@ -83,6 +83,10 @@ path {
   fill-opacity: 0.8;
 }
 
+.finance-chart-link {
+  cursor: pointer;
+}
+
 .finance-chart-mark {
   &:focus {
     outline: 2px solid var(--finance-chart-focus-color);

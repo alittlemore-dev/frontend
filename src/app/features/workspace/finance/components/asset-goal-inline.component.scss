@@ -1,0 +1,26 @@
+.goal-value {
+  font-size: 0.98rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.goal-percent {
+  min-width: 2ch;
+  max-width: 100%;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  border: 1px solid transparent;
+  border-radius: 0.35rem;
+  background: transparent;
+
+  &:hover:not(:disabled) {
+    background: var(--bs-tertiary-bg);
+  }
+
+  &:focus {
+    border-color: var(--accent-color);
+    outline: 2px solid var(--accent-color);
+    outline-offset: 1px;
+  }
+}

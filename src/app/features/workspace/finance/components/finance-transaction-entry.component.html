@@ -1,40 +1,62 @@
 <form class="finance-entry" [formGroup]="form" (ngSubmit)="submit()" novalidate>
-  <div class="finance-entry-date">
-    <label [for]="inputId() + '-date'"
-      >{{ 'finance.dateTime.label' | t }}
-      <span class="required-marker text-danger" aria-hidden="true">*</span></label
-    >
-    <ds-localized-datetime-picker
-      [inputId]="inputId() + '-date'"
-      formControlName="dateTime"
-      controlSize="small"
-      [dateLocale]="i18n.dateLocale()"
-      [labels]="dateTimeLabels()"
-      [required]="true"
-      [invalid]="saveAttempted() && form.controls.dateTime.invalid"
-      [showValidationErrors]="saveAttempted()"
-      [controlDisabled]="saving()"
-      [readonly]="false"
-      [min]="min()"
-      [max]="max()"
-    />
+  <div [class.finance-entry-full-width]="!assetPositions()">
+    @if (assetPositions()) {
+      <label [for]="inputId() + '-date'"
+        >{{ 'finance.transaction.date' | t }}
+        <span class="required-marker text-danger" aria-hidden="true">*</span></label
+      >
+      <ds-localized-date-picker
+        [inputId]="inputId() + '-date'"
+        formControlName="dateTime"
+        controlSize="small"
+        [dateLocale]="i18n.dateLocale()"
+        [labels]="dateLabels()"
+        [required]="true"
+        [invalid]="saveAttempted() && form.controls.dateTime.invalid"
+        [controlDisabled]="saving()"
+        [readonly]="false"
+        [min]="min()"
+        [max]="max()"
+      />
+    } @else {
+      <label [for]="inputId() + '-date'"
+        >{{ 'finance.dateTime.label' | t }}
+        <span class="required-marker text-danger" aria-hidden="true">*</span></label
+      >
+      <ds-localized-datetime-picker
+        [inputId]="inputId() + '-date'"
+        formControlName="dateTime"
+        controlSize="small"
+        [dateLocale]="i18n.dateLocale()"
+        [labels]="dateTimeLabels()"
+        [required]="true"
+        [invalid]="saveAttempted() && form.controls.dateTime.invalid"
+        [showValidationErrors]="saveAttempted()"
+        [controlDisabled]="saving()"
+        [readonly]="false"
+        [min]="min()"
+        [max]="max()"
+      />
+    }
   </div>
-  <div class="finance-entry-category">
-    <label [for]="inputId() + '-category'"
-      >{{ 'finance.category.name' | t }}
-      <span class="required-marker text-danger" aria-hidden="true">*</span></label
-    >
-    <ds-site-select
-      [inputId]="inputId() + '-category'"
-      formControlName="categoryId"
-      [options]="categoryOptions()"
-      controlSize="small"
-      appearance="default"
-      [required]="true"
-      [invalid]="saveAttempted() && form.controls.categoryId.invalid"
-      [controlDisabled]="saving()"
-    />
-  </div>
+  @if (!assetPositions()) {
+    <div class="finance-entry-category">
+      <label [for]="inputId() + '-category'"
+        >{{ 'finance.category.name' | t }}
+        <span class="required-marker text-danger" aria-hidden="true">*</span></label
+      >
+      <ds-site-select
+        [inputId]="inputId() + '-category'"
+        formControlName="categoryId"
+        [options]="categoryOptions()"
+        controlSize="small"
+        appearance="default"
+        [required]="true"
+        [invalid]="saveAttempted() && form.controls.categoryId.invalid"
+        [controlDisabled]="saving()"
+      />
+    </div>
+  }
   <div class="finance-entry-amount">
     <div>
       <label [for]="inputId() + '-amount'"
@@ -81,7 +103,9 @@
     ></textarea>
   </div>
   @if (saveAttempted() && form.invalid && !saving()) {
-    <p class="finance-entry-error text-danger" role="alert">{{ 'finance.error.entry' | t }}</p>
+    <p class="finance-entry-error text-danger" role="alert">
+      {{ (assetPositions() ? 'finance.assets.invalid' : 'finance.error.entry') | t }}
+    </p>
   }
   <div class="finance-entry-actions">
     <button
