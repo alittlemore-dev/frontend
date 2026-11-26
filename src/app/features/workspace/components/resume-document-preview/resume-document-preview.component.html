@@ -51,8 +51,7 @@
         @case ('company') {
           <div class="document-company">
             <div class="document-company-heading">
-              <strong>{{ block.text }}</strong
-              ><span>{{ block.detail }}</span>
+              <strong>{{ block.text }}</strong><span>{{ block.detail }}</span>
             </div>
             @for (line of block.lines; track $index) {
               <p class="document-muted">{{ line }}</p>

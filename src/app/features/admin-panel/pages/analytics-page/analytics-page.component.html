@@ -336,8 +336,7 @@
       <ul class="list-unstyled collection-list mb-0 mt-2">
         @for (point of chartData(); track point.date) {
           <li class="collection-row analytics-data-row">
-            <span>{{ point.period }}</span
-            ><strong>{{ point.value }}</strong>
+            <span>{{ point.period }}</span><strong>{{ point.value }}</strong>
           </li>
         }
       </ul>
@@ -355,8 +354,9 @@
           @for (item of sources(); track item.id) {
             <div>
               <div class="d-flex justify-content-between gap-2">
-                <span>{{ 'analytics.source.' + item.id | t }}</span
-                ><strong>{{ item.total[metric()] }}</strong>
+                <span>{{ 'analytics.source.' + item.id | t }}</span><strong>{{
+                  item.total[metric()]
+                }}</strong>
               </div>
               <meter
                 class="w-100"
@@ -378,8 +378,7 @@
           @for (item of groups(); track item.id) {
             <div class="mb-2">
               <div class="d-flex justify-content-between gap-2">
-                <span>{{ item.label }}</span
-                ><strong>{{ item.total[metric()] }}</strong>
+                <span>{{ item.label }}</span><strong>{{ item.total[metric()] }}</strong>
               </div>
               <meter
                 class="w-100"
@@ -411,8 +410,7 @@
       <ul class="list-unstyled collection-list mb-0">
         @for (sheet of suggestionSheets(); track sheet.id) {
           <li class="collection-row analytics-data-row">
-            <span>{{ sheet.label }}</span
-            ><strong>{{ sheet.value }}</strong>
+            <span>{{ sheet.label }}</span><strong>{{ sheet.value }}</strong>
           </li>
         } @empty {
           <li class="text-body-secondary small">{{ 'articles.stats.empty' | t }}</li>
@@ -445,8 +443,7 @@
       <div class="analytics-control mb-3">
         <label class="form-label small" for="analyticsPageSearch">{{
           'analytics.search.Site' | t
-        }}</label
-        ><input
+        }}</label><input
           id="analyticsPageSearch"
           type="search"
           class="form-control form-control-sm"

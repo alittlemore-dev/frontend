@@ -198,16 +198,17 @@
         } @else if (sessionsStatus(); as status) {
           <div class="admin-maintenance-metrics">
             <div>
-              <strong>{{ status.expiredCount }}</strong
-              ><span class="small text-body-secondary">{{
+              <strong>{{ status.expiredCount }}</strong><span class="small text-body-secondary">{{
                 'adminTools.sessions.expiredLabel' | t
               }}</span>
             </div>
             <div>
-              <strong>{{ status.expiringSoonCount }}</strong
-              ><span class="small text-body-secondary">{{
-                'adminTools.sessions.expiringSoonLabel' | t: { days: status.expiringSoonDays }
-              }}</span>
+              <strong>{{ status.expiringSoonCount }}</strong><span
+                class="small text-body-secondary"
+                >{{
+                  'adminTools.sessions.expiringSoonLabel' | t: { days: status.expiringSoonDays }
+                }}</span
+              >
             </div>
           </div>
           <p class="small text-body-secondary">

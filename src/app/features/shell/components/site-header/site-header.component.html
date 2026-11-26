@@ -79,8 +79,9 @@
         [disabled]="settingsService.saving()"
         [attr.aria-label]="'shell.theme.toggle' | t"
       >
-        <span>{{ 'shell.theme.toggle' | t }}</span
-        ><span class="text-body-secondary">{{ toggleLabel() }}</span>
+        <span>{{ 'shell.theme.toggle' | t }}</span><span class="text-body-secondary">{{
+          toggleLabel()
+        }}</span>
       </button>
       <button
         type="button"
@@ -90,8 +91,7 @@
         aria-controls="site-language-options"
         [attr.aria-expanded]="languageMenuOpen()"
       >
-        <span>{{ 'shell.language.label' | t }}</span
-        ><span aria-hidden="true">⌄</span>
+        <span>{{ 'shell.language.label' | t }}</span><span aria-hidden="true">⌄</span>
       </button>
       @if (languageMenuOpen()) {
         <div
