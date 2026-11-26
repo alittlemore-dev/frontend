@@ -57,8 +57,10 @@ export class FinanceTransactionEntryComponent {
   readonly timeZone = input.required<string>();
   readonly saving = input.required<boolean>();
   readonly editing = input(false);
+  readonly allowAddAnother = input(false);
   readonly saveAttempted = signal(false);
   readonly submitted = output<FinanceTransactionEntry>();
+  readonly addAnotherSubmitted = output<FinanceTransactionEntry>();
   readonly draftChanged = output<FinanceTransactionEntry>();
   readonly cancelled = output<void>();
 
@@ -137,7 +139,7 @@ export class FinanceTransactionEntryComponent {
     });
   }
 
-  submit(): void {
+  submit(addAnother = false): void {
     if (this.saving()) return;
     this.saveAttempted.set(true);
     this.form.markAllAsTouched();
@@ -150,6 +152,8 @@ export class FinanceTransactionEntryComponent {
     }
     if (this.form.invalid) return;
     const value = this.form.getRawValue();
-    this.submitted.emit({ ...value, dateTime: value.dateTime ?? '' });
+    const entry = { ...value, dateTime: value.dateTime ?? '' };
+    if (addAnother) this.addAnotherSubmitted.emit(entry);
+    else this.submitted.emit(entry);
   }
 }

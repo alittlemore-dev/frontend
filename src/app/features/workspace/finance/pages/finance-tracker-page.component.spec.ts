@@ -49,7 +49,10 @@ describe('FinanceTrackerPageComponent', () => {
         provideRouter([]),
         provideHttpClient(),
         provideHttpClientTesting(),
-        provideI18nTesting({ 'finance.category.none': 'Без категории' }),
+        provideI18nTesting({
+          'finance.category.none': 'Без категории',
+          'finance.transaction.addAnother': 'Добавить и продолжить',
+        }),
         { provide: FinanceService, useValue: service },
         { provide: AccountSettingsService, useValue: { timeZone: accountTimeZone } },
       ],
@@ -233,6 +236,12 @@ describe('FinanceTrackerPageComponent', () => {
     return dialog;
   }
 
+  function addAnotherButton(dialog: HTMLDialogElement): HTMLButtonElement {
+    return [...dialog.querySelectorAll('button')].find(
+      (button) => button.textContent?.trim() === 'Добавить и продолжить',
+    )!;
+  }
+
   it('shows a localized month and year beside the overview title', () => {
     const root = fixture.nativeElement as HTMLElement;
     const label = root.querySelector('.finance-month-label');
@@ -349,6 +358,91 @@ describe('FinanceTrackerPageComponent', () => {
     expect(dialog.open).toBe(false);
     expect(fixture.componentInstance.transactionEditor()).toBeNull();
     expect(service.transactions).toHaveBeenCalledTimes(2);
+  });
+
+  it('adds consecutive expenses without reentering the category, currency, date or time', () => {
+    const pending = new Subject<FinanceTransaction>();
+    service.createTransaction.mockReturnValueOnce(pending);
+    const dialog = openTransaction();
+    const form = entries()[0].form;
+    const settings = { categoryId: 'food', currency: 'EUR', dateTime: '2026-09-15T16:25' } as const;
+    form.setValue({ ...settings, amount: '12,5', description: 'Lunch' });
+    fixture.detectChanges();
+
+    const addAnother = addAnotherButton(dialog);
+    expect(addAnother).toBeDefined();
+    addAnother.click();
+    fixture.detectChanges();
+    expect(addAnother.disabled).toBe(true);
+    addAnother.click();
+    expect(service.createTransaction).toHaveBeenCalledTimes(1);
+    expect(service.createTransaction).toHaveBeenCalledWith({
+      categoryId: 'food',
+      currency: 'EUR',
+      occurredAt: '2026-09-15T12:25:00Z',
+      amount: '12.5',
+      description: 'Lunch',
+    });
+    expect(form.getRawValue()).toEqual({ ...settings, amount: '12,5', description: 'Lunch' });
+
+    pending.next(TRANSACTION);
+    pending.complete();
+    fixture.detectChanges();
+    expect(dialog.open).toBe(true);
+    expect(dialog.querySelector('[role="status"]')?.textContent).toContain(
+      'finance.transaction.added',
+    );
+    expect(form.getRawValue()).toEqual({ ...settings, amount: '', description: '' });
+    expect(dialog.querySelector('[role="alert"]')).toBeNull();
+    expect(service.transactions).toHaveBeenCalledTimes(2);
+
+    form.controls.amount.setValue('3');
+    addAnotherButton(dialog).click();
+    fixture.detectChanges();
+    expect(service.createTransaction).toHaveBeenCalledTimes(2);
+    expect(service.createTransaction).toHaveBeenLastCalledWith({
+      categoryId: 'food',
+      currency: 'EUR',
+      occurredAt: '2026-09-15T12:25:00Z',
+      amount: '3',
+      description: '',
+    });
+    dialog.dispatchEvent(new Event('cancel', { cancelable: true }));
+    fixture.detectChanges();
+    expect(dialog.open).toBe(false);
+  });
+
+  it('keeps the income draft through validation and server errors when adding another', () => {
+    service.createTransaction.mockReturnValueOnce(throwError(() => ({ status: 503 })));
+    const dialog = openTransaction('income');
+    const form = entries()[0].form;
+    const draft = {
+      categoryId: 'salary',
+      currency: 'EUR',
+      dateTime: '2026-09-15T16:25',
+      amount: '25',
+      description: 'Bonus',
+    } as const;
+    form.setValue({ ...draft, amount: '' });
+    fixture.detectChanges();
+    addAnotherButton(dialog).click();
+    fixture.detectChanges();
+    expect(service.createTransaction).not.toHaveBeenCalled();
+    expect(dialog.querySelector('[role="alert"]')?.textContent).toContain('finance.error.entry');
+
+    form.controls.amount.setValue(draft.amount);
+    addAnotherButton(dialog).click();
+    fixture.detectChanges();
+    expect(dialog.open).toBe(true);
+    expect(dialog.querySelector('[role="alert"]')?.textContent).toContain('finance.error.rate');
+    expect(form.getRawValue()).toEqual(draft);
+
+    addAnotherButton(dialog).click();
+    fixture.detectChanges();
+    expect(service.createTransaction).toHaveBeenCalledTimes(2);
+    expect(dialog.open).toBe(true);
+    expect(dialog.querySelector('[role="alert"]')).toBeNull();
+    expect(form.controls.amount.value).toBe('');
   });
 
   it('reloads month boundaries and wall times when the account zone changes', () => {

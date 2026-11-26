@@ -172,6 +172,7 @@ export class FinanceTrackerPageComponent implements OnInit {
     income: { name: '', plan: '' },
   });
   readonly transactionEditor = signal<FinanceTransactionEditor | null>(null);
+  readonly transactionAdded = signal(false);
   readonly repeatCategoryUnavailable = signal(false);
   readonly categoryToRemove = signal<FinanceCategory | null>(null);
   private readonly removalDialog = viewChild('removalDialog', { read: ModalDialogDirective });
@@ -663,13 +664,18 @@ export class FinanceTrackerPageComponent implements OnInit {
   }
 
   private openTransactionEditor(editor: FinanceTransactionEditor): void {
-    this.transactionEditor.set(editor);
+    this.setTransactionEditor(editor);
+    this.transactionAdded.set(false);
     this.repeatCategoryUnavailable.set(false);
     this.errorKey.set(null);
-    this.transactionDraft.set(editor.entry);
-    this.editorBaseline.set(JSON.stringify(this.transactionDraft()));
     this.changeDetector.detectChanges();
     this.transactionDialog()?.open();
+  }
+
+  private setTransactionEditor(editor: FinanceTransactionEditor): void {
+    this.transactionEditor.set(editor);
+    this.transactionDraft.set(editor.entry);
+    this.editorBaseline.set(JSON.stringify(editor.entry));
   }
 
   repeatTransaction(transaction: FinanceTransaction): void {
@@ -762,11 +768,12 @@ export class FinanceTrackerPageComponent implements OnInit {
     return this.currencyOptions.some((option) => option.value === value);
   }
 
-  saveTransaction(entry: FinanceTransactionEntry): void {
+  saveTransaction(entry: FinanceTransactionEntry, addAnother = false): void {
     if (!this.canWriteTransactions()) return;
     const month = this.month();
     const editor = this.transactionEditor();
     if (month === null || editor === null || this.saving()) return;
+    this.transactionAdded.set(false);
     if (!entry.categoryId || !entry.amount.trim()) {
       this.errorKey.set('finance.error.entry');
       return;
@@ -805,6 +812,15 @@ export class FinanceTrackerPageComponent implements OnInit {
           ? this.service.createTransaction(draft)
           : this.service.updateTransaction(editing.id, editing.version, draft);
       this.mutateTransaction(operation, () => {
+        if (addAnother && editing === null) {
+          this.setTransactionEditor({
+            ...editor,
+            entry: { ...entry, amount: '', description: '' },
+          });
+          this.repeatCategoryUnavailable.set(false);
+          this.transactionAdded.set(true);
+          return;
+        }
         this.transactionDialog()?.close();
         this.transactionEditor.set(null);
       });

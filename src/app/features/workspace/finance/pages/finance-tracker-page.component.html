@@ -450,6 +450,11 @@
       @if (repeatCategoryUnavailable()) {
         <p class="text-body-secondary">{{ 'finance.transaction.repeatCategoryUnavailable' | t }}</p>
       }
+      <div role="status">
+        @if (transactionAdded()) {
+          <p class="text-success">{{ 'finance.transaction.added' | t }}</p>
+        }
+      </div>
       <app-finance-transaction-entry
         inputId="finance-transaction"
         [initialValue]="editor.entry"
@@ -459,8 +464,10 @@
         [timeZone]="timeZone()"
         [saving]="saving()"
         [editing]="editor.transaction !== null"
+        [allowAddAnother]="editor.transaction === null"
         (draftChanged)="transactionDraft.set($event)"
         (submitted)="saveTransaction($event)"
+        (addAnotherSubmitted)="saveTransaction($event, true)"
         (cancelled)="closeTransactionEditor()"
       />
     }

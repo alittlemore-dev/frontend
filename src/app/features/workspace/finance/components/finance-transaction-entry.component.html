@@ -116,6 +116,16 @@
     >
       {{ 'shared.cancel' | t }}
     </button>
+    @if (allowAddAnother()) {
+      <button
+        type="button"
+        class="btn btn-sm detail-save"
+        [disabled]="saving()"
+        (click)="submit(true)"
+      >
+        {{ 'finance.transaction.addAnother' | t }}
+      </button>
+    }
     <button type="submit" class="btn btn-sm detail-save" [disabled]="saving()">
       {{ (editing() ? 'shared.save' : 'shared.add') | t }}
     </button>
